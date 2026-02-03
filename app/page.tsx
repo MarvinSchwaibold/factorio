@@ -28,10 +28,10 @@ const theme = {
   // States
   success: "#10b981",
   successBg: "rgba(16, 185, 129, 0.08)",
-  warning: "#f59e0b",
-  warningText: "#fbbf24",
-  warningBg: "rgba(245, 158, 11, 0.08)",
-  warningBorder: "rgba(245, 158, 11, 0.5)",
+  warning: "#e07020",
+  warningText: "#f0a050",
+  warningBg: "rgba(224, 112, 32, 0.08)",
+  warningBorder: "rgba(224, 112, 32, 0.5)",
   error: "#ef4444",
   errorBg: "rgba(239, 68, 68, 0.08)",
   // Grid
@@ -45,7 +45,7 @@ const theme = {
   shadow: "none",
   glowAccent: "0 0 6px #5eead4",
   glowSuccess: "0 0 6px rgba(16, 185, 129, 0.6)",
-  glowWarning: "0 0 6px rgba(245, 158, 11, 0.6)",
+  glowWarning: "0 0 6px rgba(224, 112, 32, 0.6)",
   // Typography
   fontFamily: "monospace",
   borderRadius: "0px",
@@ -440,9 +440,9 @@ function LiveStatusWidget({
             height: 8,
             borderRadius: isRetro ? 0 : "50%",
             background: isActive
-              ? (stats.tasksFailed > 0 ? "#ef4444" : stats.awaitingApproval > 0 ? "#f59e0b" : stats.tasksRewriting > 0 ? "#a855f7" : "#5eead4")
+              ? (stats.tasksFailed > 0 ? "#ef4444" : stats.awaitingApproval > 0 ? "#e07020" : stats.tasksRewriting > 0 ? "#a855f7" : "#5eead4")
               : (isRetro ? "rgba(94, 234, 212, 0.3)" : "#d4d4d4"),
-            boxShadow: isRetro && isActive ? `0 0 8px ${stats.tasksFailed > 0 ? "#ef4444" : stats.awaitingApproval > 0 ? "#f59e0b" : stats.tasksRewriting > 0 ? "#a855f7" : "#5eead4"}` : "none"
+            boxShadow: isRetro && isActive ? `0 0 8px ${stats.tasksFailed > 0 ? "#ef4444" : stats.awaitingApproval > 0 ? "#e07020" : stats.tasksRewriting > 0 ? "#a855f7" : "#5eead4"}` : "none"
           }}
         />
         <span style={{
@@ -464,7 +464,7 @@ function LiveStatusWidget({
           <StatusRow label="Workflows" value={stats.workflowsActive} isRetro={isRetro} active={stats.workflowsActive > 0} />
           <StatusRow label="Tasks" value={stats.totalActive} isRetro={isRetro} active={stats.tasksRunning > 0} />
           {stats.subWorkflowsActive > 0 && <StatusRow label="Sub-tasks" value={stats.subTasksActive} isRetro={isRetro} active />}
-          {stats.awaitingApproval > 0 && <StatusRow label="Pending" value={stats.awaitingApproval} isRetro={isRetro} color="#f59e0b" active />}
+          {stats.awaitingApproval > 0 && <StatusRow label="Pending" value={stats.awaitingApproval} isRetro={isRetro} color="#e07020" active />}
           {stats.tasksFixing > 0 && <StatusRow label="Fixing" value={stats.tasksFixing} isRetro={isRetro} color="#3b82f6" active />}
           {stats.tasksRewriting > 0 && <StatusRow label="Rewriting" value={stats.tasksRewriting} isRetro={isRetro} color="#a855f7" active />}
           {stats.tasksFailed > 0 && <StatusRow label="Failed" value={stats.tasksFailed} isRetro={isRetro} color="#ef4444" active />}
@@ -481,7 +481,7 @@ function LiveStatusWidget({
           {totals.subTasksProcessed > 0 && <StatusRow label="Sub-tasks" value={totals.subTasksProcessed} isRetro={isRetro} />}
           {totals.fixesApplied > 0 && <StatusRow label="Fixes" value={totals.fixesApplied} isRetro={isRetro} color="#3b82f6" />}
           {totals.restructured > 0 && <StatusRow label="Restructured" value={totals.restructured} isRetro={isRetro} color="#a855f7" />}
-          {totals.errorsRecovered > 0 && <StatusRow label="Recovered" value={totals.errorsRecovered} isRetro={isRetro} color="#f59e0b" />}
+          {totals.errorsRecovered > 0 && <StatusRow label="Recovered" value={totals.errorsRecovered} isRetro={isRetro} color="#e07020" />}
         </div>
       </div>
     </motion.div>
@@ -529,8 +529,8 @@ function TaskWidget({ task, onApprove, onReject, onResolve, isCollapsing, collap
   const stateColors = isRetro ? {
     working: { border: "#5eead4", bg: "rgba(94, 234, 212, 0.12)", text: "#5eead4", subtext: "#5eead4" },
     completed: { border: "#10b981", bg: "rgba(16, 185, 129, 0.08)", text: "#10b981", subtext: "#10b981" },
-    needs_approval: { border: "#f59e0b", bg: "rgba(245, 158, 11, 0.12)", text: "#fbbf24", subtext: "#f59e0b" },
-    needs_resolve: { border: "#f59e0b", bg: "rgba(245, 158, 11, 0.12)", text: "#fbbf24", subtext: "#f59e0b" },
+    needs_approval: { border: "#e07020", bg: "rgba(224, 112, 32, 0.12)", text: "#f0a050", subtext: "#e07020" },
+    needs_resolve: { border: "#e07020", bg: "rgba(224, 112, 32, 0.12)", text: "#f0a050", subtext: "#e07020" },
     failed: { border: "#ef4444", bg: "rgba(239, 68, 68, 0.15)", text: "#f87171", subtext: "#ef4444" },
     fixing: { border: "#3b82f6", bg: "rgba(59, 130, 246, 0.12)", text: "#60a5fa", subtext: "#3b82f6" },
     rewriting: { border: "#a855f7", bg: "rgba(168, 85, 247, 0.12)", text: "#c084fc", subtext: "#a855f7" },
@@ -538,8 +538,8 @@ function TaskWidget({ task, onApprove, onReject, onResolve, isCollapsing, collap
   } : {
     working: { border: "#e5e5e5", bg: "white", text: "#171717", subtext: "#3b82f6" },
     completed: { border: "#d1fae5", bg: "white", text: "#10b981", subtext: "#10b981" },
-    needs_approval: { border: "#fcd34d", bg: "white", text: "#171717", subtext: "#f59e0b" },
-    needs_resolve: { border: "#fcd34d", bg: "white", text: "#171717", subtext: "#f59e0b" },
+    needs_approval: { border: "#fcd34d", bg: "white", text: "#171717", subtext: "#e07020" },
+    needs_resolve: { border: "#fcd34d", bg: "white", text: "#171717", subtext: "#e07020" },
     failed: { border: "#fecaca", bg: "white", text: "#dc2626", subtext: "#ef4444" },
     fixing: { border: "#bfdbfe", bg: "white", text: "#2563eb", subtext: "#3b82f6" },
     rewriting: { border: "#e9d5ff", bg: "white", text: "#7c3aed", subtext: "#a855f7" },
@@ -634,10 +634,10 @@ function TaskWidget({ task, onApprove, onReject, onResolve, isCollapsing, collap
             )
           ) : needsApproval || needsResolve ? (
             isRetro ? (
-              <motion.div animate={{ scale: [1, 1.2, 1], opacity: [0.7, 1, 0.7] }} transition={{ duration: 1.2, repeat: Infinity }} style={{ width: 10, height: 10, borderRadius: "50%", background: "#f59e0b", boxShadow: "0 0 10px rgba(245, 158, 11, 0.6)" }} />
+              <motion.div animate={{ scale: [1, 1.2, 1], opacity: [0.7, 1, 0.7] }} transition={{ duration: 1.2, repeat: Infinity }} style={{ width: 10, height: 10, borderRadius: "50%", background: "#e07020", boxShadow: "0 0 10px rgba(224, 112, 32, 0.6)" }} />
             ) : (
               <motion.div animate={{ scale: [1, 1.1, 1] }} transition={{ duration: 1.5, repeat: Infinity }} style={{ width: 24, height: 24, borderRadius: 6, background: "#fef3c7", display: "flex", alignItems: "center", justifyContent: "center" }}>
-                <div style={{ width: 8, height: 8, borderRadius: "50%", background: "#f59e0b" }} />
+                <div style={{ width: 8, height: 8, borderRadius: "50%", background: "#e07020" }} />
               </motion.div>
             )
           ) : isWorking ? (
@@ -668,7 +668,7 @@ function TaskWidget({ task, onApprove, onReject, onResolve, isCollapsing, collap
         {needsApproval && (
           <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: "auto" }} transition={{ delay: 0.2, duration: 0.3 }}>
             {task.subtext && (
-              <div style={{ marginTop: 12, padding: "10px 12px", background: isRetro ? "rgba(245, 158, 11, 0.1)" : "#fffbeb", border: `1px solid ${isRetro ? "rgba(245, 158, 11, 0.2)" : "#fef3c7"}`, fontSize: isRetro ? 11 : 13, color: isRetro ? "#fcd34d" : "#92400e", letterSpacing: isRetro ? "0.04em" : undefined, borderRadius: isRetro ? 0 : 8 }}>{task.subtext}</div>
+              <div style={{ marginTop: 12, padding: "10px 12px", background: isRetro ? "rgba(224, 112, 32, 0.1)" : "#fffbeb", border: `1px solid ${isRetro ? "rgba(224, 112, 32, 0.2)" : "#fef3c7"}`, fontSize: isRetro ? 11 : 13, color: isRetro ? "#fcd34d" : "#92400e", letterSpacing: isRetro ? "0.04em" : undefined, borderRadius: isRetro ? 0 : 8 }}>{task.subtext}</div>
             )}
             <div style={{ display: "flex", gap: isRetro ? 10 : 8, marginTop: 14 }}>
               <button
@@ -690,14 +690,14 @@ function TaskWidget({ task, onApprove, onReject, onResolve, isCollapsing, collap
         {needsResolve && (
           <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: "auto" }} transition={{ delay: 0.2, duration: 0.3 }}>
             {task.subtext && (
-              <div style={{ marginTop: 12, padding: "10px 12px", background: isRetro ? "rgba(245, 158, 11, 0.1)" : "#fffbeb", border: `1px solid ${isRetro ? "rgba(245, 158, 11, 0.2)" : "#fef3c7"}`, fontSize: isRetro ? 11 : 13, color: isRetro ? "#fcd34d" : "#92400e", letterSpacing: isRetro ? "0.04em" : undefined, borderRadius: isRetro ? 0 : 8 }}>{task.subtext}</div>
+              <div style={{ marginTop: 12, padding: "10px 12px", background: isRetro ? "rgba(224, 112, 32, 0.1)" : "#fffbeb", border: `1px solid ${isRetro ? "rgba(224, 112, 32, 0.2)" : "#fef3c7"}`, fontSize: isRetro ? 11 : 13, color: isRetro ? "#fcd34d" : "#92400e", letterSpacing: isRetro ? "0.04em" : undefined, borderRadius: isRetro ? 0 : 8 }}>{task.subtext}</div>
             )}
             <div style={{ marginTop: 20 }}>
               <button
                 onClick={onResolve}
-                style={{ width: "100%", background: isRetro ? "rgba(245, 158, 11, 0.15)" : "#f59e0b", border: isRetro ? "2px solid rgba(245, 158, 11, 0.5)" : "none", color: isRetro ? "#fbbf24" : "white", padding: isRetro ? "12px 20px" : "10px 16px", fontSize: isRetro ? 11 : 13, letterSpacing: isRetro ? "0.1em" : undefined, cursor: "pointer", fontFamily: isRetro ? "monospace" : undefined, fontWeight: isRetro ? 700 : 600, display: "flex", alignItems: "center", justifyContent: "center", gap: 8, borderRadius: isRetro ? 0 : 8 }}
-                onMouseEnter={(e) => { e.currentTarget.style.background = isRetro ? "rgba(245, 158, 11, 0.25)" : "#d97706"; if (isRetro) e.currentTarget.style.boxShadow = "0 0 20px rgba(245, 158, 11, 0.2)"; }}
-                onMouseLeave={(e) => { e.currentTarget.style.background = isRetro ? "rgba(245, 158, 11, 0.15)" : "#f59e0b"; if (isRetro) e.currentTarget.style.boxShadow = "none"; }}
+                style={{ width: "100%", background: isRetro ? "rgba(224, 112, 32, 0.15)" : "#e07020", border: isRetro ? "2px solid rgba(224, 112, 32, 0.5)" : "none", color: isRetro ? "#f0a050" : "white", padding: isRetro ? "12px 20px" : "10px 16px", fontSize: isRetro ? 11 : 13, letterSpacing: isRetro ? "0.1em" : undefined, cursor: "pointer", fontFamily: isRetro ? "monospace" : undefined, fontWeight: isRetro ? 700 : 600, display: "flex", alignItems: "center", justifyContent: "center", gap: 8, borderRadius: isRetro ? 0 : 8 }}
+                onMouseEnter={(e) => { e.currentTarget.style.background = isRetro ? "rgba(224, 112, 32, 0.25)" : "#d97706"; if (isRetro) e.currentTarget.style.boxShadow = "0 0 20px rgba(224, 112, 32, 0.2)"; }}
+                onMouseLeave={(e) => { e.currentTarget.style.background = isRetro ? "rgba(224, 112, 32, 0.15)" : "#e07020"; if (isRetro) e.currentTarget.style.boxShadow = "none"; }}
               >
                 {isRetro ? "REVIEW" : "Review"}
               </button>
@@ -745,10 +745,10 @@ function EmailPreviewPanel({
         {isRetro ? "REVIEW EMAIL COPY" : "Review email copy"}
       </motion.div>
       <motion.div
-        style={{ border: isRetro ? "2px solid rgba(245, 158, 11, 0.5)" : "1px solid #fef3c7", background: isRetro ? "rgba(245, 158, 11, 0.08)" : "white", padding: "16px 20px", minWidth: isRetro ? 320 : 300, maxWidth: isRetro ? 360 : 340, position: "relative", overflow: "hidden", borderRadius: theme.borderRadius, boxShadow: theme.shadow }}
+        style={{ border: isRetro ? "2px solid rgba(224, 112, 32, 0.5)" : "1px solid #fef3c7", background: isRetro ? "rgba(224, 112, 32, 0.08)" : "white", padding: "16px 20px", minWidth: isRetro ? 320 : 300, maxWidth: isRetro ? 360 : 340, position: "relative", overflow: "hidden", borderRadius: theme.borderRadius, boxShadow: theme.shadow }}
       >
         <div style={{ marginBottom: 12 }}>
-          <div style={{ fontSize: isRetro ? 9 : 11, color: isRetro ? "rgba(245, 158, 11, 0.5)" : "#a3a3a3", letterSpacing: isRetro ? "0.1em" : undefined, marginBottom: 4 }}>{isRetro ? "SUBJECT" : "Subject"}</div>
+          <div style={{ fontSize: isRetro ? 9 : 11, color: isRetro ? "rgba(224, 112, 32, 0.5)" : "#a3a3a3", letterSpacing: isRetro ? "0.1em" : undefined, marginBottom: 4 }}>{isRetro ? "SUBJECT" : "Subject"}</div>
           <input
             type="text"
             value={subject}
@@ -756,7 +756,7 @@ function EmailPreviewPanel({
             style={{
               width: "100%",
               fontSize: isRetro ? 12 : 13,
-              color: isRetro ? "#fbbf24" : "#171717",
+              color: isRetro ? "#f0a050" : "#171717",
               fontWeight: 600,
               background: "transparent",
               border: "none",
@@ -766,7 +766,7 @@ function EmailPreviewPanel({
             }}
           />
         </div>
-        <div style={{ background: isRetro ? "rgba(0, 0, 0, 0.3)" : "#f5f5f5", border: `1px solid ${isRetro ? "rgba(245, 158, 11, 0.2)" : "#e5e5e5"}`, padding: 12, marginBottom: 14, borderRadius: isRetro ? 0 : 8 }}>
+        <div style={{ background: isRetro ? "rgba(0, 0, 0, 0.3)" : "#f5f5f5", border: `1px solid ${isRetro ? "rgba(224, 112, 32, 0.2)" : "#e5e5e5"}`, padding: 12, marginBottom: 14, borderRadius: isRetro ? 0 : 8 }}>
           <textarea
             value={body}
             onChange={(e) => setBody(e.target.value)}
@@ -831,7 +831,7 @@ function EmailPreviewPanel({
           <motion.path
             d={mirrored ? `M ${SUB_CONNECTION_WIDTH - 4} ${TASK_CONNECTION_Y} L 4 ${TASK_CONNECTION_Y}` : `M 4 ${TASK_CONNECTION_Y} L ${SUB_CONNECTION_WIDTH - 4} ${TASK_CONNECTION_Y}`}
             fill="none"
-            stroke={isRetro ? "rgba(245, 158, 11, 0.4)" : "#fcd34d"}
+            stroke={isRetro ? "rgba(224, 112, 32, 0.4)" : "#fcd34d"}
             strokeWidth="1"
             initial={{ pathLength: 0 }}
             animate={{ pathLength: isCollapsing ? 0 : 1 }}
@@ -840,8 +840,8 @@ function EmailPreviewPanel({
         </svg>
         {!isCollapsing && (
           <>
-            <motion.div initial={{ scale: 0 }} animate={{ scale: 1 }} transition={{ duration: 0.25, ease: [0.25, 0.1, 0.25, 1] }} style={{ position: "absolute", left: mirrored ? SUB_CONNECTION_WIDTH - 6 : 2, top: TASK_CONNECTION_Y - 2, width: 4, height: 4, borderRadius: isRetro ? 0 : "50%", background: "#f59e0b", boxShadow: isRetro ? theme.glowWarning : "none" }} />
-            <motion.div initial={{ scale: 0 }} animate={{ scale: 1 }} transition={{ delay: 0.1, duration: 0.25, ease: [0.25, 0.1, 0.25, 1] }} style={{ position: "absolute", left: mirrored ? 2 : SUB_CONNECTION_WIDTH - 6, top: TASK_CONNECTION_Y - 2, width: 4, height: 4, borderRadius: isRetro ? 0 : "50%", background: "#f59e0b", boxShadow: isRetro ? theme.glowWarning : "none" }} />
+            <motion.div initial={{ scale: 0 }} animate={{ scale: 1 }} transition={{ duration: 0.25, ease: [0.25, 0.1, 0.25, 1] }} style={{ position: "absolute", left: mirrored ? SUB_CONNECTION_WIDTH - 6 : 2, top: TASK_CONNECTION_Y - 2, width: 4, height: 4, borderRadius: isRetro ? 0 : "50%", background: "#e07020", boxShadow: isRetro ? theme.glowWarning : "none" }} />
+            <motion.div initial={{ scale: 0 }} animate={{ scale: 1 }} transition={{ delay: 0.1, duration: 0.25, ease: [0.25, 0.1, 0.25, 1] }} style={{ position: "absolute", left: mirrored ? 2 : SUB_CONNECTION_WIDTH - 6, top: TASK_CONNECTION_Y - 2, width: 4, height: 4, borderRadius: isRetro ? 0 : "50%", background: "#e07020", boxShadow: isRetro ? theme.glowWarning : "none" }} />
           </>
         )}
       </div>
@@ -886,12 +886,12 @@ function InsightsPreviewPanel({
       style={{ alignItems: mirrored ? "flex-end" : "flex-start", position: "relative" }}
     >
       <motion.div initial={{ opacity: 0, y: 4 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1, duration: 0.3 }} style={{ position: "absolute", top: -12, left: mirrored ? "auto" : 8, right: mirrored ? 8 : "auto", fontSize: isRetro ? 9 : 10, letterSpacing: isRetro ? "0.08em" : undefined, padding: "4px 10px", background: theme.warning, color: isRetro ? "#000" : "white", width: "fit-content", fontWeight: isRetro ? 700 : 600, zIndex: 10, borderRadius: isRetro ? 0 : 4 }}>{isRetro ? "REVIEW INSIGHTS" : "Review insights"}</motion.div>
-      <motion.div style={{ border: isRetro ? "2px solid rgba(245, 158, 11, 0.5)" : "1px solid #fef3c7", background: isRetro ? "rgba(245, 158, 11, 0.08)" : "white", padding: "16px 20px", minWidth: isRetro ? 320 : 300, maxWidth: isRetro ? 360 : 340, position: "relative", overflow: "hidden", borderRadius: theme.borderRadius, boxShadow: theme.shadow }}>
+      <motion.div style={{ border: isRetro ? "2px solid rgba(224, 112, 32, 0.5)" : "1px solid #fef3c7", background: isRetro ? "rgba(224, 112, 32, 0.08)" : "white", padding: "16px 20px", minWidth: isRetro ? 320 : 300, maxWidth: isRetro ? 360 : 340, position: "relative", overflow: "hidden", borderRadius: theme.borderRadius, boxShadow: theme.shadow }}>
         <div style={{ marginBottom: 12 }}>
-          <div style={{ fontSize: isRetro ? 9 : 11, color: isRetro ? "rgba(245, 158, 11, 0.5)" : "#a3a3a3", letterSpacing: isRetro ? "0.1em" : undefined, marginBottom: 8 }}>{isRetro ? "KEY FINDINGS" : "Key findings"}</div>
+          <div style={{ fontSize: isRetro ? 9 : 11, color: isRetro ? "rgba(224, 112, 32, 0.5)" : "#a3a3a3", letterSpacing: isRetro ? "0.1em" : undefined, marginBottom: 8 }}>{isRetro ? "KEY FINDINGS" : "Key findings"}</div>
           <div style={{ display: "flex", flexDirection: "column", gap: isRetro ? 8 : 6 }}>
             {[{ metric: "Revenue", value: "+23%", trend: "up" },{ metric: "Orders", value: "+18%", trend: "up" },{ metric: "AOV", value: "$127", trend: "up" },{ metric: "Returns", value: "-5%", trend: "down" },{ metric: "New Customers", value: "+31%", trend: "up" }].map((item, i) => (
-              <div key={i} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: isRetro ? "6px 10px" : "8px 12px", background: isRetro ? "rgba(0, 0, 0, 0.2)" : "#f5f5f5", border: isRetro ? "1px solid rgba(245, 158, 11, 0.15)" : undefined, borderRadius: isRetro ? 0 : 6 }}>
+              <div key={i} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: isRetro ? "6px 10px" : "8px 12px", background: isRetro ? "rgba(0, 0, 0, 0.2)" : "#f5f5f5", border: isRetro ? "1px solid rgba(224, 112, 32, 0.15)" : undefined, borderRadius: isRetro ? 0 : 6 }}>
                 <span style={{ fontSize: isRetro ? 10 : 12, color: isRetro ? "rgba(255, 255, 255, 0.6)" : "#525252" }}>{item.metric}</span>
                 <span style={{ fontSize: isRetro ? 11 : 12, color: item.trend === "up" ? (isRetro ? "#5eead4" : "#16a34a") : (isRetro ? "#f87171" : "#dc2626"), fontWeight: 600 }}>{item.value}</span>
               </div>
@@ -925,12 +925,12 @@ function InsightsPreviewPanel({
       {/* Connection line at TASK_CONNECTION_Y (where main workflow line hits the task row) */}
       <div className="relative" style={{ width: SUB_CONNECTION_WIDTH, height: 450 }}>
         <svg style={{ position: "absolute", top: 0, left: 0, width: "100%", height: "100%", overflow: "visible" }}>
-          <motion.path d={mirrored ? `M ${SUB_CONNECTION_WIDTH - 4} ${TASK_CONNECTION_Y} L 4 ${TASK_CONNECTION_Y}` : `M 4 ${TASK_CONNECTION_Y} L ${SUB_CONNECTION_WIDTH - 4} ${TASK_CONNECTION_Y}`} fill="none" stroke={isRetro ? "rgba(245, 158, 11, 0.4)" : "#fcd34d"} strokeWidth="1" initial={{ pathLength: 0 }} animate={{ pathLength: isCollapsing ? 0 : 1 }} transition={{ duration: 0.35, ease: [0.25, 0.1, 0.25, 1] }} />
+          <motion.path d={mirrored ? `M ${SUB_CONNECTION_WIDTH - 4} ${TASK_CONNECTION_Y} L 4 ${TASK_CONNECTION_Y}` : `M 4 ${TASK_CONNECTION_Y} L ${SUB_CONNECTION_WIDTH - 4} ${TASK_CONNECTION_Y}`} fill="none" stroke={isRetro ? "rgba(224, 112, 32, 0.4)" : "#fcd34d"} strokeWidth="1" initial={{ pathLength: 0 }} animate={{ pathLength: isCollapsing ? 0 : 1 }} transition={{ duration: 0.35, ease: [0.25, 0.1, 0.25, 1] }} />
         </svg>
         {!isCollapsing && (
           <>
-            <motion.div initial={{ scale: 0 }} animate={{ scale: 1 }} transition={{ duration: 0.25, ease: [0.25, 0.1, 0.25, 1] }} style={{ position: "absolute", left: mirrored ? SUB_CONNECTION_WIDTH - 6 : 2, top: TASK_CONNECTION_Y - 2, width: 4, height: 4, borderRadius: isRetro ? 0 : "50%", background: "#f59e0b", boxShadow: isRetro ? theme.glowWarning : "none" }} />
-            <motion.div initial={{ scale: 0 }} animate={{ scale: 1 }} transition={{ delay: 0.1, duration: 0.25, ease: [0.25, 0.1, 0.25, 1] }} style={{ position: "absolute", left: mirrored ? 2 : SUB_CONNECTION_WIDTH - 6, top: TASK_CONNECTION_Y - 2, width: 4, height: 4, borderRadius: isRetro ? 0 : "50%", background: "#f59e0b", boxShadow: isRetro ? theme.glowWarning : "none" }} />
+            <motion.div initial={{ scale: 0 }} animate={{ scale: 1 }} transition={{ duration: 0.25, ease: [0.25, 0.1, 0.25, 1] }} style={{ position: "absolute", left: mirrored ? SUB_CONNECTION_WIDTH - 6 : 2, top: TASK_CONNECTION_Y - 2, width: 4, height: 4, borderRadius: isRetro ? 0 : "50%", background: "#e07020", boxShadow: isRetro ? theme.glowWarning : "none" }} />
+            <motion.div initial={{ scale: 0 }} animate={{ scale: 1 }} transition={{ delay: 0.1, duration: 0.25, ease: [0.25, 0.1, 0.25, 1] }} style={{ position: "absolute", left: mirrored ? 2 : SUB_CONNECTION_WIDTH - 6, top: TASK_CONNECTION_Y - 2, width: 4, height: 4, borderRadius: isRetro ? 0 : "50%", background: "#e07020", boxShadow: isRetro ? theme.glowWarning : "none" }} />
           </>
         )}
       </div>
@@ -983,22 +983,22 @@ function SubWorkflowPanel({
           transition={{ duration: 0.4, ease: [0.32, 0.72, 0, 1], delay: index * 0.08 }}
           style={{ height: SUB_TASK_ROW_HEIGHT, display: "flex", alignItems: "center", willChange: "transform, opacity, filter" }}
         >
-          <motion.div style={{ border: isRetro ? `2px solid ${task.status === "completed" ? "#10b981" : "rgba(245, 158, 11, 0.5)"}` : `1px solid ${task.status === "completed" ? "#d1fae5" : "#fef3c7"}`, background: isRetro ? (task.status === "completed" ? "rgba(16, 185, 129, 0.08)" : "rgba(245, 158, 11, 0.08)") : "white", padding: "12px 16px", minWidth: isRetro ? 240 : 220, position: "relative", overflow: "hidden", borderRadius: isRetro ? 0 : 10, boxShadow: isRetro ? "none" : "0 1px 2px rgba(0,0,0,0.04)" }}>
+          <motion.div style={{ border: isRetro ? `2px solid ${task.status === "completed" ? "#10b981" : "rgba(224, 112, 32, 0.5)"}` : `1px solid ${task.status === "completed" ? "#d1fae5" : "#fef3c7"}`, background: isRetro ? (task.status === "completed" ? "rgba(16, 185, 129, 0.08)" : "rgba(224, 112, 32, 0.08)") : "white", padding: "12px 16px", minWidth: isRetro ? 240 : 220, position: "relative", overflow: "hidden", borderRadius: isRetro ? 0 : 10, boxShadow: isRetro ? "none" : "0 1px 2px rgba(0,0,0,0.04)" }}>
             <div className="flex items-center gap-3">
               {task.status === "completed" ? (
                 <motion.div initial={{ scale: 0 }} animate={{ scale: 1 }} transition={{ type: "spring", stiffness: 500, damping: 25 }} style={{ background: isRetro ? "rgba(16, 185, 129, 0.15)" : "#dcfce7", color: isRetro ? "#10b981" : "#16a34a", fontSize: isRetro ? 14 : 11, width: isRetro ? 16 : 20, height: isRetro ? 16 : 20, display: "flex", alignItems: "center", justifyContent: "center", borderRadius: isRetro ? 0 : 5, textAlign: "center" as const, fontWeight: 600 }}>✓</motion.div>
               ) : task.status === "working" ? (
                 isRetro ? (
-                  <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 2 }}>{[0, 1, 2, 3].map(i => (<motion.div key={i} animate={{ opacity: [1, 0.2, 1] }} transition={{ duration: 0.5, repeat: Infinity, delay: i * 0.1 }} style={{ width: 3, height: 3, background: "#f59e0b" }} />))}</div>
+                  <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 2 }}>{[0, 1, 2, 3].map(i => (<motion.div key={i} animate={{ opacity: [1, 0.2, 1] }} transition={{ duration: 0.5, repeat: Infinity, delay: i * 0.1 }} style={{ width: 3, height: 3, background: "#e07020" }} />))}</div>
                 ) : (
-                  <div style={{ width: 20, height: 20, background: "#fef3c7", borderRadius: 5, display: "flex", alignItems: "center", justifyContent: "center", gap: 1 }}>{[0, 1, 2].map(i => (<motion.div key={i} animate={{ opacity: [0.3, 1, 0.3] }} transition={{ duration: 0.8, repeat: Infinity, delay: i * 0.2 }} style={{ width: 3, height: 3, borderRadius: "50%", background: "#f59e0b" }} />))}</div>
+                  <div style={{ width: 20, height: 20, background: "#fef3c7", borderRadius: 5, display: "flex", alignItems: "center", justifyContent: "center", gap: 1 }}>{[0, 1, 2].map(i => (<motion.div key={i} animate={{ opacity: [0.3, 1, 0.3] }} transition={{ duration: 0.8, repeat: Infinity, delay: i * 0.2 }} style={{ width: 3, height: 3, borderRadius: "50%", background: "#e07020" }} />))}</div>
                 )
               ) : (
-                <div style={{ width: isRetro ? 12 : 20, height: isRetro ? 12 : 20, border: `1px solid ${isRetro ? "rgba(245, 158, 11, 0.3)" : "#e5e5e5"}`, borderRadius: isRetro ? 0 : 5 }} />
+                <div style={{ width: isRetro ? 12 : 20, height: isRetro ? 12 : 20, border: `1px solid ${isRetro ? "rgba(224, 112, 32, 0.3)" : "#e5e5e5"}`, borderRadius: isRetro ? 0 : 5 }} />
               )}
-              <span style={{ fontSize: isRetro ? 11 : 13, letterSpacing: isRetro ? "0.05em" : undefined, color: task.status === "completed" ? (isRetro ? "#10b981" : "#10b981") : (isRetro ? "#fbbf24" : "#171717"), fontWeight: isRetro ? 600 : 500 }}>{task.label}</span>
+              <span style={{ fontSize: isRetro ? 11 : 13, letterSpacing: isRetro ? "0.05em" : undefined, color: task.status === "completed" ? (isRetro ? "#10b981" : "#10b981") : (isRetro ? "#f0a050" : "#171717"), fontWeight: isRetro ? 600 : 500 }}>{task.label}</span>
             </div>
-            {task.subtext && (<div style={{ marginTop: 6, marginLeft: isRetro ? 25 : 32, fontSize: isRetro ? 9 : 12, color: task.status === "completed" ? (isRetro ? "rgba(16, 185, 129, 0.6)" : "#6b7280") : (isRetro ? "rgba(245, 158, 11, 0.6)" : "#a3a3a3"), letterSpacing: isRetro ? "0.04em" : undefined }}>{task.subtext}</div>)}
+            {task.subtext && (<div style={{ marginTop: 6, marginLeft: isRetro ? 25 : 32, fontSize: isRetro ? 9 : 12, color: task.status === "completed" ? (isRetro ? "rgba(16, 185, 129, 0.6)" : "#6b7280") : (isRetro ? "rgba(224, 112, 32, 0.6)" : "#a3a3a3"), letterSpacing: isRetro ? "0.04em" : undefined }}>{task.subtext}</div>)}
           </motion.div>
         </motion.div>
       ))}
@@ -1030,22 +1030,22 @@ function SubWorkflowPanel({
       <div className="relative" style={{ width: SUB_CONNECTION_WIDTH, height: totalHeight }}>
         <svg style={{ position: "absolute", top: 0, left: 0, width: "100%", height: "100%", overflow: "visible" }}>
           {/* Main horizontal connection from parent task */}
-          <motion.path d={mirrored ? `M ${SUB_CONNECTION_WIDTH - 4} ${TASK_CONNECTION_Y} L ${SUB_CONNECTION_WIDTH / 2} ${TASK_CONNECTION_Y}` : `M 4 ${TASK_CONNECTION_Y} L ${SUB_CONNECTION_WIDTH / 2} ${TASK_CONNECTION_Y}`} fill="none" stroke={isRetro ? "rgba(245, 158, 11, 0.4)" : "#fcd34d"} strokeWidth="1" initial={{ pathLength: 0 }} animate={{ pathLength: isCollapsing ? 0 : 1 }} transition={{ duration: 0.35, ease: [0.25, 0.1, 0.25, 1] }} />
+          <motion.path d={mirrored ? `M ${SUB_CONNECTION_WIDTH - 4} ${TASK_CONNECTION_Y} L ${SUB_CONNECTION_WIDTH / 2} ${TASK_CONNECTION_Y}` : `M 4 ${TASK_CONNECTION_Y} L ${SUB_CONNECTION_WIDTH / 2} ${TASK_CONNECTION_Y}`} fill="none" stroke={isRetro ? "rgba(224, 112, 32, 0.4)" : "#fcd34d"} strokeWidth="1" initial={{ pathLength: 0 }} animate={{ pathLength: isCollapsing ? 0 : 1 }} transition={{ duration: 0.35, ease: [0.25, 0.1, 0.25, 1] }} />
           {/* Vertical line connecting all sub-tasks */}
-          {tasks.length > 1 && (<motion.path d={`M ${SUB_CONNECTION_WIDTH / 2} ${TASK_CONNECTION_Y} L ${SUB_CONNECTION_WIDTH / 2} ${getTaskY(tasks.length - 1)}`} fill="none" stroke={isRetro ? "rgba(245, 158, 11, 0.25)" : "#e5e5e5"} strokeWidth="1" strokeDasharray="4 4" initial={{ pathLength: 0 }} animate={{ pathLength: isCollapsing ? 0 : 1 }} transition={{ duration: 0.35, delay: 0.1 }} />)}
+          {tasks.length > 1 && (<motion.path d={`M ${SUB_CONNECTION_WIDTH / 2} ${TASK_CONNECTION_Y} L ${SUB_CONNECTION_WIDTH / 2} ${getTaskY(tasks.length - 1)}`} fill="none" stroke={isRetro ? "rgba(224, 112, 32, 0.25)" : "#e5e5e5"} strokeWidth="1" strokeDasharray="4 4" initial={{ pathLength: 0 }} animate={{ pathLength: isCollapsing ? 0 : 1 }} transition={{ duration: 0.35, delay: 0.1 }} />)}
           {/* Horizontal lines to each sub-task */}
-          {tasks.map((_, i) => (<motion.path key={i} d={mirrored ? `M 4 ${getTaskY(i)} L ${SUB_CONNECTION_WIDTH / 2} ${getTaskY(i)}` : `M ${SUB_CONNECTION_WIDTH / 2} ${getTaskY(i)} L ${SUB_CONNECTION_WIDTH - 4} ${getTaskY(i)}`} fill="none" stroke={isRetro ? "rgba(245, 158, 11, 0.3)" : "#fcd34d"} strokeWidth="1" initial={{ pathLength: 0 }} animate={{ pathLength: isCollapsing ? 0 : 1 }} transition={{ duration: 0.3, delay: 0.05 + i * 0.06 }} />))}
+          {tasks.map((_, i) => (<motion.path key={i} d={mirrored ? `M 4 ${getTaskY(i)} L ${SUB_CONNECTION_WIDTH / 2} ${getTaskY(i)}` : `M ${SUB_CONNECTION_WIDTH / 2} ${getTaskY(i)} L ${SUB_CONNECTION_WIDTH - 4} ${getTaskY(i)}`} fill="none" stroke={isRetro ? "rgba(224, 112, 32, 0.3)" : "#fcd34d"} strokeWidth="1" initial={{ pathLength: 0 }} animate={{ pathLength: isCollapsing ? 0 : 1 }} transition={{ duration: 0.3, delay: 0.05 + i * 0.06 }} />))}
         </svg>
         
         {!isCollapsing && (
           <>
             {/* Start node (connects to parent task) */}
-            <motion.div initial={{ scale: 0 }} animate={{ scale: 1 }} style={{ position: "absolute", left: mirrored ? SUB_CONNECTION_WIDTH - 6 : 2, top: TASK_CONNECTION_Y - 2, width: 4, height: 4, borderRadius: isRetro ? 0 : "50%", background: "#f59e0b", boxShadow: isRetro ? theme.glowWarning : "none" }} />
+            <motion.div initial={{ scale: 0 }} animate={{ scale: 1 }} style={{ position: "absolute", left: mirrored ? SUB_CONNECTION_WIDTH - 6 : 2, top: TASK_CONNECTION_Y - 2, width: 4, height: 4, borderRadius: isRetro ? 0 : "50%", background: "#e07020", boxShadow: isRetro ? theme.glowWarning : "none" }} />
             {/* Junction node */}
-            <motion.div initial={{ scale: 0 }} animate={{ scale: 1 }} style={{ position: "absolute", left: GRID_SIZE * 2, top: TASK_CONNECTION_Y - 2, width: 4, height: 4, borderRadius: isRetro ? 0 : "50%", background: "#f59e0b", boxShadow: isRetro ? theme.glowWarning : "none" }} />
+            <motion.div initial={{ scale: 0 }} animate={{ scale: 1 }} style={{ position: "absolute", left: GRID_SIZE * 2, top: TASK_CONNECTION_Y - 2, width: 4, height: 4, borderRadius: isRetro ? 0 : "50%", background: "#e07020", boxShadow: isRetro ? theme.glowWarning : "none" }} />
             {/* Task nodes */}
             {tasks.map((task, i) => (
-              <motion.div key={i} initial={{ scale: 0 }} animate={{ scale: 1 }} transition={{ delay: 0.1 + i * 0.1 }} style={{ position: "absolute", left: mirrored ? 2 : SUB_CONNECTION_WIDTH - 6, top: getTaskY(i) - 2, width: 4, height: 4, borderRadius: isRetro ? 0 : "50%", background: task.status === "working" ? "#f59e0b" : task.status === "completed" ? (isRetro ? "rgba(94, 234, 212, 0.5)" : "#10b981") : (isRetro ? "rgba(245, 158, 11, 0.4)" : "#d4d4d4"), boxShadow: isRetro && task.status === "working" ? theme.glowWarning : "none" }} />
+              <motion.div key={i} initial={{ scale: 0 }} animate={{ scale: 1 }} transition={{ delay: 0.1 + i * 0.1 }} style={{ position: "absolute", left: mirrored ? 2 : SUB_CONNECTION_WIDTH - 6, top: getTaskY(i) - 2, width: 4, height: 4, borderRadius: isRetro ? 0 : "50%", background: task.status === "working" ? "#e07020" : task.status === "completed" ? (isRetro ? "rgba(94, 234, 212, 0.5)" : "#10b981") : (isRetro ? "rgba(224, 112, 32, 0.4)" : "#d4d4d4"), boxShadow: isRetro && task.status === "working" ? theme.glowWarning : "none" }} />
             ))}
           </>
         )}
@@ -1931,7 +1931,7 @@ export default function Home() {
                 {/* Completed state node */}
                 {leftWorkflow.isCompleted && <motion.div initial={{ scale: 0 }} animate={{ scale: 1 }} transition={{ type: "spring", stiffness: 400, damping: 20 }} style={{ position: "absolute", left: true ? -3 : -4, top: CONNECTION_LINE_Y - (true ? 6 : 4), width: true ? 12 : 8, height: true ? 12 : 8, borderRadius: true ? 0 : "50%", background: "#10b981", boxShadow: true ? "0 0 12px rgba(16, 185, 129, 0.6)" : "none" }} />}
                 {/* Task connection nodes on left side - all at task connection height */}
-                {!leftWorkflow.isCompleted && leftWorkflow.tasks.map((task, i) => <motion.div key={`node-${i}`} initial={{ scale: 0, opacity: 0, x: 0, y: 0 }} animate={leftWorkflow.isCollapsing ? { scale: [1, 1.4, 0], opacity: [1, 0.6, 0], x: -15, y: -8, filter: "blur(10px)" } : { scale: 1, opacity: 1, x: 0, y: 0 }} transition={leftWorkflow.isCollapsing ? { duration: 0.55, delay: i * 0.06, ease: [0.32, 0.72, 0, 1] } : { duration: 0.3 }} style={{ position: "absolute", left: -3, top: CONNECTION_LINE_Y - 3 + i * TASK_ROW_HEIGHT, width: 6, height: 6, borderRadius: true ? 0 : "50%", background: task.status === "needs_approval" || task.status === "needs_resolve" ? "#f59e0b" : task.status === "failed" ? "#ef4444" : task.status === "fixing" ? "#3b82f6" : task.status === "rewriting" ? "#a855f7" : task.status === "completed" ? "#10b981" : task.status === "working" ? accentColor : theme.dotDim, boxShadow: true ? (task.status === "needs_approval" || task.status === "needs_resolve" ? "0 0 8px #f59e0b" : task.status === "failed" ? "0 0 8px #ef4444" : task.status === "fixing" ? "0 0 8px #3b82f6" : task.status === "rewriting" ? "0 0 8px #a855f7" : task.status === "completed" ? "0 0 8px #10b981" : task.status === "working" ? theme.glowAccent : "none") : "none" }} />)}
+                {!leftWorkflow.isCompleted && leftWorkflow.tasks.map((task, i) => <motion.div key={`node-${i}`} initial={{ scale: 0, opacity: 0, x: 0, y: 0 }} animate={leftWorkflow.isCollapsing ? { scale: [1, 1.4, 0], opacity: [1, 0.6, 0], x: -15, y: -8, filter: "blur(10px)" } : { scale: 1, opacity: 1, x: 0, y: 0 }} transition={leftWorkflow.isCollapsing ? { duration: 0.55, delay: i * 0.06, ease: [0.32, 0.72, 0, 1] } : { duration: 0.3 }} style={{ position: "absolute", left: -3, top: CONNECTION_LINE_Y - 3 + i * TASK_ROW_HEIGHT, width: 6, height: 6, borderRadius: true ? 0 : "50%", background: task.status === "needs_approval" || task.status === "needs_resolve" ? "#e07020" : task.status === "failed" ? "#ef4444" : task.status === "fixing" ? "#3b82f6" : task.status === "rewriting" ? "#a855f7" : task.status === "completed" ? "#10b981" : task.status === "working" ? accentColor : theme.dotDim, boxShadow: true ? (task.status === "needs_approval" || task.status === "needs_resolve" ? "0 0 8px #e07020" : task.status === "failed" ? "0 0 8px #ef4444" : task.status === "fixing" ? "0 0 8px #3b82f6" : task.status === "rewriting" ? "0 0 8px #a855f7" : task.status === "completed" ? "0 0 8px #10b981" : task.status === "working" ? theme.glowAccent : "none") : "none" }} />)}
                 {/* Energy dots - main path from agent to junction */}
                 {leftWorkflow.isRunning && !leftWorkflow.awaitingApproval && !leftWorkflow.isCompleted && Array.from({ length: numDots }).map((_, i) => <EnergyDot key={`main-${i}`} delay={(i / numDots) * cycleDuration} color={accentColor} duration={cycleDuration} path={`M ${CONNECTION_WIDTH} ${AGENT_CENTER_Y} L ${CONNECTION_BEND_X} ${AGENT_CENTER_Y}`} />)}
                 {/* Energy dots - branch lines to each task */}
@@ -2020,7 +2020,7 @@ export default function Home() {
                 {/* Completed state node */}
                 {rightWorkflow.isCompleted && <motion.div initial={{ scale: 0 }} animate={{ scale: 1 }} transition={{ type: "spring", stiffness: 400, damping: 20 }} style={{ position: "absolute", left: true ? CONNECTION_WIDTH - 6 : CONNECTION_WIDTH - 4, top: CONNECTION_LINE_Y - (true ? 6 : 4), width: true ? 12 : 8, height: true ? 12 : 8, borderRadius: true ? 0 : "50%", background: "#10b981", boxShadow: true ? "0 0 12px rgba(16, 185, 129, 0.6)" : "none" }} />}
                 {/* Task connection nodes on right side - all at task connection height */}
-                {!rightWorkflow.isCompleted && rightWorkflow.tasks.map((task, i) => <motion.div key={`node-${i}`} initial={{ scale: 0, opacity: 0, x: 0, y: 0 }} animate={rightWorkflow.isCollapsing ? { scale: [1, 1.4, 0], opacity: [1, 0.6, 0], x: 15, y: -8, filter: "blur(10px)" } : { scale: 1, opacity: 1, x: 0, y: 0 }} transition={rightWorkflow.isCollapsing ? { duration: 0.55, delay: i * 0.06, ease: [0.32, 0.72, 0, 1] } : { duration: 0.3 }} style={{ position: "absolute", left: CONNECTION_WIDTH - 3, top: CONNECTION_LINE_Y - 3 + i * TASK_ROW_HEIGHT, width: 6, height: 6, borderRadius: true ? 0 : "50%", background: task.status === "needs_approval" || task.status === "needs_resolve" ? "#f59e0b" : task.status === "failed" ? "#ef4444" : task.status === "fixing" ? "#3b82f6" : task.status === "rewriting" ? "#a855f7" : task.status === "completed" ? "#10b981" : task.status === "working" ? accentColor : theme.dotDim, boxShadow: true ? (task.status === "needs_approval" || task.status === "needs_resolve" ? "0 0 8px #f59e0b" : task.status === "failed" ? "0 0 8px #ef4444" : task.status === "fixing" ? "0 0 8px #3b82f6" : task.status === "rewriting" ? "0 0 8px #a855f7" : task.status === "completed" ? "0 0 8px #10b981" : task.status === "working" ? theme.glowAccent : "none") : "none" }} />)}
+                {!rightWorkflow.isCompleted && rightWorkflow.tasks.map((task, i) => <motion.div key={`node-${i}`} initial={{ scale: 0, opacity: 0, x: 0, y: 0 }} animate={rightWorkflow.isCollapsing ? { scale: [1, 1.4, 0], opacity: [1, 0.6, 0], x: 15, y: -8, filter: "blur(10px)" } : { scale: 1, opacity: 1, x: 0, y: 0 }} transition={rightWorkflow.isCollapsing ? { duration: 0.55, delay: i * 0.06, ease: [0.32, 0.72, 0, 1] } : { duration: 0.3 }} style={{ position: "absolute", left: CONNECTION_WIDTH - 3, top: CONNECTION_LINE_Y - 3 + i * TASK_ROW_HEIGHT, width: 6, height: 6, borderRadius: true ? 0 : "50%", background: task.status === "needs_approval" || task.status === "needs_resolve" ? "#e07020" : task.status === "failed" ? "#ef4444" : task.status === "fixing" ? "#3b82f6" : task.status === "rewriting" ? "#a855f7" : task.status === "completed" ? "#10b981" : task.status === "working" ? accentColor : theme.dotDim, boxShadow: true ? (task.status === "needs_approval" || task.status === "needs_resolve" ? "0 0 8px #e07020" : task.status === "failed" ? "0 0 8px #ef4444" : task.status === "fixing" ? "0 0 8px #3b82f6" : task.status === "rewriting" ? "0 0 8px #a855f7" : task.status === "completed" ? "0 0 8px #10b981" : task.status === "working" ? theme.glowAccent : "none") : "none" }} />)}
                 {/* Energy dots - main path from agent to junction */}
                 {rightWorkflow.isRunning && !rightWorkflow.awaitingApproval && !rightWorkflow.isCompleted && Array.from({ length: numDots }).map((_, i) => <EnergyDot key={`main-${i}`} delay={(i / numDots) * cycleDuration} color={accentColor} duration={cycleDuration} path={`M 0 ${AGENT_CENTER_Y} L ${CONNECTION_BEND_X} ${AGENT_CENTER_Y}`} />)}
                 {/* Energy dots - branch lines to each task */}
