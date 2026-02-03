@@ -6,6 +6,7 @@
   "scripts": {
     "dev": "next dev",
     "build": "next build",
+    "deploy": "next build && quick deploy ./dist shopiforio",
     "start": "next start",
     "lint": "next lint"
   },

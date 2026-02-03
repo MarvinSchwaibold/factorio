@@ -2054,9 +2054,9 @@ export default function Home() {
                       {/* Main tasks container */}
                       <WorkflowBranchContainer
                         scenarioLabel={leftWorkflow.currentScenarioLabel}
-                        isActive={leftWorkflow.tasks.length > 0 || leftWorkflow.deepCleanComplete}
+                        isActive={leftWorkflow.tasks.length > 0 || leftWorkflow.deepCleanComplete || false}
                         isCollapsing={leftWorkflow.isCollapsing}
-                        isCleanComplete={leftWorkflow.deepCleanComplete}
+                        isCleanComplete={leftWorkflow.deepCleanComplete || false}
                         mirrored
                       >
                         <div className="flex flex-col" style={{ gap: WIDGET_GAP }}>
@@ -2249,9 +2249,9 @@ export default function Home() {
                       {/* Main tasks container */}
                       <WorkflowBranchContainer
                         scenarioLabel={rightWorkflow.currentScenarioLabel}
-                        isActive={rightWorkflow.tasks.length > 0 || rightWorkflow.deepCleanComplete}
+                        isActive={rightWorkflow.tasks.length > 0 || rightWorkflow.deepCleanComplete || false}
                         isCollapsing={rightWorkflow.isCollapsing}
-                        isCleanComplete={rightWorkflow.deepCleanComplete}
+                        isCleanComplete={rightWorkflow.deepCleanComplete || false}
                       >
                         <div className="flex flex-col" style={{ gap: WIDGET_GAP }}>
                           {rightWorkflow.tasks.map((task, index) => (
