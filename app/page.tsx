@@ -418,7 +418,7 @@ function LiveStatusWidget({
       animate={{ opacity: 1, y: 0 }}
       style={{
         position: "fixed",
-        top: 70,
+        top: 20,
         right: 20,
         minWidth: isRetro ? 220 : 200,
         background: isRetro ? "rgba(13, 15, 13, 0.95)" : "white",
