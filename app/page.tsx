@@ -2088,8 +2088,13 @@ export default function Home() {
                 const targetY = CONNECTION_LINE_Y + targetTaskIndex * TASK_ROW_HEIGHT;
                 const hasReviewTask = reviewTaskIndex >= 0;
 
+                // Calculate actual height needed (last task position + half row for the node)
+                const actualTasksHeight = leftWorkflow.tasks.length > 0
+                  ? CONNECTION_LINE_Y + (leftWorkflow.tasks.length - 1) * TASK_ROW_HEIGHT + 50
+                  : 300;
+
                 return (
-                  <div className="relative" style={{ width: CONNECTION_WIDTH, height: Math.max(300, leftWorkflow.tasks.length * TASK_ROW_HEIGHT) }}>
+                  <div className="relative" style={{ width: CONNECTION_WIDTH, height: Math.max(300, actualTasksHeight) }}>
                     <svg style={{ position: "absolute", top: 0, left: 0, width: "100%", height: "100%", overflow: "visible" }}>
                       {/* Main path: from agent to target task (review task or last task) */}
                       <motion.path d={`M ${CONNECTION_WIDTH} ${AGENT_CENTER_Y} L ${CONNECTION_BEND_X} ${AGENT_CENTER_Y} L ${CONNECTION_BEND_X} ${targetY} L 0 ${targetY}`} fill="none" stroke={leftWorkflow.isCompleted ? "rgba(16, 185, 129, 0.4)" : hasReviewTask ? "rgba(224, 112, 32, 0.5)" : theme.connectionLine} strokeWidth="1" initial={{ pathLength: 0, opacity: 1 }} animate={{ pathLength: leftWorkflow.lineProgress > 0 || leftWorkflow.isCompleted ? 1 : 0, opacity: leftWorkflow.isCollapsing ? 0 : 1 }} transition={{ pathLength: { duration: 0.6 }, opacity: { duration: 0.5, delay: leftWorkflow.isCollapsing ? 0.15 + leftWorkflow.tasks.length * 0.04 : 0, ease: [0.32, 0.72, 0, 1] } }} />
@@ -2184,8 +2189,13 @@ export default function Home() {
                 const targetY = CONNECTION_LINE_Y + targetTaskIndex * TASK_ROW_HEIGHT;
                 const hasReviewTask = reviewTaskIndex >= 0;
 
+                // Calculate actual height needed (last task position + half row for the node)
+                const actualTasksHeight = rightWorkflow.tasks.length > 0
+                  ? CONNECTION_LINE_Y + (rightWorkflow.tasks.length - 1) * TASK_ROW_HEIGHT + 50
+                  : 300;
+
                 return (
-                  <div className="relative" style={{ width: CONNECTION_WIDTH, height: Math.max(300, rightWorkflow.tasks.length * TASK_ROW_HEIGHT) }}>
+                  <div className="relative" style={{ width: CONNECTION_WIDTH, height: Math.max(300, actualTasksHeight) }}>
                     <svg style={{ position: "absolute", top: 0, left: 0, width: "100%", height: "100%", overflow: "visible" }}>
                       {/* Main path: from agent to target task (review task or last task) */}
                       <motion.path d={`M 0 ${AGENT_CENTER_Y} L ${CONNECTION_BEND_X} ${AGENT_CENTER_Y} L ${CONNECTION_BEND_X} ${targetY} L ${CONNECTION_WIDTH} ${targetY}`} fill="none" stroke={rightWorkflow.isCompleted ? "rgba(16, 185, 129, 0.4)" : hasReviewTask ? "rgba(224, 112, 32, 0.5)" : theme.connectionLine} strokeWidth="1" initial={{ pathLength: 0, opacity: 1 }} animate={{ pathLength: rightWorkflow.lineProgress > 0 || rightWorkflow.isCompleted ? 1 : 0, opacity: rightWorkflow.isCollapsing ? 0 : 1 }} transition={{ pathLength: { duration: 0.6 }, opacity: { duration: 0.5, delay: rightWorkflow.isCollapsing ? 0.15 + rightWorkflow.tasks.length * 0.04 : 0, ease: [0.32, 0.72, 0, 1] } }} />
