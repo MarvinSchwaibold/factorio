@@ -1513,38 +1513,39 @@ export default function Home() {
   const leftHandlers = createWorkflowHandlers("left");
   const rightHandlers = createWorkflowHandlers("right");
 
-  // Deep Clean labels - extensive list for complex appearance
+  // Deep Clean labels - Shopify merchant-related issues
   const cleanLabels = [
-    // Cache & Memory
-    "[CLEARING CACHE]", "[REBUILDING CACHE]", "[FLUSHING BUFFERS]", "[CLEANING MEMORY]",
-    "[PURGING L2 CACHE]", "[INVALIDATING CDN]", "[CLEARING REDIS]", "[RESETTING MEMCACHED]",
-    // Database
-    "[OPTIMIZING DATABASE]", "[VACUUMING TABLES]", "[REFRESHING INDEXES]", "[REINDEXING SHARDS]",
-    "[COMPACTING COLLECTIONS]", "[ANALYZING PARTITIONS]", "[REBUILDING B-TREES]", "[OPTIMIZING QUERIES]",
-    // Storage & Files
-    "[REMOVING TEMP FILES]", "[DEFRAGMENTING]", "[COMPACTING STORAGE]", "[ARCHIVING OLD DATA]",
-    "[PRUNING HISTORY]", "[REMOVING ORPHANS]", "[CLEANING BLOBS]", "[COMPRESSING ASSETS]",
-    // System
-    "[SCANNING REGISTRY]", "[PURGING LOGS]", "[CLEANING SESSIONS]", "[REMOVING DUPLICATES]",
-    "[SANITIZING INPUTS]", "[VALIDATING SCHEMAS]", "[CHECKING INTEGRITY]", "[VERIFYING CHECKSUMS]",
-    // Network & API
-    "[CLEARING COOKIES]", "[RESETTING CONNECTIONS]", "[FLUSHING DNS]", "[CLOSING SOCKETS]",
-    "[CLEARING API CACHE]", "[REFRESHING TOKENS]", "[INVALIDATING SESSIONS]", "[ROTATING KEYS]",
-    // Advanced
-    "[REBALANCING SHARDS]", "[MIGRATING COLD DATA]", "[OPTIMIZING BTREE]", "[REBUILDING HEAP]",
-    "[COMPACTING WAL]", "[TRUNCATING LOGS]", "[DEFRAG TABLESPACE]", "[VACUUM ANALYZE]",
-    "[RECLAIMING SPACE]", "[MERGING SEGMENTS]", "[FLUSHING REDO LOG]", "[CHECKPOINT SYNC]",
-    // ML/AI
-    "[CLEARING EMBEDDINGS]", "[PRUNING VECTORS]", "[REINDEXING FEATURES]", "[OPTIMIZING TENSORS]",
-    // Security
-    "[ROTATING SECRETS]", "[CLEARING AUDIT LOG]", "[PURGING PII]", "[SANITIZING PAYLOADS]"
+    // Inventory & Stock
+    "[SYNCING INVENTORY]", "[FIXING STOCK COUNTS]", "[RESOLVING OVERSELLS]", "[UPDATING SKU DATA]",
+    "[RESYNCING WAREHOUSES]", "[CLEARING GHOST STOCK]", "[FIXING VARIANT LINKS]", "[RECONCILING COUNTS]",
+    // Orders & Fulfillment
+    "[FIXING STUCK ORDERS]", "[CLEARING ORDER QUEUE]", "[RESOLVING DUPLICATES]", "[UPDATING TRACKING]",
+    "[SYNCING FULFILLMENTS]", "[FIXING FAILED ORDERS]", "[CLEARING DRAFT ORDERS]", "[RETRYING WEBHOOKS]",
+    // Products & Catalog
+    "[FIXING BROKEN IMAGES]", "[RESYNCING PRODUCTS]", "[UPDATING METAFIELDS]", "[CLEANING DEAD LINKS]",
+    "[FIXING SEO HANDLES]", "[REBUILDING SEARCH INDEX]", "[CLEARING PRODUCT CACHE]", "[FIXING COLLECTIONS]",
+    // Payments & Transactions
+    "[RETRYING PAYMENTS]", "[FIXING FAILED CAPTURES]", "[RECONCILING REFUNDS]", "[CLEARING PENDING TXN]",
+    "[UPDATING TAX RATES]", "[FIXING CURRENCY RATES]", "[SYNCING PAYOUTS]", "[RESOLVING DISPUTES]",
+    // Customers & Data
+    "[MERGING DUPLICATES]", "[CLEANING GUEST DATA]", "[FIXING EMAIL TAGS]", "[UPDATING SEGMENTS]",
+    "[SYNCING LOYALTY POINTS]", "[CLEARING ABANDONED CARTS]", "[FIXING ACCOUNT LINKS]", "[PRUNING OLD DATA]",
+    // Shipping & Rates
+    "[RECALCULATING RATES]", "[FIXING ZONE ERRORS]", "[UPDATING CARRIERS]", "[SYNCING LABELS]",
+    "[CLEARING RATE CACHE]", "[FIXING WEIGHT ISSUES]", "[UPDATING DIMENSIONS]", "[RESOLVING DELAYS]",
+    // Discounts & Pricing
+    "[FIXING DISCOUNT CONFLICTS]", "[CLEARING EXPIRED CODES]", "[RECALCULATING PRICES]", "[SYNCING SALES]",
+    "[FIXING BUNDLE PRICES]", "[UPDATING PRICE RULES]", "[RESOLVING PROMO ERRORS]", "[CLEARING DUPLICATES]",
+    // Integrations & Apps
+    "[RESYNCING APPS]", "[FIXING API ERRORS]", "[CLEARING STALE TOKENS]", "[RETRYING SYNC JOBS]",
+    "[UPDATING WEBHOOKS]", "[FIXING OAUTH ISSUES]", "[RECONNECTING CHANNELS]", "[RESOLVING CONFLICTS]"
   ];
 
   const cleanSubtexts = [
-    "Cleaning...", "Scanning...", "Removing...", "Optimizing...", "Purging...",
-    "Clearing...", "Processing...", "Analyzing...", "Compacting...", "Archiving...",
-    "Rebuilding...", "Validating...", "Migrating...", "Reindexing...", "Flushing...",
-    "Reclaiming...", "Merging...", "Syncing...", "Truncating...", "Verifying..."
+    "Syncing data...", "Checking records...", "Resolving conflicts...", "Updating store...", "Processing...",
+    "Fixing issues...", "Validating data...", "Reconciling...", "Retrying failed...", "Cleaning up...",
+    "Rebuilding index...", "Refreshing cache...", "Merging records...", "Recalculating...", "Reconnecting...",
+    "Verifying integrity...", "Updating references...", "Clearing stale...", "Patching errors...", "Finalizing..."
   ];
 
   // Deep Clean effect
@@ -1552,7 +1553,7 @@ export default function Home() {
     if (deepCleanMode !== "running") return;
 
     const timeouts: NodeJS.Timeout[] = [];
-    const CLEAN_DURATION = 12000; // 12 seconds of cleaning for more complexity
+    const CLEAN_DURATION = 16000; // 16 seconds of cleaning for more complexity
     const taskIds: { left: string[]; right: string[] } = { left: [], right: [] };
 
     const spawnCleanTask = (side: "left" | "right") => {
@@ -1575,8 +1576,8 @@ export default function Home() {
         return { ...prev, tasks: [...prev.tasks, newTask], isRunning: true, lineProgress: 1 };
       });
 
-      // Complete the task after random duration
-      const duration = 1000 + Math.random() * 2000;
+      // Complete the task after random duration (longer to keep more visible)
+      const duration = 2500 + Math.random() * 3500;
       const randomOutcome = Math.random();
       const shouldFail = randomOutcome < 0.08;
       const shouldRewrite = randomOutcome >= 0.08 && randomOutcome < 0.55; // 47% chance of rewriting
@@ -1696,15 +1697,15 @@ export default function Home() {
 
     // Spawn tasks rapidly at the start, then slow down
     let spawnCount = 0;
-    const maxSpawns = 20; // More tasks per side for complexity
+    const maxSpawns = 28; // More tasks per side for complexity (2 extra rows each side)
 
     const scheduleSpawn = (side: "left" | "right", delay: number) => {
       const t = setTimeout(() => {
         if (deepCleanMode === "running" && spawnCount < maxSpawns * 2) {
           spawnCleanTask(side);
           spawnCount++;
-          // Faster spawning with gradual slowdown
-          const nextDelay = 200 + Math.random() * 400 + (spawnCount * 30);
+          // Faster spawning to get more visible at once
+          const nextDelay = 150 + Math.random() * 300 + (spawnCount * 20);
           if (spawnCount < maxSpawns * 2) {
             scheduleSpawn(side, nextDelay);
           }
