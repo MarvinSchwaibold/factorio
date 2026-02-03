@@ -710,6 +710,93 @@ function TaskWidget({ task, onApprove, onReject, onResolve, isCollapsing, collap
   );
 }
 
+// Container component that wraps workflow branch tasks
+function WorkflowBranchContainer({
+  children,
+  scenarioLabel,
+  isActive,
+  isCollapsing,
+  mirrored
+}: {
+  children: React.ReactNode;
+  scenarioLabel: string;
+  isActive: boolean;
+  isCollapsing: boolean;
+  mirrored?: boolean;
+}) {
+  const theme = useContext(ThemeContext);
+
+  if (!isActive && !scenarioLabel) return null;
+
+  return (
+    <motion.div
+      initial={{ opacity: 0, scale: 0.97 }}
+      animate={{
+        opacity: isCollapsing ? 0 : 1,
+        scale: isCollapsing ? 0.97 : 1
+      }}
+      exit={{ opacity: 0, scale: 0.97 }}
+      transition={{
+        duration: 0.3,
+        ease: [0.32, 0.72, 0, 1]
+      }}
+      style={{
+        position: "relative",
+        border: `1px solid rgba(94, 234, 212, 0.25)`,
+        background: "rgba(94, 234, 212, 0.03)",
+        padding: 0,
+      }}
+    >
+      {/* Header */}
+      {scenarioLabel && (
+        <div
+          style={{
+            borderBottom: `1px solid rgba(94, 234, 212, 0.15)`,
+            padding: "10px 16px",
+            display: "flex",
+            alignItems: "center",
+            gap: 8,
+            flexDirection: mirrored ? "row-reverse" : "row",
+          }}
+        >
+          <motion.div
+            animate={{ opacity: [0.5, 1, 0.5] }}
+            transition={{ duration: 1.5, repeat: Infinity }}
+            style={{
+              width: 6,
+              height: 6,
+              background: theme.accent,
+              boxShadow: theme.glowAccent,
+            }}
+          />
+          <span
+            style={{
+              fontSize: 10,
+              letterSpacing: "0.12em",
+              color: theme.textMuted,
+              fontWeight: 700,
+              textTransform: "uppercase",
+            }}
+          >
+            {scenarioLabel}
+          </span>
+        </div>
+      )}
+
+      {/* Corner accents */}
+      <div style={{ position: "absolute", top: 0, left: 0, width: 8, height: 8, borderTop: `2px solid ${theme.accent}`, borderLeft: `2px solid ${theme.accent}`, opacity: 0.6 }} />
+      <div style={{ position: "absolute", top: 0, right: 0, width: 8, height: 8, borderTop: `2px solid ${theme.accent}`, borderRight: `2px solid ${theme.accent}`, opacity: 0.6 }} />
+      <div style={{ position: "absolute", bottom: 0, left: 0, width: 8, height: 8, borderBottom: `2px solid ${theme.accent}`, borderLeft: `2px solid ${theme.accent}`, opacity: 0.6 }} />
+      <div style={{ position: "absolute", bottom: 0, right: 0, width: 8, height: 8, borderBottom: `2px solid ${theme.accent}`, borderRight: `2px solid ${theme.accent}`, opacity: 0.6 }} />
+
+      {/* Content */}
+      <div style={{ padding: "12px 16px" }}>
+        {children}
+      </div>
+    </motion.div>
+  );
+}
+
 // Email preview sub-workflow component
 function EmailPreviewPanel({
   isActive,
@@ -1067,6 +1154,7 @@ interface WorkflowState {
   isCompleted: boolean;
   isCollapsing: boolean;
   completedScenarioLabel: string;
+  currentScenarioLabel: string;
   subWorkflowActive: boolean;
   subWorkflowTasks: SubWorkflowTask[];
   subWorkflowCollapsing: boolean;
@@ -1083,6 +1171,7 @@ const initialWorkflowState: WorkflowState = {
   isCompleted: false,
   isCollapsing: false,
   completedScenarioLabel: "",
+  currentScenarioLabel: "",
   subWorkflowActive: false,
   subWorkflowTasks: [],
   subWorkflowCollapsing: false,
@@ -1232,7 +1321,7 @@ export default function Home() {
 
         // All tasks completed - clear tasks and show completed widget after brief delay
         setTimeout(() => {
-          setWorkflow(p => ({ ...p, tasks: [], isCollapsing: false, isCompleted: true, isRunning: false }));
+          setWorkflow(p => ({ ...p, tasks: [], isCollapsing: false, isCompleted: true, isRunning: false, currentScenarioLabel: "" }));
         }, 400); // Wait for exit animation
 
         return { ...prev, completedScenarioLabel: scenario.buttonLabel, isCollapsing: true };
@@ -1481,13 +1570,14 @@ export default function Home() {
 
     const runScenario = (scenario: Scenario) => {
       if (workflow.isRunning) return;
-      
+
       scenarioRef.current = scenario;
       taskIndexRef.current = 0;
-      
+
       setWorkflow({
         ...initialWorkflowState,
         isRunning: true,
+        currentScenarioLabel: scenario.buttonLabel,
       });
 
       const lineAnimDuration = 600;
@@ -1868,34 +1958,44 @@ export default function Home() {
                       key="left-tasks-container"
                       initial={{ opacity: 1 }}
                       exit={{ opacity: 0, y: -20, transition: { duration: 0.3, ease: [0.32, 0.72, 0, 1] } }}
-                      className="flex flex-col"
-                      style={{ alignItems: "flex-end", gap: 0 }}
+                      className="flex"
+                      style={{ alignItems: "flex-start", justifyContent: "flex-end", gap: 16 }}
                     >
-                      {leftWorkflow.tasks.map((task, index) => (
-                        <div key={task.id} className="flex justify-end items-start" style={{ marginBottom: WIDGET_GAP }}>
-                          {/* Sub-workflows appear on the LEFT (further from agent) - adjacent to task widget */}
-                          {leftWorkflow.resolveTaskIndex === index && leftWorkflow.subWorkflowActive && leftWorkflow.resolveType === "email_copy" && (
-                            <EmailPreviewPanel isActive={leftWorkflow.subWorkflowActive} isCollapsing={leftWorkflow.subWorkflowCollapsing} onApprove={leftHandlers.handleApprovePreview} mirrored />
-                          )}
-                          {leftWorkflow.resolveTaskIndex === index && leftWorkflow.subWorkflowActive && leftWorkflow.resolveType === "insights" && (
-                            <InsightsPreviewPanel isActive={leftWorkflow.subWorkflowActive} isCollapsing={leftWorkflow.subWorkflowCollapsing} onApprove={leftHandlers.handleApprovePreview} mirrored />
-                          )}
-                          {leftWorkflow.resolveTaskIndex === index && (leftWorkflow.subWorkflowActive || leftWorkflow.subWorkflowTasks.length > 0) && leftWorkflow.resolveType !== "email_copy" && leftWorkflow.resolveType !== "insights" && (
-                            <SubWorkflowPanel isActive={leftWorkflow.subWorkflowActive} tasks={leftWorkflow.subWorkflowTasks} isCollapsing={leftWorkflow.subWorkflowCollapsing} mirrored />
-                          )}
+                      {/* Sub-workflows appear on the LEFT (further from agent) */}
+                      <div className="flex flex-col" style={{ gap: WIDGET_GAP }}>
+                        {leftWorkflow.subWorkflowActive && leftWorkflow.resolveType === "email_copy" && (
+                          <EmailPreviewPanel isActive={leftWorkflow.subWorkflowActive} isCollapsing={leftWorkflow.subWorkflowCollapsing} onApprove={leftHandlers.handleApprovePreview} mirrored />
+                        )}
+                        {leftWorkflow.subWorkflowActive && leftWorkflow.resolveType === "insights" && (
+                          <InsightsPreviewPanel isActive={leftWorkflow.subWorkflowActive} isCollapsing={leftWorkflow.subWorkflowCollapsing} onApprove={leftHandlers.handleApprovePreview} mirrored />
+                        )}
+                        {(leftWorkflow.subWorkflowActive || leftWorkflow.subWorkflowTasks.length > 0) && leftWorkflow.resolveType !== "email_copy" && leftWorkflow.resolveType !== "insights" && (
+                          <SubWorkflowPanel isActive={leftWorkflow.subWorkflowActive} tasks={leftWorkflow.subWorkflowTasks} isCollapsing={leftWorkflow.subWorkflowCollapsing} mirrored />
+                        )}
+                      </div>
 
-                          {/* Task widget - first task (index 0) stays visible during collapse to morph into completed widget */}
-                          <TaskWidget
-                            task={task}
-                            onApprove={leftHandlers.handleApprove}
-                            onReject={leftHandlers.handleReject}
-                            onResolve={leftHandlers.handleResolve}
-                            isCollapsing={leftWorkflow.isCollapsing && index !== 0}
-                            collapseIndex={leftWorkflow.tasks.length - 1 - index}
-                            mirrored
-                          />
+                      {/* Main tasks container */}
+                      <WorkflowBranchContainer
+                        scenarioLabel={leftWorkflow.currentScenarioLabel}
+                        isActive={leftWorkflow.tasks.length > 0}
+                        isCollapsing={leftWorkflow.isCollapsing}
+                        mirrored
+                      >
+                        <div className="flex flex-col" style={{ gap: WIDGET_GAP }}>
+                          {leftWorkflow.tasks.map((task, index) => (
+                            <TaskWidget
+                              key={task.id}
+                              task={task}
+                              onApprove={leftHandlers.handleApprove}
+                              onReject={leftHandlers.handleReject}
+                              onResolve={leftHandlers.handleResolve}
+                              isCollapsing={leftWorkflow.isCollapsing && index !== 0}
+                              collapseIndex={leftWorkflow.tasks.length - 1 - index}
+                              mirrored
+                            />
+                          ))}
                         </div>
-                      ))}
+                      </WorkflowBranchContainer>
                     </motion.div>
                   )}
                 </AnimatePresence>
@@ -2040,37 +2140,46 @@ export default function Home() {
                       key="right-tasks-container"
                       initial={{ opacity: 1 }}
                       exit={{ opacity: 0, y: -20, transition: { duration: 0.3, ease: [0.32, 0.72, 0, 1] } }}
-                      className="flex flex-col"
-                      style={{ gap: 0 }}
+                      className="flex"
+                      style={{ alignItems: "flex-start", justifyContent: "flex-start", gap: 16 }}
                     >
-                      {rightWorkflow.tasks.map((task, index) => (
-                        <div key={task.id} className="flex justify-start items-start" style={{ marginBottom: WIDGET_GAP }}>
-                          {/* First task (index 0) stays visible during collapse to morph into completed widget */}
-                          <TaskWidget
-                            task={task}
-                            onApprove={rightHandlers.handleApprove}
-                            onReject={rightHandlers.handleReject}
-                            onResolve={rightHandlers.handleResolve}
-                            isCollapsing={rightWorkflow.isCollapsing && index !== 0}
-                            collapseIndex={rightWorkflow.tasks.length - 1 - index}
-                          />
-
-                          {/* Sub-workflows appear on the RIGHT (further from agent) - adjacent to task widget */}
-                          {rightWorkflow.resolveTaskIndex === index && rightWorkflow.subWorkflowActive && rightWorkflow.resolveType === "email_copy" && (
-                            <EmailPreviewPanel
-                              isActive={rightWorkflow.subWorkflowActive}
-                              isCollapsing={rightWorkflow.subWorkflowCollapsing}
-                              onApprove={rightHandlers.handleApprovePreview}
+                      {/* Main tasks container */}
+                      <WorkflowBranchContainer
+                        scenarioLabel={rightWorkflow.currentScenarioLabel}
+                        isActive={rightWorkflow.tasks.length > 0}
+                        isCollapsing={rightWorkflow.isCollapsing}
+                      >
+                        <div className="flex flex-col" style={{ gap: WIDGET_GAP }}>
+                          {rightWorkflow.tasks.map((task, index) => (
+                            <TaskWidget
+                              key={task.id}
+                              task={task}
+                              onApprove={rightHandlers.handleApprove}
+                              onReject={rightHandlers.handleReject}
+                              onResolve={rightHandlers.handleResolve}
+                              isCollapsing={rightWorkflow.isCollapsing && index !== 0}
+                              collapseIndex={rightWorkflow.tasks.length - 1 - index}
                             />
-                          )}
-                          {rightWorkflow.resolveTaskIndex === index && rightWorkflow.subWorkflowActive && rightWorkflow.resolveType === "insights" && (
-                            <InsightsPreviewPanel isActive={rightWorkflow.subWorkflowActive} isCollapsing={rightWorkflow.subWorkflowCollapsing} onApprove={rightHandlers.handleApprovePreview} />
-                          )}
-                          {rightWorkflow.resolveTaskIndex === index && (rightWorkflow.subWorkflowActive || rightWorkflow.subWorkflowTasks.length > 0) && rightWorkflow.resolveType !== "email_copy" && rightWorkflow.resolveType !== "insights" && (
-                            <SubWorkflowPanel isActive={rightWorkflow.subWorkflowActive} tasks={rightWorkflow.subWorkflowTasks} isCollapsing={rightWorkflow.subWorkflowCollapsing} />
-                          )}
+                          ))}
                         </div>
-                      ))}
+                      </WorkflowBranchContainer>
+
+                      {/* Sub-workflows appear on the RIGHT (further from agent) */}
+                      <div className="flex flex-col" style={{ gap: WIDGET_GAP }}>
+                        {rightWorkflow.subWorkflowActive && rightWorkflow.resolveType === "email_copy" && (
+                          <EmailPreviewPanel
+                            isActive={rightWorkflow.subWorkflowActive}
+                            isCollapsing={rightWorkflow.subWorkflowCollapsing}
+                            onApprove={rightHandlers.handleApprovePreview}
+                          />
+                        )}
+                        {rightWorkflow.subWorkflowActive && rightWorkflow.resolveType === "insights" && (
+                          <InsightsPreviewPanel isActive={rightWorkflow.subWorkflowActive} isCollapsing={rightWorkflow.subWorkflowCollapsing} onApprove={rightHandlers.handleApprovePreview} />
+                        )}
+                        {(rightWorkflow.subWorkflowActive || rightWorkflow.subWorkflowTasks.length > 0) && rightWorkflow.resolveType !== "email_copy" && rightWorkflow.resolveType !== "insights" && (
+                          <SubWorkflowPanel isActive={rightWorkflow.subWorkflowActive} tasks={rightWorkflow.subWorkflowTasks} isCollapsing={rightWorkflow.subWorkflowCollapsing} />
+                        )}
+                      </div>
                     </motion.div>
                   )}
                 </AnimatePresence>
