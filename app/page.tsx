@@ -1785,7 +1785,36 @@ export default function Home() {
   return (
     <ThemeContext.Provider value={theme}>
     <div className="h-screen w-screen overflow-hidden relative flex flex-col" style={{ background: theme.background, fontFamily: theme.fontFamily }}>
-      <div 
+
+      {/* Fixed UI Elements - Outside canvas area to prevent clipping */}
+      <LiveStatusWidget
+        leftWorkflow={{
+          tasks: leftWorkflow.tasks,
+          isRunning: leftWorkflow.isRunning,
+          subWorkflowActive: leftWorkflow.subWorkflowActive,
+          subWorkflowTasks: leftWorkflow.subWorkflowTasks,
+          isCompleted: leftWorkflow.isCompleted
+        }}
+        rightWorkflow={{
+          tasks: rightWorkflow.tasks,
+          isRunning: rightWorkflow.isRunning,
+          subWorkflowActive: rightWorkflow.subWorkflowActive,
+          subWorkflowTasks: rightWorkflow.subWorkflowTasks,
+          isCompleted: rightWorkflow.isCompleted
+        }}
+        deepCleanMode={deepCleanMode}
+      />
+
+      {/* Zoom Controls */}
+      <div style={{ position: "fixed", top: 20, left: 20, display: "flex", alignItems: "center", gap: 8, zIndex: 1000, background: "rgba(0, 0, 0, 0.6)", border: `1px solid ${theme.borderLight}`, padding: "6px 8px", borderRadius: 0 }}>
+        <button onClick={resetView} style={{ background: "transparent", border: "none", color: theme.textMuted, padding: "6px 10px", fontSize: 11, cursor: "pointer", fontFamily: theme.fontFamily, fontWeight: 500, letterSpacing: "0.05em" }}>RESET</button>
+        <div style={{ width: 1, height: 16, background: theme.borderLight }} />
+        <button onClick={() => { zoomRef.current = Math.max(zoomRef.current * 0.8, 0.25); if (canvasRef.current) canvasRef.current.style.transform = `translate(${panRef.current.x}px, ${panRef.current.y}px) scale(${zoomRef.current})`; setZoom(zoomRef.current); }} style={{ background: "transparent", border: "none", color: theme.text, padding: "6px 8px", fontSize: 13, cursor: "pointer", fontFamily: theme.fontFamily, fontWeight: 500, lineHeight: 1 }}>−</button>
+        <span style={{ color: theme.textMuted, fontSize: 11, fontFamily: theme.fontFamily, minWidth: 36, textAlign: "center", fontWeight: 500 }}>{Math.round(zoom * 100)}%</span>
+        <button onClick={() => { zoomRef.current = Math.min(zoomRef.current * 1.2, 3); if (canvasRef.current) canvasRef.current.style.transform = `translate(${panRef.current.x}px, ${panRef.current.y}px) scale(${zoomRef.current})`; setZoom(zoomRef.current); }} style={{ background: "transparent", border: "none", color: theme.text, padding: "6px 8px", fontSize: 13, cursor: "pointer", fontFamily: theme.fontFamily, fontWeight: 500, lineHeight: 1 }}>+</button>
+      </div>
+
+      <div
         className="flex-1 relative overflow-hidden"
         style={{ cursor: isPanning ? "grabbing" : "grab" }}
         onWheel={handleWheel}
@@ -1794,36 +1823,6 @@ export default function Home() {
         onMouseUp={handleMouseUp}
         onMouseLeave={handleMouseUp}
       >
-{/* Grid is now inside canvas content for proper alignment */}
-
-        {/* Live Status Widget - Top Right */}
-        <LiveStatusWidget
-          leftWorkflow={{
-            tasks: leftWorkflow.tasks,
-            isRunning: leftWorkflow.isRunning,
-            subWorkflowActive: leftWorkflow.subWorkflowActive,
-            subWorkflowTasks: leftWorkflow.subWorkflowTasks,
-            isCompleted: leftWorkflow.isCompleted
-          }}
-          rightWorkflow={{
-            tasks: rightWorkflow.tasks,
-            isRunning: rightWorkflow.isRunning,
-            subWorkflowActive: rightWorkflow.subWorkflowActive,
-            subWorkflowTasks: rightWorkflow.subWorkflowTasks,
-            isCompleted: rightWorkflow.isCompleted
-          }}
-          deepCleanMode={deepCleanMode}
-        />
-
-        {/* Zoom Controls */}
-        <div style={{ position: "fixed", top: 20, left: 20, display: "flex", alignItems: "center", gap: true ? 8 : 6, zIndex: 1000, background: true ? "rgba(0, 0, 0, 0.6)" : "rgba(255, 255, 255, 0.95)", border: `1px solid ${theme.borderLight}`, padding: true ? "6px 8px" : "4px 6px", borderRadius: true ? 0 : 10, boxShadow: true ? "none" : "0 2px 8px rgba(0,0,0,0.08)" }}>
-          <button onClick={resetView} style={{ background: "transparent", border: "none", color: theme.textMuted, padding: "6px 10px", fontSize: 11, cursor: "pointer", fontFamily: theme.fontFamily, fontWeight: 500, letterSpacing: true ? "0.05em" : undefined }}>{true ? "RESET" : "Reset"}</button>
-          <div style={{ width: 1, height: 16, background: theme.borderLight }} />
-          <button onClick={() => { zoomRef.current = Math.max(zoomRef.current * 0.8, 0.25); if (canvasRef.current) canvasRef.current.style.transform = `translate(${panRef.current.x}px, ${panRef.current.y}px) scale(${zoomRef.current})`; setZoom(zoomRef.current); }} style={{ background: "transparent", border: "none", color: theme.text, padding: "6px 8px", fontSize: 13, cursor: "pointer", fontFamily: theme.fontFamily, fontWeight: 500, lineHeight: 1 }}>−</button>
-          <span style={{ color: theme.textMuted, fontSize: 11, fontFamily: theme.fontFamily, minWidth: 36, textAlign: "center", fontWeight: 500 }}>{Math.round(zoom * 100)}%</span>
-          <button onClick={() => { zoomRef.current = Math.min(zoomRef.current * 1.2, 3); if (canvasRef.current) canvasRef.current.style.transform = `translate(${panRef.current.x}px, ${panRef.current.y}px) scale(${zoomRef.current})`; setZoom(zoomRef.current); }} style={{ background: "transparent", border: "none", color: theme.text, padding: "6px 8px", fontSize: 13, cursor: "pointer", fontFamily: theme.fontFamily, fontWeight: 500, lineHeight: 1 }}>+</button>
-        </div>
-
         {/* Canvas Content - zero-size anchor point, content positioned around it */}
         <div ref={canvasRef} style={{ position: "absolute", top: "50%", left: "50%", width: 0, height: 0, transformOrigin: "0 0", willChange: "transform", overflow: "visible" }}>
           {/* Grid - centered on the anchor point */}
