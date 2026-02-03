@@ -142,7 +142,8 @@ const subWorkflowConfigs: Record<string, { tasks: { label: string; subtext?: str
 };
 
 const GRID_SIZE = 20;
-const TASK_ROW_HEIGHT = 150; // Tighter spacing between widgets
+const TASK_ROW_HEIGHT = 130; // Base height for regular widgets
+const APPROVAL_ROW_HEIGHT = 220; // Extra height for approval widgets with buttons
 
 // The Y position where connection lines hit relative to task row top (aligned to grid)
 // Widget starts at paddingTop + ~25px to center, rounded to grid alignment
@@ -1235,9 +1236,11 @@ export default function Home() {
       });
     };
 
-    // Schedule a task's completion (with optional failure/recovery)
+    // Schedule a task's completion (with optional failure/recovery or rewriting)
     const scheduleTaskCompletion = (taskIndex: number, taskDef: typeof scenarios[0]["tasks"][0], baseDelay: number) => {
-      const shouldFail = Math.random() < 0.25; // 25% chance of failure
+      const randomOutcome = Math.random();
+      const shouldFail = randomOutcome < 0.10; // 10% chance of failure
+      const shouldRewrite = randomOutcome >= 0.10 && randomOutcome < 0.55; // 45% chance of rewriting
 
       if (shouldFail && taskDef.duration >= 1500) {
         // Fail after partial duration, then recover
@@ -1262,6 +1265,29 @@ export default function Home() {
             }, 1500);
           }, 1200);
         }, failAfter);
+      } else if (shouldRewrite && taskDef.duration >= 1200) {
+        // Rewrite/restructure after partial duration
+        const rewriteAfter = baseDelay + taskDef.duration * 0.5;
+        setTimeout(() => {
+          setWorkflow(prev => ({
+            ...prev,
+            tasks: prev.tasks.map((t, i) => i === taskIndex ? { ...t, status: "rewriting" as TaskState, subtext: "Restructuring..." } : t)
+          }));
+
+          setTimeout(() => {
+            setWorkflow(prev => ({
+              ...prev,
+              tasks: prev.tasks.map((t, i) => i === taskIndex ? { ...t, status: "working" as TaskState, subtext: "Rebuilding..." } : t)
+            }));
+
+            setTimeout(() => {
+              setWorkflow(prev => ({
+                ...prev,
+                tasks: prev.tasks.map((t, i) => i === taskIndex ? { ...t, status: "completed" as TaskState, subtext: taskDef.subtext } : t)
+              }));
+            }, 2500);
+          }, 4000);
+        }, rewriteAfter);
       } else {
         // Normal completion
         setTimeout(() => {
@@ -1553,7 +1579,7 @@ export default function Home() {
       const duration = 1000 + Math.random() * 2000;
       const randomOutcome = Math.random();
       const shouldFail = randomOutcome < 0.08;
-      const shouldRewrite = randomOutcome >= 0.08 && randomOutcome < 0.35; // 27% chance of rewriting
+      const shouldRewrite = randomOutcome >= 0.08 && randomOutcome < 0.55; // 47% chance of rewriting
 
       if (shouldFail) {
         const t1 = setTimeout(() => {
@@ -1594,9 +1620,9 @@ export default function Home() {
                 ...prev,
                 tasks: prev.tasks.map(t => t.id === taskId ? { ...t, status: "completed" as TaskState, subtext: "Rebuilt" } : t)
               }));
-            }, 1200);
+            }, 2500);
             timeouts.push(t3);
-          }, 2000);
+          }, 4000);
           timeouts.push(t2);
         }, duration * 0.5);
         timeouts.push(t1);
@@ -1856,7 +1882,7 @@ export default function Home() {
                       style={{ alignItems: "flex-end", gap: 0 }}
                     >
                       {leftWorkflow.tasks.map((task, index) => (
-                        <div key={task.id} className="flex justify-end items-start" style={{ height: TASK_ROW_HEIGHT, paddingTop: 30 }}>
+                        <div key={task.id} className="flex justify-end items-start" style={{ height: task.status === "needs_approval" ? APPROVAL_ROW_HEIGHT : TASK_ROW_HEIGHT, paddingTop: 30 }}>
                           {/* Sub-workflows appear on the LEFT (further from agent) - adjacent to task widget */}
                           {leftWorkflow.resolveTaskIndex === index && leftWorkflow.subWorkflowActive && leftWorkflow.resolveType === "email_copy" && (
                             <EmailPreviewPanel isActive={leftWorkflow.subWorkflowActive} isCollapsing={leftWorkflow.subWorkflowCollapsing} onApprove={leftHandlers.handleApprovePreview} mirrored />
@@ -2028,7 +2054,7 @@ export default function Home() {
                       style={{ gap: 0 }}
                     >
                       {rightWorkflow.tasks.map((task, index) => (
-                        <div key={task.id} className="flex justify-start items-start" style={{ height: TASK_ROW_HEIGHT, paddingTop: 30 }}>
+                        <div key={task.id} className="flex justify-start items-start" style={{ height: task.status === "needs_approval" ? APPROVAL_ROW_HEIGHT : TASK_ROW_HEIGHT, paddingTop: 30 }}>
                           {/* First task (index 0) stays visible during collapse to morph into completed widget */}
                           <TaskWidget
                             task={task}
