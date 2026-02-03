@@ -142,12 +142,12 @@ const subWorkflowConfigs: Record<string, { tasks: { label: string; subtext?: str
 };
 
 const GRID_SIZE = 20;
-const TASK_ROW_HEIGHT = 130; // Base height for regular widgets
-const APPROVAL_ROW_HEIGHT = 220; // Extra height for approval widgets with buttons
+const TASK_ROW_HEIGHT = 75; // Compact height for network-like appearance
+const APPROVAL_ROW_HEIGHT = 160; // Height for approval widgets with buttons
 
 // The Y position where connection lines hit relative to task row top (aligned to grid)
-// Widget starts at paddingTop + ~25px to center, rounded to grid alignment
-const TASK_CONNECTION_Y = 50; // Centered in compact row
+// Widget starts at paddingTop + widget center
+const TASK_CONNECTION_Y = 38; // Centered in compact row
 
 // Agent center Y - where the Sidekick Agent box center is (aligned to grid)
 // Calculated: header(~40px) + mb-5(20px) + firstRow(60px) + gap(20px) + halfMiddle(70px) = 210
@@ -1868,7 +1868,7 @@ export default function Home() {
                       initial={{ opacity: 0, y: 10 }}
                       animate={{ opacity: 1, y: 0 }}
                       transition={{ duration: 0.4, ease: [0.32, 0.72, 0, 1] }}
-                      style={{ height: TASK_ROW_HEIGHT, width: "100%", display: "flex", justifyContent: "flex-end", alignItems: "flex-start", paddingTop: 30 }}
+                      style={{ height: TASK_ROW_HEIGHT, width: "100%", display: "flex", justifyContent: "flex-end", alignItems: "flex-start", paddingTop: 8 }}
                     >
                       <CompletedTaskWidget label={leftWorkflow.completedScenarioLabel} onClose={leftHandlers.resetWorkflow} mirrored />
                     </motion.div>
@@ -1883,7 +1883,7 @@ export default function Home() {
                       style={{ alignItems: "flex-end", gap: 0 }}
                     >
                       {leftWorkflow.tasks.map((task, index) => (
-                        <div key={task.id} className="flex justify-end items-start" style={{ height: task.status === "needs_approval" ? APPROVAL_ROW_HEIGHT : TASK_ROW_HEIGHT, paddingTop: 30 }}>
+                        <div key={task.id} className="flex justify-end items-start" style={{ height: task.status === "needs_approval" ? APPROVAL_ROW_HEIGHT : TASK_ROW_HEIGHT, paddingTop: 8 }}>
                           {/* Sub-workflows appear on the LEFT (further from agent) - adjacent to task widget */}
                           {leftWorkflow.resolveTaskIndex === index && leftWorkflow.subWorkflowActive && leftWorkflow.resolveType === "email_copy" && (
                             <EmailPreviewPanel isActive={leftWorkflow.subWorkflowActive} isCollapsing={leftWorkflow.subWorkflowCollapsing} onApprove={leftHandlers.handleApprovePreview} mirrored />
@@ -2040,7 +2040,7 @@ export default function Home() {
                       initial={{ opacity: 0, y: 10 }}
                       animate={{ opacity: 1, y: 0 }}
                       transition={{ duration: 0.4, ease: [0.32, 0.72, 0, 1] }}
-                      style={{ height: TASK_ROW_HEIGHT, width: "100%", display: "flex", justifyContent: "flex-start", alignItems: "flex-start", paddingTop: 30 }}
+                      style={{ height: TASK_ROW_HEIGHT, width: "100%", display: "flex", justifyContent: "flex-start", alignItems: "flex-start", paddingTop: 8 }}
                     >
                       <CompletedTaskWidget label={rightWorkflow.completedScenarioLabel} onClose={rightHandlers.resetWorkflow} />
                     </motion.div>
@@ -2055,7 +2055,7 @@ export default function Home() {
                       style={{ gap: 0 }}
                     >
                       {rightWorkflow.tasks.map((task, index) => (
-                        <div key={task.id} className="flex justify-start items-start" style={{ height: task.status === "needs_approval" ? APPROVAL_ROW_HEIGHT : TASK_ROW_HEIGHT, paddingTop: 30 }}>
+                        <div key={task.id} className="flex justify-start items-start" style={{ height: task.status === "needs_approval" ? APPROVAL_ROW_HEIGHT : TASK_ROW_HEIGHT, paddingTop: 8 }}>
                           {/* First task (index 0) stays visible during collapse to morph into completed widget */}
                           <TaskWidget
                             task={task}
