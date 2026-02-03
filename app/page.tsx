@@ -417,7 +417,7 @@ function LiveStatusWidget({
       initial={{ opacity: 0, y: -10 }}
       animate={{ opacity: 1, y: 0 }}
       style={{
-        position: "absolute",
+        position: "fixed",
         top: 70,
         right: 20,
         minWidth: isRetro ? 220 : 200,
@@ -426,7 +426,7 @@ function LiveStatusWidget({
         borderRadius: isRetro ? 0 : 12,
         padding: isRetro ? "12px 16px" : "14px 18px",
         boxShadow: isRetro ? (isActive ? "0 0 20px rgba(94, 234, 212, 0.1)" : "none") : "0 4px 12px rgba(0,0,0,0.08)",
-        zIndex: 100,
+        zIndex: 1000,
         fontFamily: isRetro ? "monospace" : "inherit"
       }}
     >
@@ -1816,7 +1816,7 @@ export default function Home() {
         />
 
         {/* Zoom Controls */}
-        <div style={{ position: "absolute", top: 20, left: 20, display: "flex", alignItems: "center", gap: true ? 8 : 6, zIndex: 100, background: true ? "rgba(0, 0, 0, 0.6)" : "rgba(255, 255, 255, 0.95)", border: `1px solid ${theme.borderLight}`, padding: true ? "6px 8px" : "4px 6px", borderRadius: true ? 0 : 10, boxShadow: true ? "none" : "0 2px 8px rgba(0,0,0,0.08)" }}>
+        <div style={{ position: "fixed", top: 20, left: 20, display: "flex", alignItems: "center", gap: true ? 8 : 6, zIndex: 1000, background: true ? "rgba(0, 0, 0, 0.6)" : "rgba(255, 255, 255, 0.95)", border: `1px solid ${theme.borderLight}`, padding: true ? "6px 8px" : "4px 6px", borderRadius: true ? 0 : 10, boxShadow: true ? "none" : "0 2px 8px rgba(0,0,0,0.08)" }}>
           <button onClick={resetView} style={{ background: "transparent", border: "none", color: theme.textMuted, padding: "6px 10px", fontSize: 11, cursor: "pointer", fontFamily: theme.fontFamily, fontWeight: 500, letterSpacing: true ? "0.05em" : undefined }}>{true ? "RESET" : "Reset"}</button>
           <div style={{ width: 1, height: 16, background: theme.borderLight }} />
           <button onClick={() => { zoomRef.current = Math.max(zoomRef.current * 0.8, 0.25); if (canvasRef.current) canvasRef.current.style.transform = `translate(${panRef.current.x}px, ${panRef.current.y}px) scale(${zoomRef.current})`; setZoom(zoomRef.current); }} style={{ background: "transparent", border: "none", color: theme.text, padding: "6px 8px", fontSize: 13, cursor: "pointer", fontFamily: theme.fontFamily, fontWeight: 500, lineHeight: 1 }}>−</button>
