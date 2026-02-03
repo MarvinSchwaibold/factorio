@@ -142,12 +142,12 @@ const subWorkflowConfigs: Record<string, { tasks: { label: string; subtext?: str
 };
 
 const GRID_SIZE = 20;
-const TASK_ROW_HEIGHT = 75; // Compact height for network-like appearance
-const APPROVAL_ROW_HEIGHT = 160; // Height for approval widgets with buttons
+const TASK_ROW_HEIGHT = 90; // Clean spacing between widgets
+const APPROVAL_ROW_HEIGHT = 180; // Height for approval widgets with buttons
 
 // The Y position where connection lines hit relative to task row top (aligned to grid)
 // Widget starts at paddingTop + widget center
-const TASK_CONNECTION_Y = 38; // Centered in compact row
+const TASK_CONNECTION_Y = 45; // Centered in row
 
 // Agent center Y - where the Sidekick Agent box center is (aligned to grid)
 // Calculated: header(~40px) + mb-5(20px) + firstRow(60px) + gap(20px) + halfMiddle(70px) = 210
@@ -1106,12 +1106,8 @@ export default function Home() {
   const [leftWorkflow, setLeftWorkflow] = useState<WorkflowState>(initialWorkflowState);
   const [rightWorkflow, setRightWorkflow] = useState<WorkflowState>(initialWorkflowState);
 
-  // Outer branches for network effect during deep clean
-  const [outerLeftBranches, setOuterLeftBranches] = useState<Task[][]>([[], [], []]); // 3 outer columns
-  const [outerRightBranches, setOuterRightBranches] = useState<Task[][]>([[], [], []]); // 3 outer columns
-
   const [deepCleanMode, setDeepCleanMode] = useState<"idle" | "running" | "collapsing" | "complete">("idle");
-  const deepCleanTaskCounterRef = useRef({ left: 0, right: 0, outerLeft: 0, outerRight: 0 });
+  const deepCleanTaskCounterRef = useRef({ left: 0, right: 0 });
   
   const leftScenarioRef = useRef<Scenario | null>(null);
   const rightScenarioRef = useRef<Scenario | null>(null);
@@ -1699,121 +1695,29 @@ export default function Home() {
     // Initialize workflows
     setLeftWorkflow({ ...initialWorkflowState, isRunning: true, lineProgress: 1 });
     setRightWorkflow({ ...initialWorkflowState, isRunning: true, lineProgress: 1 });
-    setOuterLeftBranches([[], [], []]);
-    setOuterRightBranches([[], [], []]);
 
-    // Spawn outer branch task
-    const spawnOuterBranchTask = (side: "left" | "right", branchIndex: number) => {
-      const setBranches = side === "left" ? setOuterLeftBranches : setOuterRightBranches;
-      const counter = deepCleanTaskCounterRef.current[side === "left" ? "outerLeft" : "outerRight"]++;
-      const taskId = `outer-${side}-${branchIndex}-${counter}`;
-
-      const newTask: Task = {
-        id: taskId,
-        label: cleanLabels[Math.floor(Math.random() * cleanLabels.length)],
-        subtext: cleanSubtexts[Math.floor(Math.random() * cleanSubtexts.length)],
-        status: "working",
-        requiresApproval: false,
-        requiresResolve: false
-      };
-
-      setBranches(prev => {
-        const updated = [...prev];
-        updated[branchIndex] = [...updated[branchIndex], newTask];
-        return updated;
-      });
-
-      // Complete the task
-      const duration = 1500 + Math.random() * 2500;
-      const t = setTimeout(() => {
-        const shouldRewrite = Math.random() < 0.4;
-        if (shouldRewrite) {
-          setBranches(prev => {
-            const updated = [...prev];
-            updated[branchIndex] = updated[branchIndex].map(t =>
-              t.id === taskId ? { ...t, status: "rewriting" as TaskState, subtext: "Restructuring..." } : t
-            );
-            return updated;
-          });
-          const t2 = setTimeout(() => {
-            setBranches(prev => {
-              const updated = [...prev];
-              updated[branchIndex] = updated[branchIndex].map(t =>
-                t.id === taskId ? { ...t, status: "completed" as TaskState, subtext: "Done" } : t
-              );
-              return updated;
-            });
-          }, 3000);
-          timeouts.push(t2);
-        } else {
-          setBranches(prev => {
-            const updated = [...prev];
-            updated[branchIndex] = updated[branchIndex].map(t =>
-              t.id === taskId ? { ...t, status: "completed" as TaskState, subtext: "Done" } : t
-            );
-            return updated;
-          });
-        }
-      }, duration);
-      timeouts.push(t);
-    };
-
-    // Spawn tasks rapidly to fill both sides quickly
+    // Simple spawning - just a few tasks on each side
     let spawnCount = 0;
-    const maxSpawns = 40; // More rows on each side
+    const maxSpawns = 8; // 8 tasks per side = 16 total
 
     const scheduleSpawn = (side: "left" | "right", delay: number) => {
       const t = setTimeout(() => {
         if (deepCleanMode === "running" && spawnCount < maxSpawns * 2) {
           spawnCleanTask(side);
           spawnCount++;
-          // Very fast spawning to fill rows quickly
-          const nextDelay = 80 + Math.random() * 150;
+          const nextDelay = 300 + Math.random() * 400;
           if (spawnCount < maxSpawns * 2) {
-            scheduleSpawn(side, nextDelay);
+            scheduleSpawn(side === "left" ? "right" : "left", nextDelay);
           }
         }
       }, delay);
       timeouts.push(t);
     };
 
-    // Spawn outer branch tasks
-    let outerSpawnCount = 0;
-    const maxOuterSpawns = 24; // 8 tasks per branch column
-    const scheduleOuterSpawn = () => {
-      const t = setTimeout(() => {
-        if (deepCleanMode === "running" && outerSpawnCount < maxOuterSpawns) {
-          const side = outerSpawnCount % 2 === 0 ? "left" : "right";
-          const branchIndex = Math.floor(outerSpawnCount / 8) % 3;
-          spawnOuterBranchTask(side, branchIndex);
-          outerSpawnCount++;
-          if (outerSpawnCount < maxOuterSpawns) {
-            scheduleOuterSpawn();
-          }
-        }
-      }, 200 + Math.random() * 300);
-      timeouts.push(t);
-    };
+    // Start spawning alternating sides
+    scheduleSpawn("left", 200);
+    scheduleSpawn("right", 400);
 
-    // Start spawning on both sides - staggered for visual effect
-    scheduleSpawn("left", 100);
-    scheduleSpawn("right", 250);
-
-    // Start outer branch spawning after a delay
-    setTimeout(() => scheduleOuterSpawn(), 800);
-
-    // Spawn sub-workflows during the run
-    const subWorkflowTimes = [1000, 2000, 3000, 4500, 6000, 7500];
-    subWorkflowTimes.forEach((time, i) => {
-      const t = setTimeout(() => {
-        const side = i % 2 === 0 ? "left" : "right";
-        const workflow = side === "left" ? leftWorkflow : rightWorkflow;
-        if (workflow.tasks.length > 0 && !workflow.subWorkflowActive) {
-          spawnSubWorkflow(side, Math.floor(Math.random() * Math.max(1, workflow.tasks.length)));
-        }
-      }, time);
-      timeouts.push(t);
-    });
 
     // After CLEAN_DURATION, start collapsing everything
     const collapseTimeout = setTimeout(() => {
@@ -1843,8 +1747,6 @@ export default function Home() {
         setTimeout(() => {
           setLeftWorkflow(initialWorkflowState);
           setRightWorkflow(initialWorkflowState);
-          setOuterLeftBranches([[], [], []]);
-          setOuterRightBranches([[], [], []]);
           setDeepCleanMode("complete");
 
           // DO NOT touch the canvas - user controls panning independently
@@ -1869,9 +1771,7 @@ export default function Home() {
     // Reset everything first
     setLeftWorkflow(initialWorkflowState);
     setRightWorkflow(initialWorkflowState);
-    setOuterLeftBranches([[], [], []]);
-    setOuterRightBranches([[], [], []]);
-    deepCleanTaskCounterRef.current = { left: 0, right: 0, outerLeft: 0, outerRight: 0 };
+    deepCleanTaskCounterRef.current = { left: 0, right: 0 };
     setDeepCleanMode("running");
   };
 
@@ -1942,66 +1842,7 @@ export default function Home() {
             }}
           />
           {/* Content wrapper - agent at center (0,0), workflows expand outward */}
-          <div className="flex items-start" style={{ position: "absolute", top: -150, left: -1400 }}>
-
-            {/* OUTER LEFT BRANCHES - Network extensions */}
-            {deepCleanMode !== "idle" && (
-              <div className="flex items-start" style={{ marginRight: 40 }}>
-                {outerLeftBranches.map((branch, branchIdx) => (
-                  <div key={`outer-left-${branchIdx}`} className="flex items-start">
-                    {/* Branch tasks */}
-                    <div className="flex flex-col" style={{ width: 180, alignItems: "flex-end", gap: 0 }}>
-                      <AnimatePresence>
-                        {branch.map((task, taskIdx) => (
-                          <motion.div
-                            key={task.id}
-                            initial={{ opacity: 0, x: -20 }}
-                            animate={{ opacity: 1, x: 0 }}
-                            exit={{ opacity: 0, x: -20 }}
-                            style={{ height: 55, paddingTop: 4 }}
-                          >
-                            <div style={{
-                              padding: "6px 10px",
-                              background: task.status === "completed" ? "rgba(16, 185, 129, 0.15)" : task.status === "rewriting" ? "rgba(168, 85, 247, 0.15)" : "rgba(94, 234, 212, 0.08)",
-                              border: `1px solid ${task.status === "completed" ? "rgba(16, 185, 129, 0.4)" : task.status === "rewriting" ? "rgba(168, 85, 247, 0.4)" : theme.border}`,
-                              fontSize: 10,
-                              color: theme.text,
-                              fontFamily: theme.fontFamily,
-                              letterSpacing: "0.05em"
-                            }}>
-                              <div style={{ marginBottom: 2 }}>{task.label}</div>
-                              <div style={{ fontSize: 9, color: task.status === "rewriting" ? "#a855f7" : theme.textMuted }}>{task.subtext}</div>
-                            </div>
-                          </motion.div>
-                        ))}
-                      </AnimatePresence>
-                    </div>
-                    {/* Branch connection */}
-                    <div className="relative" style={{ width: 60, height: Math.max(200, branch.length * 55) }}>
-                      <svg style={{ position: "absolute", top: 0, left: 0, width: "100%", height: "100%", overflow: "visible" }}>
-                        {branch.length > 0 && (
-                          <motion.path
-                            d={`M 60 30 L 30 30 L 30 ${30 + (branch.length - 1) * 55}`}
-                            fill="none"
-                            stroke={theme.connectionLine}
-                            strokeWidth="1"
-                            strokeDasharray="3 3"
-                            initial={{ pathLength: 0 }}
-                            animate={{ pathLength: 1 }}
-                          />
-                        )}
-                        {branch.map((_, i) => (
-                          <motion.path key={i} d={`M 30 ${30 + i * 55} L 0 ${30 + i * 55}`} fill="none" stroke={theme.connectionLine} strokeWidth="1" initial={{ pathLength: 0 }} animate={{ pathLength: 1 }} />
-                        ))}
-                      </svg>
-                      {branch.map((task, i) => (
-                        <motion.div key={`dot-${i}`} initial={{ scale: 0 }} animate={{ scale: 1 }} style={{ position: "absolute", left: -2, top: 28 + i * 55, width: 4, height: 4, background: task.status === "completed" ? "#10b981" : task.status === "rewriting" ? "#a855f7" : theme.accent }} />
-                      ))}
-                    </div>
-                  </div>
-                ))}
-              </div>
-            )}
+          <div className="flex items-start" style={{ position: "absolute", top: -150, left: -800 }}>
 
             {/* LEFT WORKFLOW */}
             <div className="flex items-start">
@@ -2015,7 +1856,7 @@ export default function Home() {
                       initial={{ opacity: 0, y: 10 }}
                       animate={{ opacity: 1, y: 0 }}
                       transition={{ duration: 0.4, ease: [0.32, 0.72, 0, 1] }}
-                      style={{ height: TASK_ROW_HEIGHT, width: "100%", display: "flex", justifyContent: "flex-end", alignItems: "flex-start", paddingTop: 8 }}
+                      style={{ height: TASK_ROW_HEIGHT, width: "100%", display: "flex", justifyContent: "flex-end", alignItems: "flex-start", paddingTop: 15 }}
                     >
                       <CompletedTaskWidget label={leftWorkflow.completedScenarioLabel} onClose={leftHandlers.resetWorkflow} mirrored />
                     </motion.div>
@@ -2030,7 +1871,7 @@ export default function Home() {
                       style={{ alignItems: "flex-end", gap: 0 }}
                     >
                       {leftWorkflow.tasks.map((task, index) => (
-                        <div key={task.id} className="flex justify-end items-start" style={{ height: task.status === "needs_approval" ? APPROVAL_ROW_HEIGHT : TASK_ROW_HEIGHT, paddingTop: 8 }}>
+                        <div key={task.id} className="flex justify-end items-start" style={{ height: task.status === "needs_approval" ? APPROVAL_ROW_HEIGHT : TASK_ROW_HEIGHT, paddingTop: 15 }}>
                           {/* Sub-workflows appear on the LEFT (further from agent) - adjacent to task widget */}
                           {leftWorkflow.resolveTaskIndex === index && leftWorkflow.subWorkflowActive && leftWorkflow.resolveType === "email_copy" && (
                             <EmailPreviewPanel isActive={leftWorkflow.subWorkflowActive} isCollapsing={leftWorkflow.subWorkflowCollapsing} onApprove={leftHandlers.handleApprovePreview} mirrored />
@@ -2187,7 +2028,7 @@ export default function Home() {
                       initial={{ opacity: 0, y: 10 }}
                       animate={{ opacity: 1, y: 0 }}
                       transition={{ duration: 0.4, ease: [0.32, 0.72, 0, 1] }}
-                      style={{ height: TASK_ROW_HEIGHT, width: "100%", display: "flex", justifyContent: "flex-start", alignItems: "flex-start", paddingTop: 8 }}
+                      style={{ height: TASK_ROW_HEIGHT, width: "100%", display: "flex", justifyContent: "flex-start", alignItems: "flex-start", paddingTop: 15 }}
                     >
                       <CompletedTaskWidget label={rightWorkflow.completedScenarioLabel} onClose={rightHandlers.resetWorkflow} />
                     </motion.div>
@@ -2202,7 +2043,7 @@ export default function Home() {
                       style={{ gap: 0 }}
                     >
                       {rightWorkflow.tasks.map((task, index) => (
-                        <div key={task.id} className="flex justify-start items-start" style={{ height: task.status === "needs_approval" ? APPROVAL_ROW_HEIGHT : TASK_ROW_HEIGHT, paddingTop: 8 }}>
+                        <div key={task.id} className="flex justify-start items-start" style={{ height: task.status === "needs_approval" ? APPROVAL_ROW_HEIGHT : TASK_ROW_HEIGHT, paddingTop: 15 }}>
                           {/* First task (index 0) stays visible during collapse to morph into completed widget */}
                           <TaskWidget
                             task={task}
@@ -2234,65 +2075,6 @@ export default function Home() {
                 </AnimatePresence>
               </div>
             </div>
-
-            {/* OUTER RIGHT BRANCHES - Network extensions */}
-            {deepCleanMode !== "idle" && (
-              <div className="flex items-start" style={{ marginLeft: 40 }}>
-                {outerRightBranches.map((branch, branchIdx) => (
-                  <div key={`outer-right-${branchIdx}`} className="flex items-start">
-                    {/* Branch connection */}
-                    <div className="relative" style={{ width: 60, height: Math.max(200, branch.length * 55) }}>
-                      <svg style={{ position: "absolute", top: 0, left: 0, width: "100%", height: "100%", overflow: "visible" }}>
-                        {branch.length > 0 && (
-                          <motion.path
-                            d={`M 0 30 L 30 30 L 30 ${30 + (branch.length - 1) * 55}`}
-                            fill="none"
-                            stroke={theme.connectionLine}
-                            strokeWidth="1"
-                            strokeDasharray="3 3"
-                            initial={{ pathLength: 0 }}
-                            animate={{ pathLength: 1 }}
-                          />
-                        )}
-                        {branch.map((_, i) => (
-                          <motion.path key={i} d={`M 30 ${30 + i * 55} L 60 ${30 + i * 55}`} fill="none" stroke={theme.connectionLine} strokeWidth="1" initial={{ pathLength: 0 }} animate={{ pathLength: 1 }} />
-                        ))}
-                      </svg>
-                      {branch.map((task, i) => (
-                        <motion.div key={`dot-${i}`} initial={{ scale: 0 }} animate={{ scale: 1 }} style={{ position: "absolute", left: 58, top: 28 + i * 55, width: 4, height: 4, background: task.status === "completed" ? "#10b981" : task.status === "rewriting" ? "#a855f7" : theme.accent }} />
-                      ))}
-                    </div>
-                    {/* Branch tasks */}
-                    <div className="flex flex-col" style={{ width: 180, alignItems: "flex-start", gap: 0 }}>
-                      <AnimatePresence>
-                        {branch.map((task, taskIdx) => (
-                          <motion.div
-                            key={task.id}
-                            initial={{ opacity: 0, x: 20 }}
-                            animate={{ opacity: 1, x: 0 }}
-                            exit={{ opacity: 0, x: 20 }}
-                            style={{ height: 55, paddingTop: 4 }}
-                          >
-                            <div style={{
-                              padding: "6px 10px",
-                              background: task.status === "completed" ? "rgba(16, 185, 129, 0.15)" : task.status === "rewriting" ? "rgba(168, 85, 247, 0.15)" : "rgba(94, 234, 212, 0.08)",
-                              border: `1px solid ${task.status === "completed" ? "rgba(16, 185, 129, 0.4)" : task.status === "rewriting" ? "rgba(168, 85, 247, 0.4)" : theme.border}`,
-                              fontSize: 10,
-                              color: theme.text,
-                              fontFamily: theme.fontFamily,
-                              letterSpacing: "0.05em"
-                            }}>
-                              <div style={{ marginBottom: 2 }}>{task.label}</div>
-                              <div style={{ fontSize: 9, color: task.status === "rewriting" ? "#a855f7" : theme.textMuted }}>{task.subtext}</div>
-                            </div>
-                          </motion.div>
-                        ))}
-                      </AnimatePresence>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            )}
           </div>
         </div>
       </div>
