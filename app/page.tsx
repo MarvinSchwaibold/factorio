@@ -716,24 +716,33 @@ function WorkflowBranchContainer({
   scenarioLabel,
   isActive,
   isCollapsing,
+  isCleanComplete,
   mirrored
 }: {
   children: React.ReactNode;
   scenarioLabel: string;
   isActive: boolean;
   isCollapsing: boolean;
+  isCleanComplete?: boolean;
   mirrored?: boolean;
 }) {
   const theme = useContext(ThemeContext);
 
-  if (!isActive && !scenarioLabel) return null;
+  // Show container if active, has label, or showing clean complete state
+  if (!isActive && !scenarioLabel && !isCleanComplete) return null;
+
+  // Colors based on state
+  const borderColor = isCleanComplete ? "rgba(16, 185, 129, 0.4)" : "rgba(94, 234, 212, 0.25)";
+  const bgColor = isCleanComplete ? "rgba(16, 185, 129, 0.06)" : "rgba(94, 234, 212, 0.03)";
+  const accentColor = isCleanComplete ? "#10b981" : theme.accent;
+  const glowColor = isCleanComplete ? "0 0 8px rgba(16, 185, 129, 0.6)" : theme.glowAccent;
 
   return (
     <motion.div
       initial={{ opacity: 0, scale: 0.97 }}
       animate={{
-        opacity: isCollapsing ? 0 : 1,
-        scale: isCollapsing ? 0.97 : 1
+        opacity: isCollapsing && !isCleanComplete ? 0 : 1,
+        scale: isCollapsing && !isCleanComplete ? 0.97 : 1
       }}
       exit={{ opacity: 0, scale: 0.97 }}
       transition={{
@@ -742,16 +751,17 @@ function WorkflowBranchContainer({
       }}
       style={{
         position: "relative",
-        border: `1px solid rgba(94, 234, 212, 0.25)`,
-        background: "rgba(94, 234, 212, 0.03)",
+        border: `1px solid ${borderColor}`,
+        background: bgColor,
         padding: 0,
+        boxShadow: isCleanComplete ? "0 0 20px rgba(16, 185, 129, 0.15)" : "none",
       }}
     >
       {/* Header */}
-      {scenarioLabel && (
+      {(scenarioLabel || isCleanComplete) && (
         <div
           style={{
-            borderBottom: `1px solid rgba(94, 234, 212, 0.15)`,
+            borderBottom: `1px solid ${isCleanComplete ? "rgba(16, 185, 129, 0.2)" : "rgba(94, 234, 212, 0.15)"}`,
             padding: "10px 16px",
             display: "flex",
             alignItems: "center",
@@ -759,39 +769,90 @@ function WorkflowBranchContainer({
             flexDirection: mirrored ? "row-reverse" : "row",
           }}
         >
-          <motion.div
-            animate={{ opacity: [0.5, 1, 0.5] }}
-            transition={{ duration: 1.5, repeat: Infinity }}
-            style={{
-              width: 6,
-              height: 6,
-              background: theme.accent,
-              boxShadow: theme.glowAccent,
-            }}
-          />
+          {isCleanComplete ? (
+            // Checkmark for complete state
+            <motion.div
+              initial={{ scale: 0 }}
+              animate={{ scale: 1 }}
+              transition={{ type: "spring", stiffness: 400, damping: 15 }}
+              style={{
+                width: 14,
+                height: 14,
+                background: "#10b981",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                boxShadow: "0 0 10px rgba(16, 185, 129, 0.5)",
+              }}
+            >
+              <span style={{ color: "#000", fontSize: 10, fontWeight: 900 }}>✓</span>
+            </motion.div>
+          ) : (
+            // Pulsing dot for active state
+            <motion.div
+              animate={{ opacity: [0.5, 1, 0.5] }}
+              transition={{ duration: 1.5, repeat: Infinity }}
+              style={{
+                width: 6,
+                height: 6,
+                background: accentColor,
+                boxShadow: glowColor,
+              }}
+            />
+          )}
           <span
             style={{
               fontSize: 10,
               letterSpacing: "0.12em",
-              color: theme.textMuted,
+              color: isCleanComplete ? "#10b981" : theme.textMuted,
               fontWeight: 700,
               textTransform: "uppercase",
             }}
           >
-            {scenarioLabel}
+            {isCleanComplete ? "SYSTEM OPTIMIZED" : scenarioLabel}
           </span>
         </div>
       )}
 
       {/* Corner accents */}
-      <div style={{ position: "absolute", top: 0, left: 0, width: 8, height: 8, borderTop: `2px solid ${theme.accent}`, borderLeft: `2px solid ${theme.accent}`, opacity: 0.6 }} />
-      <div style={{ position: "absolute", top: 0, right: 0, width: 8, height: 8, borderTop: `2px solid ${theme.accent}`, borderRight: `2px solid ${theme.accent}`, opacity: 0.6 }} />
-      <div style={{ position: "absolute", bottom: 0, left: 0, width: 8, height: 8, borderBottom: `2px solid ${theme.accent}`, borderLeft: `2px solid ${theme.accent}`, opacity: 0.6 }} />
-      <div style={{ position: "absolute", bottom: 0, right: 0, width: 8, height: 8, borderBottom: `2px solid ${theme.accent}`, borderRight: `2px solid ${theme.accent}`, opacity: 0.6 }} />
+      <div style={{ position: "absolute", top: 0, left: 0, width: 8, height: 8, borderTop: `2px solid ${accentColor}`, borderLeft: `2px solid ${accentColor}`, opacity: 0.6 }} />
+      <div style={{ position: "absolute", top: 0, right: 0, width: 8, height: 8, borderTop: `2px solid ${accentColor}`, borderRight: `2px solid ${accentColor}`, opacity: 0.6 }} />
+      <div style={{ position: "absolute", bottom: 0, left: 0, width: 8, height: 8, borderBottom: `2px solid ${accentColor}`, borderLeft: `2px solid ${accentColor}`, opacity: 0.6 }} />
+      <div style={{ position: "absolute", bottom: 0, right: 0, width: 8, height: 8, borderBottom: `2px solid ${accentColor}`, borderRight: `2px solid ${accentColor}`, opacity: 0.6 }} />
 
       {/* Content */}
       <div style={{ padding: "12px 16px" }}>
-        {children}
+        {isCleanComplete ? (
+          <motion.div
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.1, duration: 0.3 }}
+            style={{
+              display: "flex",
+              flexDirection: "column",
+              alignItems: "center",
+              gap: 8,
+              padding: "16px 24px",
+            }}
+          >
+            <span style={{ fontSize: 11, color: "rgba(16, 185, 129, 0.7)", letterSpacing: "0.08em" }}>
+              ALL ISSUES RESOLVED
+            </span>
+            <div style={{ display: "flex", gap: 12, marginTop: 4 }}>
+              <div style={{ textAlign: "center" }}>
+                <div style={{ fontSize: 18, fontWeight: 700, color: "#10b981" }}>0</div>
+                <div style={{ fontSize: 9, color: "rgba(16, 185, 129, 0.5)", letterSpacing: "0.1em" }}>ERRORS</div>
+              </div>
+              <div style={{ width: 1, background: "rgba(16, 185, 129, 0.2)" }} />
+              <div style={{ textAlign: "center" }}>
+                <div style={{ fontSize: 18, fontWeight: 700, color: "#10b981" }}>100%</div>
+                <div style={{ fontSize: 9, color: "rgba(16, 185, 129, 0.5)", letterSpacing: "0.1em" }}>HEALTH</div>
+              </div>
+            </div>
+          </motion.div>
+        ) : (
+          children
+        )}
       </div>
     </motion.div>
   );
@@ -1161,6 +1222,7 @@ interface WorkflowState {
   resolveTaskIndex: number | null;
   resolveType: string | null;
   insightsApplied?: boolean;
+  deepCleanComplete?: boolean;
 }
 
 const initialWorkflowState: WorkflowState = {
@@ -1178,6 +1240,7 @@ const initialWorkflowState: WorkflowState = {
   resolveTaskIndex: null,
   resolveType: null,
   insightsApplied: false,
+  deepCleanComplete: false,
 };
 
 export default function Home() {
@@ -1835,18 +1898,29 @@ export default function Home() {
           isCollapsing: true
         }));
 
-        // After collapse animation, reset to complete state
+        // After collapse animation, show clean complete state
         setTimeout(() => {
-          setLeftWorkflow(initialWorkflowState);
-          setRightWorkflow(initialWorkflowState);
+          // Show the "cleaned" state in containers instead of full reset
+          setLeftWorkflow(prev => ({
+            ...initialWorkflowState,
+            deepCleanComplete: true,
+            currentScenarioLabel: "DEEP CLEAN",
+          }));
+          setRightWorkflow(prev => ({
+            ...initialWorkflowState,
+            deepCleanComplete: true,
+            currentScenarioLabel: "DEEP CLEAN",
+          }));
           setDeepCleanMode("complete");
 
           // DO NOT touch the canvas - user controls panning independently
 
           // Reset to idle after showing complete
           setTimeout(() => {
+            setLeftWorkflow(initialWorkflowState);
+            setRightWorkflow(initialWorkflowState);
             setDeepCleanMode("idle");
-          }, 2000);
+          }, 2500);
         }, 800);
       }, 400);
     }, CLEAN_DURATION);
@@ -1953,7 +2027,8 @@ export default function Home() {
                     </motion.div>
                   )}
                   {/* Show tasks while running or collapsing */}
-                  {!leftWorkflow.isCompleted && leftWorkflow.tasks.length > 0 && (
+                  {/* Show tasks while running/collapsing OR show clean complete state */}
+                  {(!leftWorkflow.isCompleted && leftWorkflow.tasks.length > 0) || leftWorkflow.deepCleanComplete ? (
                     <motion.div
                       key="left-tasks-container"
                       initial={{ opacity: 1 }}
@@ -1962,23 +2037,26 @@ export default function Home() {
                       style={{ alignItems: "flex-start", justifyContent: "flex-end", gap: 16 }}
                     >
                       {/* Sub-workflows appear on the LEFT (further from agent) */}
-                      <div className="flex flex-col" style={{ gap: WIDGET_GAP }}>
-                        {leftWorkflow.subWorkflowActive && leftWorkflow.resolveType === "email_copy" && (
-                          <EmailPreviewPanel isActive={leftWorkflow.subWorkflowActive} isCollapsing={leftWorkflow.subWorkflowCollapsing} onApprove={leftHandlers.handleApprovePreview} mirrored />
-                        )}
-                        {leftWorkflow.subWorkflowActive && leftWorkflow.resolveType === "insights" && (
-                          <InsightsPreviewPanel isActive={leftWorkflow.subWorkflowActive} isCollapsing={leftWorkflow.subWorkflowCollapsing} onApprove={leftHandlers.handleApprovePreview} mirrored />
-                        )}
-                        {(leftWorkflow.subWorkflowActive || leftWorkflow.subWorkflowTasks.length > 0) && leftWorkflow.resolveType !== "email_copy" && leftWorkflow.resolveType !== "insights" && (
-                          <SubWorkflowPanel isActive={leftWorkflow.subWorkflowActive} tasks={leftWorkflow.subWorkflowTasks} isCollapsing={leftWorkflow.subWorkflowCollapsing} mirrored />
-                        )}
-                      </div>
+                      {!leftWorkflow.deepCleanComplete && (
+                        <div className="flex flex-col" style={{ gap: WIDGET_GAP }}>
+                          {leftWorkflow.subWorkflowActive && leftWorkflow.resolveType === "email_copy" && (
+                            <EmailPreviewPanel isActive={leftWorkflow.subWorkflowActive} isCollapsing={leftWorkflow.subWorkflowCollapsing} onApprove={leftHandlers.handleApprovePreview} mirrored />
+                          )}
+                          {leftWorkflow.subWorkflowActive && leftWorkflow.resolveType === "insights" && (
+                            <InsightsPreviewPanel isActive={leftWorkflow.subWorkflowActive} isCollapsing={leftWorkflow.subWorkflowCollapsing} onApprove={leftHandlers.handleApprovePreview} mirrored />
+                          )}
+                          {(leftWorkflow.subWorkflowActive || leftWorkflow.subWorkflowTasks.length > 0) && leftWorkflow.resolveType !== "email_copy" && leftWorkflow.resolveType !== "insights" && (
+                            <SubWorkflowPanel isActive={leftWorkflow.subWorkflowActive} tasks={leftWorkflow.subWorkflowTasks} isCollapsing={leftWorkflow.subWorkflowCollapsing} mirrored />
+                          )}
+                        </div>
+                      )}
 
                       {/* Main tasks container */}
                       <WorkflowBranchContainer
                         scenarioLabel={leftWorkflow.currentScenarioLabel}
-                        isActive={leftWorkflow.tasks.length > 0}
+                        isActive={leftWorkflow.tasks.length > 0 || leftWorkflow.deepCleanComplete}
                         isCollapsing={leftWorkflow.isCollapsing}
+                        isCleanComplete={leftWorkflow.deepCleanComplete}
                         mirrored
                       >
                         <div className="flex flex-col" style={{ gap: WIDGET_GAP }}>
@@ -1997,39 +2075,46 @@ export default function Home() {
                         </div>
                       </WorkflowBranchContainer>
                     </motion.div>
-                  )}
+                  ) : null}
                 </AnimatePresence>
               </div>
 
               {/* Left Connection - lines go from agent (right) TO tasks (left) */}
-              <div className="relative" style={{ width: CONNECTION_WIDTH, height: Math.max(300, leftWorkflow.tasks.length * TASK_ROW_HEIGHT) }}>
-                <svg style={{ position: "absolute", top: 0, left: 0, width: "100%", height: "100%", overflow: "visible" }}>
-                  {/* Main path: from agent (right, midpoint) to first task (left, midpoint) */}
-                  <motion.path d={`M ${CONNECTION_WIDTH} ${AGENT_CENTER_Y} L ${CONNECTION_BEND_X} ${AGENT_CENTER_Y} L ${CONNECTION_BEND_X} ${CONNECTION_LINE_Y} L 0 ${CONNECTION_LINE_Y}`} fill="none" stroke={leftWorkflow.isCompleted ? (true ? "rgba(16, 185, 129, 0.4)" : "#86efac") : theme.connectionLine} strokeWidth="1" initial={{ pathLength: 0, opacity: 1 }} animate={{ pathLength: leftWorkflow.lineProgress > 0 || leftWorkflow.isCompleted ? 1 : 0, opacity: leftWorkflow.isCollapsing ? 0 : 1 }} transition={{ pathLength: { duration: 0.6 }, opacity: { duration: 0.5, delay: leftWorkflow.isCollapsing ? 0.15 + leftWorkflow.tasks.length * 0.04 : 0, ease: [0.32, 0.72, 0, 1] } }} />
-                  {/* Vertical dashed line for multiple tasks - from first task down */}
-                  {leftWorkflow.tasks.length > 1 && !leftWorkflow.isCompleted && <motion.path d={`M ${CONNECTION_BEND_X} ${CONNECTION_LINE_Y} L ${CONNECTION_BEND_X} ${CONNECTION_LINE_Y + (leftWorkflow.tasks.length - 1) * TASK_ROW_HEIGHT}`} fill="none" stroke={theme.connectionLineDim} strokeWidth="1" strokeDasharray="4 4" initial={{ pathLength: 0, opacity: 1 }} animate={{ pathLength: leftWorkflow.isCollapsing ? 0 : 1, opacity: leftWorkflow.isCollapsing ? 0 : 1 }} transition={{ duration: 0.5, delay: leftWorkflow.isCollapsing ? 0.1 : 0, ease: [0.32, 0.72, 0, 1] }} />}
-                  {/* Horizontal lines to each task - all at exact midpoint height */}
-                  {!leftWorkflow.isCompleted && leftWorkflow.tasks.map((_, i) => <motion.path key={i} d={`M ${CONNECTION_BEND_X} ${CONNECTION_LINE_Y + i * TASK_ROW_HEIGHT} L 0 ${CONNECTION_LINE_Y + i * TASK_ROW_HEIGHT}`} fill="none" stroke={theme.connectionLine} strokeWidth="1" initial={{ pathLength: 0, opacity: 1 }} animate={{ pathLength: leftWorkflow.isCollapsing ? 0 : 1, opacity: leftWorkflow.isCollapsing ? 0 : 1 }} transition={{ duration: 0.45, delay: leftWorkflow.isCollapsing ? i * 0.06 : 0, ease: [0.32, 0.72, 0, 1] }} />)}
-                </svg>
-                {/* Connection dots - agent side (right) - at agent center height */}
-                {!leftWorkflow.isCompleted && leftWorkflow.lineProgress > 0.3 && <motion.div initial={{ scale: 0, opacity: 0, y: 0 }} animate={leftWorkflow.isCollapsing ? { scale: [1, 1.3, 0], opacity: [1, 0.8, 0], y: -12, filter: "blur(8px)" } : true ? { scale: [1, 1.2, 1], opacity: 1, y: 0 } : { scale: 1, opacity: 1, y: 0 }} transition={leftWorkflow.isCollapsing ? { duration: 0.5, delay: 0.3 + leftWorkflow.tasks.length * 0.06, ease: [0.32, 0.72, 0, 1] } : true ? { duration: 1, repeat: Infinity } : { duration: 0.3 }} style={{ position: "absolute", left: CONNECTION_WIDTH - 3, top: AGENT_CENTER_Y - 3, width: 6, height: 6, borderRadius: true ? 0 : "50%", background: accentColor, boxShadow: true ? theme.glowAccent : "none" }} />}
-                {/* Junction dot (at turn point) */}
-                {!leftWorkflow.isCompleted && leftWorkflow.lineProgress > 0.6 && <motion.div initial={{ scale: 0, opacity: 0, y: 0 }} animate={leftWorkflow.isCollapsing ? { scale: [1, 1.3, 0], opacity: [1, 0.8, 0], y: -10, filter: "blur(8px)" } : true ? { scale: [1, 1.2, 1], opacity: 1, y: 0 } : { scale: 1, opacity: 1, y: 0 }} transition={leftWorkflow.isCollapsing ? { duration: 0.5, delay: 0.2 + leftWorkflow.tasks.length * 0.06, ease: [0.32, 0.72, 0, 1] } : true ? { duration: 1, repeat: Infinity, delay: 0.2 } : { duration: 0.3 }} style={{ position: "absolute", left: CONNECTION_BEND_X - 3, top: AGENT_CENTER_Y - 3, width: 6, height: 6, borderRadius: true ? 0 : "50%", background: accentColor, boxShadow: true ? theme.glowAccent : "none" }} />}
-                {/* First task connection dot (left) */}
-                {!leftWorkflow.isCompleted && leftWorkflow.lineProgress >= 1 && <motion.div initial={{ scale: 0, opacity: 0, y: 0 }} animate={leftWorkflow.isCollapsing ? { scale: [1, 1.3, 0], opacity: [1, 0.8, 0], y: -8, filter: "blur(8px)" } : true ? { scale: [1, 1.2, 1], opacity: 1, y: 0 } : { scale: 1, opacity: 1, y: 0 }} transition={leftWorkflow.isCollapsing ? { duration: 0.5, delay: 0.1 + leftWorkflow.tasks.length * 0.06, ease: [0.32, 0.72, 0, 1] } : true ? { duration: 1, repeat: Infinity, delay: 0.4 } : { duration: 0.3 }} style={{ position: "absolute", left: -3, top: CONNECTION_LINE_Y - 3, width: 6, height: 6, borderRadius: true ? 0 : "50%", background: accentColor, boxShadow: true ? theme.glowAccent : "none" }} />}
-                {/* Completed state node */}
-                {leftWorkflow.isCompleted && <motion.div initial={{ scale: 0 }} animate={{ scale: 1 }} transition={{ type: "spring", stiffness: 400, damping: 20 }} style={{ position: "absolute", left: true ? -3 : -4, top: CONNECTION_LINE_Y - (true ? 6 : 4), width: true ? 12 : 8, height: true ? 12 : 8, borderRadius: true ? 0 : "50%", background: "#10b981", boxShadow: true ? "0 0 12px rgba(16, 185, 129, 0.6)" : "none" }} />}
-                {/* Task connection nodes on left side - all at task connection height */}
-                {!leftWorkflow.isCompleted && leftWorkflow.tasks.map((task, i) => <motion.div key={`node-${i}`} initial={{ scale: 0, opacity: 0, x: 0, y: 0 }} animate={leftWorkflow.isCollapsing ? { scale: [1, 1.4, 0], opacity: [1, 0.6, 0], x: -15, y: -8, filter: "blur(10px)" } : { scale: 1, opacity: 1, x: 0, y: 0 }} transition={leftWorkflow.isCollapsing ? { duration: 0.55, delay: i * 0.06, ease: [0.32, 0.72, 0, 1] } : { duration: 0.3 }} style={{ position: "absolute", left: -3, top: CONNECTION_LINE_Y - 3 + i * TASK_ROW_HEIGHT, width: 6, height: 6, borderRadius: true ? 0 : "50%", background: task.status === "needs_approval" || task.status === "needs_resolve" ? "#e07020" : task.status === "failed" ? "#ef4444" : task.status === "fixing" ? "#3b82f6" : task.status === "rewriting" ? "#a855f7" : task.status === "completed" ? "#10b981" : task.status === "working" ? accentColor : theme.dotDim, boxShadow: true ? (task.status === "needs_approval" || task.status === "needs_resolve" ? "0 0 8px #e07020" : task.status === "failed" ? "0 0 8px #ef4444" : task.status === "fixing" ? "0 0 8px #3b82f6" : task.status === "rewriting" ? "0 0 8px #a855f7" : task.status === "completed" ? "0 0 8px #10b981" : task.status === "working" ? theme.glowAccent : "none") : "none" }} />)}
-                {/* Energy dots - main path from agent to junction */}
-                {leftWorkflow.isRunning && !leftWorkflow.awaitingApproval && !leftWorkflow.isCompleted && Array.from({ length: numDots }).map((_, i) => <EnergyDot key={`main-${i}`} delay={(i / numDots) * cycleDuration} color={accentColor} duration={cycleDuration} path={`M ${CONNECTION_WIDTH} ${AGENT_CENTER_Y} L ${CONNECTION_BEND_X} ${AGENT_CENTER_Y}`} />)}
-                {/* Energy dots - branch lines to each task */}
-                {leftWorkflow.isRunning && !leftWorkflow.awaitingApproval && !leftWorkflow.isCompleted && leftWorkflow.tasks.map((_, taskIndex) => 
-                  Array.from({ length: 2 }).map((__, i) => <EnergyDot key={`branch-${taskIndex}-${i}`} delay={(i / 2) * 1.5 + taskIndex * 0.3} color={accentColor} duration={1.5} path={`M ${CONNECTION_BEND_X} ${CONNECTION_LINE_Y + taskIndex * TASK_ROW_HEIGHT} L 0 ${CONNECTION_LINE_Y + taskIndex * TASK_ROW_HEIGHT}`} />)
-                )}
+              {(() => {
+                // Find the task with review status (needs_approval or needs_resolve)
+                const reviewTaskIndex = leftWorkflow.tasks.findIndex(t => t.status === "needs_approval" || t.status === "needs_resolve");
+                // Target the review task if found, otherwise last working task or first task
+                const targetTaskIndex = reviewTaskIndex >= 0 ? reviewTaskIndex : Math.max(0, leftWorkflow.tasks.length - 1);
+                const targetY = CONNECTION_LINE_Y + targetTaskIndex * TASK_ROW_HEIGHT;
+                const hasReviewTask = reviewTaskIndex >= 0;
 
-                {/* Insight Transfer: Flowing back to Agent */}
-              </div>
+                return (
+                  <div className="relative" style={{ width: CONNECTION_WIDTH, height: Math.max(300, leftWorkflow.tasks.length * TASK_ROW_HEIGHT) }}>
+                    <svg style={{ position: "absolute", top: 0, left: 0, width: "100%", height: "100%", overflow: "visible" }}>
+                      {/* Main path: from agent to target task (review task or last task) */}
+                      <motion.path d={`M ${CONNECTION_WIDTH} ${AGENT_CENTER_Y} L ${CONNECTION_BEND_X} ${AGENT_CENTER_Y} L ${CONNECTION_BEND_X} ${targetY} L 0 ${targetY}`} fill="none" stroke={leftWorkflow.isCompleted ? "rgba(16, 185, 129, 0.4)" : hasReviewTask ? "rgba(224, 112, 32, 0.5)" : theme.connectionLine} strokeWidth="1" initial={{ pathLength: 0, opacity: 1 }} animate={{ pathLength: leftWorkflow.lineProgress > 0 || leftWorkflow.isCompleted ? 1 : 0, opacity: leftWorkflow.isCollapsing ? 0 : 1 }} transition={{ pathLength: { duration: 0.6 }, opacity: { duration: 0.5, delay: leftWorkflow.isCollapsing ? 0.15 + leftWorkflow.tasks.length * 0.04 : 0, ease: [0.32, 0.72, 0, 1] } }} />
+                      {/* Vertical dashed line for other tasks */}
+                      {leftWorkflow.tasks.length > 1 && !leftWorkflow.isCompleted && <motion.path d={`M ${CONNECTION_BEND_X} ${CONNECTION_LINE_Y} L ${CONNECTION_BEND_X} ${CONNECTION_LINE_Y + (leftWorkflow.tasks.length - 1) * TASK_ROW_HEIGHT}`} fill="none" stroke={theme.connectionLineDim} strokeWidth="1" strokeDasharray="4 4" initial={{ pathLength: 0, opacity: 1 }} animate={{ pathLength: leftWorkflow.isCollapsing ? 0 : 1, opacity: leftWorkflow.isCollapsing ? 0 : 1 }} transition={{ duration: 0.5, delay: leftWorkflow.isCollapsing ? 0.1 : 0, ease: [0.32, 0.72, 0, 1] }} />}
+                      {/* Horizontal lines to each task */}
+                      {!leftWorkflow.isCompleted && leftWorkflow.tasks.map((_, i) => <motion.path key={i} d={`M ${CONNECTION_BEND_X} ${CONNECTION_LINE_Y + i * TASK_ROW_HEIGHT} L 0 ${CONNECTION_LINE_Y + i * TASK_ROW_HEIGHT}`} fill="none" stroke={i === targetTaskIndex && hasReviewTask ? "rgba(224, 112, 32, 0.5)" : theme.connectionLine} strokeWidth="1" initial={{ pathLength: 0, opacity: 1 }} animate={{ pathLength: leftWorkflow.isCollapsing ? 0 : 1, opacity: leftWorkflow.isCollapsing ? 0 : 1 }} transition={{ duration: 0.45, delay: leftWorkflow.isCollapsing ? i * 0.06 : 0, ease: [0.32, 0.72, 0, 1] }} />)}
+                    </svg>
+                    {/* Connection dots - agent side (right) */}
+                    {!leftWorkflow.isCompleted && leftWorkflow.lineProgress > 0.3 && <motion.div initial={{ scale: 0, opacity: 0, y: 0 }} animate={leftWorkflow.isCollapsing ? { scale: [1, 1.3, 0], opacity: [1, 0.8, 0], y: -12, filter: "blur(8px)" } : { scale: [1, 1.2, 1], opacity: 1, y: 0 }} transition={leftWorkflow.isCollapsing ? { duration: 0.5, delay: 0.3 + leftWorkflow.tasks.length * 0.06, ease: [0.32, 0.72, 0, 1] } : { duration: 1, repeat: Infinity }} style={{ position: "absolute", left: CONNECTION_WIDTH - 3, top: AGENT_CENTER_Y - 3, width: 6, height: 6, borderRadius: 0, background: hasReviewTask ? "#e07020" : accentColor, boxShadow: hasReviewTask ? "0 0 8px #e07020" : theme.glowAccent }} />}
+                    {/* Junction dot (at turn point) - positioned at target task Y */}
+                    {!leftWorkflow.isCompleted && leftWorkflow.lineProgress > 0.6 && <motion.div initial={{ scale: 0, opacity: 0 }} animate={leftWorkflow.isCollapsing ? { scale: [1, 1.3, 0], opacity: [1, 0.8, 0], filter: "blur(8px)" } : { scale: [1, 1.2, 1], opacity: 1 }} transition={leftWorkflow.isCollapsing ? { duration: 0.5, delay: 0.2 + leftWorkflow.tasks.length * 0.06, ease: [0.32, 0.72, 0, 1] } : { duration: 1, repeat: Infinity, delay: 0.2 }} style={{ position: "absolute", left: CONNECTION_BEND_X - 3, top: targetY - 3, width: 6, height: 6, borderRadius: 0, background: hasReviewTask ? "#e07020" : accentColor, boxShadow: hasReviewTask ? "0 0 8px #e07020" : theme.glowAccent }} />}
+                    {/* Completed state node */}
+                    {leftWorkflow.isCompleted && <motion.div initial={{ scale: 0 }} animate={{ scale: 1 }} transition={{ type: "spring", stiffness: 400, damping: 20 }} style={{ position: "absolute", left: -3, top: CONNECTION_LINE_Y - 6, width: 12, height: 12, borderRadius: 0, background: "#10b981", boxShadow: "0 0 12px rgba(16, 185, 129, 0.6)" }} />}
+                    {/* Task connection nodes on left side */}
+                    {!leftWorkflow.isCompleted && leftWorkflow.tasks.map((task, i) => <motion.div key={`node-${i}`} initial={{ scale: 0, opacity: 0, x: 0, y: 0 }} animate={leftWorkflow.isCollapsing ? { scale: [1, 1.4, 0], opacity: [1, 0.6, 0], x: -15, y: -8, filter: "blur(10px)" } : { scale: 1, opacity: 1, x: 0, y: 0 }} transition={leftWorkflow.isCollapsing ? { duration: 0.55, delay: i * 0.06, ease: [0.32, 0.72, 0, 1] } : { duration: 0.3 }} style={{ position: "absolute", left: -3, top: CONNECTION_LINE_Y - 3 + i * TASK_ROW_HEIGHT, width: 6, height: 6, borderRadius: 0, background: task.status === "needs_approval" || task.status === "needs_resolve" ? "#e07020" : task.status === "failed" ? "#ef4444" : task.status === "fixing" ? "#3b82f6" : task.status === "rewriting" ? "#a855f7" : task.status === "completed" ? "#10b981" : task.status === "working" ? accentColor : theme.dotDim, boxShadow: task.status === "needs_approval" || task.status === "needs_resolve" ? "0 0 8px #e07020" : task.status === "failed" ? "0 0 8px #ef4444" : task.status === "fixing" ? "0 0 8px #3b82f6" : task.status === "rewriting" ? "0 0 8px #a855f7" : task.status === "completed" ? "0 0 8px #10b981" : task.status === "working" ? theme.glowAccent : "none" }} />)}
+                    {/* Energy dots - main path from agent to junction */}
+                    {leftWorkflow.isRunning && !leftWorkflow.awaitingApproval && !leftWorkflow.isCompleted && Array.from({ length: numDots }).map((_, i) => <EnergyDot key={`main-${i}`} delay={(i / numDots) * cycleDuration} color={hasReviewTask ? "#e07020" : accentColor} duration={cycleDuration} path={`M ${CONNECTION_WIDTH} ${AGENT_CENTER_Y} L ${CONNECTION_BEND_X} ${AGENT_CENTER_Y}`} />)}
+                    {/* Energy dots - branch lines to each task */}
+                    {leftWorkflow.isRunning && !leftWorkflow.awaitingApproval && !leftWorkflow.isCompleted && leftWorkflow.tasks.map((_, taskIndex) =>
+                      Array.from({ length: 2 }).map((__, i) => <EnergyDot key={`branch-${taskIndex}-${i}`} delay={(i / 2) * 1.5 + taskIndex * 0.3} color={taskIndex === targetTaskIndex && hasReviewTask ? "#e07020" : accentColor} duration={1.5} path={`M ${CONNECTION_BEND_X} ${CONNECTION_LINE_Y + taskIndex * TASK_ROW_HEIGHT} L 0 ${CONNECTION_LINE_Y + taskIndex * TASK_ROW_HEIGHT}`} />)
+                    )}
+                  </div>
+                );
+              })()}
             </div>
 
             {/* Agent Container */}
@@ -2091,33 +2176,41 @@ export default function Home() {
             {/* RIGHT WORKFLOW */}
             <div className="flex items-start">
               {/* Right Connection */}
-              <div className="relative" style={{ width: CONNECTION_WIDTH, height: Math.max(300, rightWorkflow.tasks.length * TASK_ROW_HEIGHT) }}>
-                <svg style={{ position: "absolute", top: 0, left: 0, width: "100%", height: "100%", overflow: "visible" }}>
-                  {/* Main path: from agent (left, midpoint) to first task (right, midpoint) */}
-                  <motion.path d={`M 0 ${AGENT_CENTER_Y} L ${CONNECTION_BEND_X} ${AGENT_CENTER_Y} L ${CONNECTION_BEND_X} ${CONNECTION_LINE_Y} L ${CONNECTION_WIDTH} ${CONNECTION_LINE_Y}`} fill="none" stroke={rightWorkflow.isCompleted ? (true ? "rgba(16, 185, 129, 0.4)" : "#86efac") : theme.connectionLine} strokeWidth="1" initial={{ pathLength: 0, opacity: 1 }} animate={{ pathLength: rightWorkflow.lineProgress > 0 || rightWorkflow.isCompleted ? 1 : 0, opacity: rightWorkflow.isCollapsing ? 0 : 1 }} transition={{ pathLength: { duration: 0.6 }, opacity: { duration: 0.5, delay: rightWorkflow.isCollapsing ? 0.15 + rightWorkflow.tasks.length * 0.04 : 0, ease: [0.32, 0.72, 0, 1] } }} />
-                  {/* Vertical dashed line for multiple tasks */}
-                  {rightWorkflow.tasks.length > 1 && !rightWorkflow.isCompleted && <motion.path d={`M ${CONNECTION_BEND_X} ${CONNECTION_LINE_Y} L ${CONNECTION_BEND_X} ${CONNECTION_LINE_Y + (rightWorkflow.tasks.length - 1) * TASK_ROW_HEIGHT}`} fill="none" stroke={theme.connectionLineDim} strokeWidth="1" strokeDasharray="4 4" initial={{ pathLength: 0, opacity: 1 }} animate={{ pathLength: rightWorkflow.isCollapsing ? 0 : 1, opacity: rightWorkflow.isCollapsing ? 0 : 1 }} transition={{ duration: 0.5, delay: rightWorkflow.isCollapsing ? 0.1 : 0, ease: [0.32, 0.72, 0, 1] }} />}
-                  {/* Horizontal lines to each task - all at exact midpoint height */}
-                  {!rightWorkflow.isCompleted && rightWorkflow.tasks.map((_, i) => <motion.path key={i} d={`M ${CONNECTION_BEND_X} ${CONNECTION_LINE_Y + i * TASK_ROW_HEIGHT} L ${CONNECTION_WIDTH} ${CONNECTION_LINE_Y + i * TASK_ROW_HEIGHT}`} fill="none" stroke={theme.connectionLine} strokeWidth="1" initial={{ pathLength: 0, opacity: 1 }} animate={{ pathLength: rightWorkflow.isCollapsing ? 0 : 1, opacity: rightWorkflow.isCollapsing ? 0 : 1 }} transition={{ duration: 0.45, delay: rightWorkflow.isCollapsing ? i * 0.06 : 0, ease: [0.32, 0.72, 0, 1] }} />)}
-                </svg>
-                {/* Connection dots - agent side (left) - at agent center height */}
-                {!rightWorkflow.isCompleted && rightWorkflow.lineProgress > 0.3 && <motion.div initial={{ scale: 0, opacity: 0, y: 0 }} animate={rightWorkflow.isCollapsing ? { scale: [1, 1.3, 0], opacity: [1, 0.8, 0], y: -12, filter: "blur(8px)" } : true ? { scale: [1, 1.2, 1], opacity: 1, y: 0 } : { scale: 1, opacity: 1, y: 0 }} transition={rightWorkflow.isCollapsing ? { duration: 0.5, delay: 0.3 + rightWorkflow.tasks.length * 0.06, ease: [0.32, 0.72, 0, 1] } : true ? { duration: 1, repeat: Infinity } : { duration: 0.3 }} style={{ position: "absolute", left: -3, top: AGENT_CENTER_Y - 3, width: 6, height: 6, borderRadius: true ? 0 : "50%", background: accentColor, boxShadow: true ? theme.glowAccent : "none" }} />}
-                {/* Junction dot (at turn point) */}
-                {!rightWorkflow.isCompleted && rightWorkflow.lineProgress > 0.6 && <motion.div initial={{ scale: 0, opacity: 0, y: 0 }} animate={rightWorkflow.isCollapsing ? { scale: [1, 1.3, 0], opacity: [1, 0.8, 0], y: -10, filter: "blur(8px)" } : true ? { scale: [1, 1.2, 1], opacity: 1, y: 0 } : { scale: 1, opacity: 1, y: 0 }} transition={rightWorkflow.isCollapsing ? { duration: 0.5, delay: 0.2 + rightWorkflow.tasks.length * 0.06, ease: [0.32, 0.72, 0, 1] } : true ? { duration: 1, repeat: Infinity, delay: 0.2 } : { duration: 0.3 }} style={{ position: "absolute", left: CONNECTION_BEND_X - 3, top: AGENT_CENTER_Y - 3, width: 6, height: 6, borderRadius: true ? 0 : "50%", background: accentColor, boxShadow: true ? theme.glowAccent : "none" }} />}
-                {/* First task connection dot (right) */}
-                {!rightWorkflow.isCompleted && rightWorkflow.lineProgress >= 1 && <motion.div initial={{ scale: 0, opacity: 0, y: 0 }} animate={rightWorkflow.isCollapsing ? { scale: [1, 1.3, 0], opacity: [1, 0.8, 0], y: -8, filter: "blur(8px)" } : true ? { scale: [1, 1.2, 1], opacity: 1, y: 0 } : { scale: 1, opacity: 1, y: 0 }} transition={rightWorkflow.isCollapsing ? { duration: 0.5, delay: 0.1 + rightWorkflow.tasks.length * 0.06, ease: [0.32, 0.72, 0, 1] } : true ? { duration: 1, repeat: Infinity, delay: 0.4 } : { duration: 0.3 }} style={{ position: "absolute", left: CONNECTION_WIDTH - 3, top: CONNECTION_LINE_Y - 3, width: 6, height: 6, borderRadius: true ? 0 : "50%", background: accentColor, boxShadow: true ? theme.glowAccent : "none" }} />}
-                {/* Completed state node */}
-                {rightWorkflow.isCompleted && <motion.div initial={{ scale: 0 }} animate={{ scale: 1 }} transition={{ type: "spring", stiffness: 400, damping: 20 }} style={{ position: "absolute", left: true ? CONNECTION_WIDTH - 6 : CONNECTION_WIDTH - 4, top: CONNECTION_LINE_Y - (true ? 6 : 4), width: true ? 12 : 8, height: true ? 12 : 8, borderRadius: true ? 0 : "50%", background: "#10b981", boxShadow: true ? "0 0 12px rgba(16, 185, 129, 0.6)" : "none" }} />}
-                {/* Task connection nodes on right side - all at task connection height */}
-                {!rightWorkflow.isCompleted && rightWorkflow.tasks.map((task, i) => <motion.div key={`node-${i}`} initial={{ scale: 0, opacity: 0, x: 0, y: 0 }} animate={rightWorkflow.isCollapsing ? { scale: [1, 1.4, 0], opacity: [1, 0.6, 0], x: 15, y: -8, filter: "blur(10px)" } : { scale: 1, opacity: 1, x: 0, y: 0 }} transition={rightWorkflow.isCollapsing ? { duration: 0.55, delay: i * 0.06, ease: [0.32, 0.72, 0, 1] } : { duration: 0.3 }} style={{ position: "absolute", left: CONNECTION_WIDTH - 3, top: CONNECTION_LINE_Y - 3 + i * TASK_ROW_HEIGHT, width: 6, height: 6, borderRadius: true ? 0 : "50%", background: task.status === "needs_approval" || task.status === "needs_resolve" ? "#e07020" : task.status === "failed" ? "#ef4444" : task.status === "fixing" ? "#3b82f6" : task.status === "rewriting" ? "#a855f7" : task.status === "completed" ? "#10b981" : task.status === "working" ? accentColor : theme.dotDim, boxShadow: true ? (task.status === "needs_approval" || task.status === "needs_resolve" ? "0 0 8px #e07020" : task.status === "failed" ? "0 0 8px #ef4444" : task.status === "fixing" ? "0 0 8px #3b82f6" : task.status === "rewriting" ? "0 0 8px #a855f7" : task.status === "completed" ? "0 0 8px #10b981" : task.status === "working" ? theme.glowAccent : "none") : "none" }} />)}
-                {/* Energy dots - main path from agent to junction */}
-                {rightWorkflow.isRunning && !rightWorkflow.awaitingApproval && !rightWorkflow.isCompleted && Array.from({ length: numDots }).map((_, i) => <EnergyDot key={`main-${i}`} delay={(i / numDots) * cycleDuration} color={accentColor} duration={cycleDuration} path={`M 0 ${AGENT_CENTER_Y} L ${CONNECTION_BEND_X} ${AGENT_CENTER_Y}`} />)}
-                {/* Energy dots - branch lines to each task */}
-                {rightWorkflow.isRunning && !rightWorkflow.awaitingApproval && !rightWorkflow.isCompleted && rightWorkflow.tasks.map((_, taskIndex) => 
-                  Array.from({ length: 2 }).map((__, i) => <EnergyDot key={`branch-${taskIndex}-${i}`} delay={(i / 2) * 1.5 + taskIndex * 0.3} color={accentColor} duration={1.5} path={`M ${CONNECTION_BEND_X} ${CONNECTION_LINE_Y + taskIndex * TASK_ROW_HEIGHT} L ${CONNECTION_WIDTH} ${CONNECTION_LINE_Y + taskIndex * TASK_ROW_HEIGHT}`} />)
-                )}
+              {(() => {
+                // Find the task with review status (needs_approval or needs_resolve)
+                const reviewTaskIndex = rightWorkflow.tasks.findIndex(t => t.status === "needs_approval" || t.status === "needs_resolve");
+                // Target the review task if found, otherwise last working task or first task
+                const targetTaskIndex = reviewTaskIndex >= 0 ? reviewTaskIndex : Math.max(0, rightWorkflow.tasks.length - 1);
+                const targetY = CONNECTION_LINE_Y + targetTaskIndex * TASK_ROW_HEIGHT;
+                const hasReviewTask = reviewTaskIndex >= 0;
 
-              </div>
+                return (
+                  <div className="relative" style={{ width: CONNECTION_WIDTH, height: Math.max(300, rightWorkflow.tasks.length * TASK_ROW_HEIGHT) }}>
+                    <svg style={{ position: "absolute", top: 0, left: 0, width: "100%", height: "100%", overflow: "visible" }}>
+                      {/* Main path: from agent to target task (review task or last task) */}
+                      <motion.path d={`M 0 ${AGENT_CENTER_Y} L ${CONNECTION_BEND_X} ${AGENT_CENTER_Y} L ${CONNECTION_BEND_X} ${targetY} L ${CONNECTION_WIDTH} ${targetY}`} fill="none" stroke={rightWorkflow.isCompleted ? "rgba(16, 185, 129, 0.4)" : hasReviewTask ? "rgba(224, 112, 32, 0.5)" : theme.connectionLine} strokeWidth="1" initial={{ pathLength: 0, opacity: 1 }} animate={{ pathLength: rightWorkflow.lineProgress > 0 || rightWorkflow.isCompleted ? 1 : 0, opacity: rightWorkflow.isCollapsing ? 0 : 1 }} transition={{ pathLength: { duration: 0.6 }, opacity: { duration: 0.5, delay: rightWorkflow.isCollapsing ? 0.15 + rightWorkflow.tasks.length * 0.04 : 0, ease: [0.32, 0.72, 0, 1] } }} />
+                      {/* Vertical dashed line for other tasks */}
+                      {rightWorkflow.tasks.length > 1 && !rightWorkflow.isCompleted && <motion.path d={`M ${CONNECTION_BEND_X} ${CONNECTION_LINE_Y} L ${CONNECTION_BEND_X} ${CONNECTION_LINE_Y + (rightWorkflow.tasks.length - 1) * TASK_ROW_HEIGHT}`} fill="none" stroke={theme.connectionLineDim} strokeWidth="1" strokeDasharray="4 4" initial={{ pathLength: 0, opacity: 1 }} animate={{ pathLength: rightWorkflow.isCollapsing ? 0 : 1, opacity: rightWorkflow.isCollapsing ? 0 : 1 }} transition={{ duration: 0.5, delay: rightWorkflow.isCollapsing ? 0.1 : 0, ease: [0.32, 0.72, 0, 1] }} />}
+                      {/* Horizontal lines to each task */}
+                      {!rightWorkflow.isCompleted && rightWorkflow.tasks.map((_, i) => <motion.path key={i} d={`M ${CONNECTION_BEND_X} ${CONNECTION_LINE_Y + i * TASK_ROW_HEIGHT} L ${CONNECTION_WIDTH} ${CONNECTION_LINE_Y + i * TASK_ROW_HEIGHT}`} fill="none" stroke={i === targetTaskIndex && hasReviewTask ? "rgba(224, 112, 32, 0.5)" : theme.connectionLine} strokeWidth="1" initial={{ pathLength: 0, opacity: 1 }} animate={{ pathLength: rightWorkflow.isCollapsing ? 0 : 1, opacity: rightWorkflow.isCollapsing ? 0 : 1 }} transition={{ duration: 0.45, delay: rightWorkflow.isCollapsing ? i * 0.06 : 0, ease: [0.32, 0.72, 0, 1] }} />)}
+                    </svg>
+                    {/* Connection dots - agent side (left) */}
+                    {!rightWorkflow.isCompleted && rightWorkflow.lineProgress > 0.3 && <motion.div initial={{ scale: 0, opacity: 0, y: 0 }} animate={rightWorkflow.isCollapsing ? { scale: [1, 1.3, 0], opacity: [1, 0.8, 0], y: -12, filter: "blur(8px)" } : { scale: [1, 1.2, 1], opacity: 1, y: 0 }} transition={rightWorkflow.isCollapsing ? { duration: 0.5, delay: 0.3 + rightWorkflow.tasks.length * 0.06, ease: [0.32, 0.72, 0, 1] } : { duration: 1, repeat: Infinity }} style={{ position: "absolute", left: -3, top: AGENT_CENTER_Y - 3, width: 6, height: 6, borderRadius: 0, background: hasReviewTask ? "#e07020" : accentColor, boxShadow: hasReviewTask ? "0 0 8px #e07020" : theme.glowAccent }} />}
+                    {/* Junction dot (at turn point) - positioned at target task Y */}
+                    {!rightWorkflow.isCompleted && rightWorkflow.lineProgress > 0.6 && <motion.div initial={{ scale: 0, opacity: 0 }} animate={rightWorkflow.isCollapsing ? { scale: [1, 1.3, 0], opacity: [1, 0.8, 0], filter: "blur(8px)" } : { scale: [1, 1.2, 1], opacity: 1 }} transition={rightWorkflow.isCollapsing ? { duration: 0.5, delay: 0.2 + rightWorkflow.tasks.length * 0.06, ease: [0.32, 0.72, 0, 1] } : { duration: 1, repeat: Infinity, delay: 0.2 }} style={{ position: "absolute", left: CONNECTION_BEND_X - 3, top: targetY - 3, width: 6, height: 6, borderRadius: 0, background: hasReviewTask ? "#e07020" : accentColor, boxShadow: hasReviewTask ? "0 0 8px #e07020" : theme.glowAccent }} />}
+                    {/* Completed state node */}
+                    {rightWorkflow.isCompleted && <motion.div initial={{ scale: 0 }} animate={{ scale: 1 }} transition={{ type: "spring", stiffness: 400, damping: 20 }} style={{ position: "absolute", left: CONNECTION_WIDTH - 6, top: CONNECTION_LINE_Y - 6, width: 12, height: 12, borderRadius: 0, background: "#10b981", boxShadow: "0 0 12px rgba(16, 185, 129, 0.6)" }} />}
+                    {/* Task connection nodes on right side */}
+                    {!rightWorkflow.isCompleted && rightWorkflow.tasks.map((task, i) => <motion.div key={`node-${i}`} initial={{ scale: 0, opacity: 0, x: 0, y: 0 }} animate={rightWorkflow.isCollapsing ? { scale: [1, 1.4, 0], opacity: [1, 0.6, 0], x: 15, y: -8, filter: "blur(10px)" } : { scale: 1, opacity: 1, x: 0, y: 0 }} transition={rightWorkflow.isCollapsing ? { duration: 0.55, delay: i * 0.06, ease: [0.32, 0.72, 0, 1] } : { duration: 0.3 }} style={{ position: "absolute", left: CONNECTION_WIDTH - 3, top: CONNECTION_LINE_Y - 3 + i * TASK_ROW_HEIGHT, width: 6, height: 6, borderRadius: 0, background: task.status === "needs_approval" || task.status === "needs_resolve" ? "#e07020" : task.status === "failed" ? "#ef4444" : task.status === "fixing" ? "#3b82f6" : task.status === "rewriting" ? "#a855f7" : task.status === "completed" ? "#10b981" : task.status === "working" ? accentColor : theme.dotDim, boxShadow: task.status === "needs_approval" || task.status === "needs_resolve" ? "0 0 8px #e07020" : task.status === "failed" ? "0 0 8px #ef4444" : task.status === "fixing" ? "0 0 8px #3b82f6" : task.status === "rewriting" ? "0 0 8px #a855f7" : task.status === "completed" ? "0 0 8px #10b981" : task.status === "working" ? theme.glowAccent : "none" }} />)}
+                    {/* Energy dots - main path from agent to junction */}
+                    {rightWorkflow.isRunning && !rightWorkflow.awaitingApproval && !rightWorkflow.isCompleted && Array.from({ length: numDots }).map((_, i) => <EnergyDot key={`main-${i}`} delay={(i / numDots) * cycleDuration} color={hasReviewTask ? "#e07020" : accentColor} duration={cycleDuration} path={`M 0 ${AGENT_CENTER_Y} L ${CONNECTION_BEND_X} ${AGENT_CENTER_Y}`} />)}
+                    {/* Energy dots - branch lines to each task */}
+                    {rightWorkflow.isRunning && !rightWorkflow.awaitingApproval && !rightWorkflow.isCompleted && rightWorkflow.tasks.map((_, taskIndex) =>
+                      Array.from({ length: 2 }).map((__, i) => <EnergyDot key={`branch-${taskIndex}-${i}`} delay={(i / 2) * 1.5 + taskIndex * 0.3} color={taskIndex === targetTaskIndex && hasReviewTask ? "#e07020" : accentColor} duration={1.5} path={`M ${CONNECTION_BEND_X} ${CONNECTION_LINE_Y + taskIndex * TASK_ROW_HEIGHT} L ${CONNECTION_WIDTH} ${CONNECTION_LINE_Y + taskIndex * TASK_ROW_HEIGHT}`} />)
+                    )}
+                  </div>
+                );
+              })()}
 
               {/* Right Tasks - fixed width to prevent layout shifts */}
               <div className="flex flex-col" style={{ width: 400, marginLeft: 0, minHeight: 300, gap: 0 }}>
@@ -2134,8 +2227,8 @@ export default function Home() {
                       <CompletedTaskWidget label={rightWorkflow.completedScenarioLabel} onClose={rightHandlers.resetWorkflow} />
                     </motion.div>
                   )}
-                  {/* Show tasks while running or collapsing */}
-                  {!rightWorkflow.isCompleted && rightWorkflow.tasks.length > 0 && (
+                  {/* Show tasks while running/collapsing OR show clean complete state */}
+                  {(!rightWorkflow.isCompleted && rightWorkflow.tasks.length > 0) || rightWorkflow.deepCleanComplete ? (
                     <motion.div
                       key="right-tasks-container"
                       initial={{ opacity: 1 }}
@@ -2146,8 +2239,9 @@ export default function Home() {
                       {/* Main tasks container */}
                       <WorkflowBranchContainer
                         scenarioLabel={rightWorkflow.currentScenarioLabel}
-                        isActive={rightWorkflow.tasks.length > 0}
+                        isActive={rightWorkflow.tasks.length > 0 || rightWorkflow.deepCleanComplete}
                         isCollapsing={rightWorkflow.isCollapsing}
+                        isCleanComplete={rightWorkflow.deepCleanComplete}
                       >
                         <div className="flex flex-col" style={{ gap: WIDGET_GAP }}>
                           {rightWorkflow.tasks.map((task, index) => (
@@ -2165,23 +2259,25 @@ export default function Home() {
                       </WorkflowBranchContainer>
 
                       {/* Sub-workflows appear on the RIGHT (further from agent) */}
-                      <div className="flex flex-col" style={{ gap: WIDGET_GAP }}>
-                        {rightWorkflow.subWorkflowActive && rightWorkflow.resolveType === "email_copy" && (
-                          <EmailPreviewPanel
-                            isActive={rightWorkflow.subWorkflowActive}
-                            isCollapsing={rightWorkflow.subWorkflowCollapsing}
-                            onApprove={rightHandlers.handleApprovePreview}
-                          />
-                        )}
-                        {rightWorkflow.subWorkflowActive && rightWorkflow.resolveType === "insights" && (
-                          <InsightsPreviewPanel isActive={rightWorkflow.subWorkflowActive} isCollapsing={rightWorkflow.subWorkflowCollapsing} onApprove={rightHandlers.handleApprovePreview} />
-                        )}
-                        {(rightWorkflow.subWorkflowActive || rightWorkflow.subWorkflowTasks.length > 0) && rightWorkflow.resolveType !== "email_copy" && rightWorkflow.resolveType !== "insights" && (
-                          <SubWorkflowPanel isActive={rightWorkflow.subWorkflowActive} tasks={rightWorkflow.subWorkflowTasks} isCollapsing={rightWorkflow.subWorkflowCollapsing} />
-                        )}
-                      </div>
+                      {!rightWorkflow.deepCleanComplete && (
+                        <div className="flex flex-col" style={{ gap: WIDGET_GAP }}>
+                          {rightWorkflow.subWorkflowActive && rightWorkflow.resolveType === "email_copy" && (
+                            <EmailPreviewPanel
+                              isActive={rightWorkflow.subWorkflowActive}
+                              isCollapsing={rightWorkflow.subWorkflowCollapsing}
+                              onApprove={rightHandlers.handleApprovePreview}
+                            />
+                          )}
+                          {rightWorkflow.subWorkflowActive && rightWorkflow.resolveType === "insights" && (
+                            <InsightsPreviewPanel isActive={rightWorkflow.subWorkflowActive} isCollapsing={rightWorkflow.subWorkflowCollapsing} onApprove={rightHandlers.handleApprovePreview} />
+                          )}
+                          {(rightWorkflow.subWorkflowActive || rightWorkflow.subWorkflowTasks.length > 0) && rightWorkflow.resolveType !== "email_copy" && rightWorkflow.resolveType !== "insights" && (
+                            <SubWorkflowPanel isActive={rightWorkflow.subWorkflowActive} tasks={rightWorkflow.subWorkflowTasks} isCollapsing={rightWorkflow.subWorkflowCollapsing} />
+                          )}
+                        </div>
+                      )}
                     </motion.div>
-                  )}
+                  ) : null}
                 </AnimatePresence>
               </div>
             </div>
