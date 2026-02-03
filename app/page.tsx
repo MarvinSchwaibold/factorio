@@ -416,6 +416,7 @@ function LiveStatusWidget({
     <motion.div
       initial={{ opacity: 0, y: -10 }}
       animate={{ opacity: 1, y: 0 }}
+      onWheel={(e) => e.stopPropagation()}
       style={{
         position: "fixed",
         top: 20,
@@ -745,6 +746,7 @@ function EmailPreviewPanel({
         {isRetro ? "REVIEW EMAIL COPY" : "Review email copy"}
       </motion.div>
       <motion.div
+        onWheel={(e) => e.stopPropagation()}
         style={{ border: isRetro ? "2px solid rgba(224, 112, 32, 0.5)" : "1px solid #fef3c7", background: isRetro ? "rgba(224, 112, 32, 0.08)" : "white", padding: "16px 20px", minWidth: isRetro ? 320 : 300, maxWidth: isRetro ? 360 : 340, position: "relative", overflow: "hidden", borderRadius: theme.borderRadius, boxShadow: theme.shadow }}
       >
         <div style={{ marginBottom: 12 }}>
@@ -886,7 +888,7 @@ function InsightsPreviewPanel({
       style={{ alignItems: mirrored ? "flex-end" : "flex-start", position: "relative" }}
     >
       <motion.div initial={{ opacity: 0, y: 4 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1, duration: 0.3 }} style={{ position: "absolute", top: -12, left: mirrored ? "auto" : 8, right: mirrored ? 8 : "auto", fontSize: isRetro ? 9 : 10, letterSpacing: isRetro ? "0.08em" : undefined, padding: "4px 10px", background: theme.warning, color: isRetro ? "#000" : "white", width: "fit-content", fontWeight: isRetro ? 700 : 600, zIndex: 10, borderRadius: isRetro ? 0 : 4 }}>{isRetro ? "REVIEW INSIGHTS" : "Review insights"}</motion.div>
-      <motion.div style={{ border: isRetro ? "2px solid rgba(224, 112, 32, 0.5)" : "1px solid #fef3c7", background: isRetro ? "rgba(224, 112, 32, 0.08)" : "white", padding: "16px 20px", minWidth: isRetro ? 320 : 300, maxWidth: isRetro ? 360 : 340, position: "relative", overflow: "hidden", borderRadius: theme.borderRadius, boxShadow: theme.shadow }}>
+      <motion.div onWheel={(e) => e.stopPropagation()} style={{ border: isRetro ? "2px solid rgba(224, 112, 32, 0.5)" : "1px solid #fef3c7", background: isRetro ? "rgba(224, 112, 32, 0.08)" : "white", padding: "16px 20px", minWidth: isRetro ? 320 : 300, maxWidth: isRetro ? 360 : 340, position: "relative", overflow: "hidden", borderRadius: theme.borderRadius, boxShadow: theme.shadow }}>
         <div style={{ marginBottom: 12 }}>
           <div style={{ fontSize: isRetro ? 9 : 11, color: isRetro ? "rgba(224, 112, 32, 0.5)" : "#a3a3a3", letterSpacing: isRetro ? "0.1em" : undefined, marginBottom: 8 }}>{isRetro ? "KEY FINDINGS" : "Key findings"}</div>
           <div style={{ display: "flex", flexDirection: "column", gap: isRetro ? 8 : 6 }}>
@@ -965,7 +967,7 @@ function SubWorkflowPanel({
   const getTaskY = (i: number) => TASK_CONNECTION_Y + i * SUB_TASK_ROW_HEIGHT;
 
   const tasksContent = (
-    <div className="flex flex-col" style={{ marginTop: TASK_CONNECTION_Y }}>
+    <div className="flex flex-col" style={{ marginTop: TASK_CONNECTION_Y }} onWheel={(e) => e.stopPropagation()}>
       {tasks.map((task, index) => (
         <motion.div
           key={task.id}
