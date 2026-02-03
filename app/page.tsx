@@ -1553,7 +1553,7 @@ export default function Home() {
     if (deepCleanMode !== "running") return;
 
     const timeouts: NodeJS.Timeout[] = [];
-    const CLEAN_DURATION = 16000; // 16 seconds of cleaning for more complexity
+    const CLEAN_DURATION = 9000; // 9 seconds - quick and impactful
     const taskIds: { left: string[]; right: string[] } = { left: [], right: [] };
 
     const spawnCleanTask = (side: "left" | "right") => {
@@ -1576,8 +1576,8 @@ export default function Home() {
         return { ...prev, tasks: [...prev.tasks, newTask], isRunning: true, lineProgress: 1 };
       });
 
-      // Complete the task after random duration (longer to keep more visible)
-      const duration = 2500 + Math.random() * 3500;
+      // Complete the task after random duration
+      const duration = 1000 + Math.random() * 1800;
       const randomOutcome = Math.random();
       const shouldFail = randomOutcome < 0.08;
       const shouldRewrite = randomOutcome >= 0.08 && randomOutcome < 0.55; // 47% chance of rewriting
@@ -1695,17 +1695,17 @@ export default function Home() {
     setLeftWorkflow({ ...initialWorkflowState, isRunning: true, lineProgress: 1 });
     setRightWorkflow({ ...initialWorkflowState, isRunning: true, lineProgress: 1 });
 
-    // Spawn tasks rapidly at the start, then slow down
+    // Spawn tasks rapidly to fill both sides quickly
     let spawnCount = 0;
-    const maxSpawns = 28; // More tasks per side for complexity (2 extra rows each side)
+    const maxSpawns = 40; // More rows on each side
 
     const scheduleSpawn = (side: "left" | "right", delay: number) => {
       const t = setTimeout(() => {
         if (deepCleanMode === "running" && spawnCount < maxSpawns * 2) {
           spawnCleanTask(side);
           spawnCount++;
-          // Faster spawning to get more visible at once
-          const nextDelay = 150 + Math.random() * 300 + (spawnCount * 20);
+          // Very fast spawning to fill rows quickly
+          const nextDelay = 80 + Math.random() * 150;
           if (spawnCount < maxSpawns * 2) {
             scheduleSpawn(side, nextDelay);
           }
@@ -1718,8 +1718,8 @@ export default function Home() {
     scheduleSpawn("left", 100);
     scheduleSpawn("right", 250);
 
-    // Spawn sub-workflows more frequently for complexity
-    const subWorkflowTimes = [1500, 2500, 3500, 5000, 6500, 8000, 9500];
+    // Spawn sub-workflows during the run
+    const subWorkflowTimes = [1000, 2000, 3000, 4500, 6000, 7500];
     subWorkflowTimes.forEach((time, i) => {
       const t = setTimeout(() => {
         const side = i % 2 === 0 ? "left" : "right";
