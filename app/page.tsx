@@ -1606,7 +1606,7 @@ export default function Home() {
       }
 
       const newSubTask: SubWorkflowTask = {
-        id: `${side}-subtask-${subTaskIndexRef.current}`,
+        id: `${side}-subtask-${Date.now()}-${subTaskIndexRef.current}`,
         label: subTask.label,
         subtext: subTask.subtext,
         status: "working"
