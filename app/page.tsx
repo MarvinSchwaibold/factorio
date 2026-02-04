@@ -85,11 +85,15 @@ const scenarios: Scenario[] = [
     buttonLabel: "Send Email Campaign",
     side: "right",
     tasks: [
+      { label: "[ANALYZING CAMPAIGN GOALS]", subtext: "Setting objectives", duration: 1500 },
       { label: "[CRAFTING EMAIL COPY]", subtext: "Generating content", duration: 2000 },
       { label: "[REVIEW EMAIL COPY]", subtext: "AI generated draft", duration: 0, requiresResolve: true, resolveType: "email_copy" },
       { label: "[CREATING EMAIL LAYOUT]", subtext: "Designing template", duration: 2000 },
+      { label: "[OPTIMIZING SUBJECT LINE]", subtext: "A/B testing options", duration: 1800 },
       { label: "[SEGMENTING AUDIENCE]", subtext: "Analyzing customers", duration: 1800 },
       { label: "[REVIEW AUDIENCE]", subtext: "2,847 recipients selected", duration: 0, requiresApproval: true },
+      { label: "[PERSONALIZING CONTENT]", subtext: "Dynamic variables", duration: 1500 },
+      { label: "[SETTING UP TRACKING]", subtext: "Analytics configuration", duration: 1200 },
       { label: "[SCHEDULING DELIVERY]", subtext: "Optimizing send time", duration: 1500 },
       { label: "[SEND CAMPAIGN]", subtext: "Ready to dispatch 2,847 emails", duration: 0, requiresApproval: true },
     ]
@@ -595,7 +599,7 @@ function TaskWidget({ task, onApprove, onReject, onResolve, isCollapsing, collap
       className="flex flex-col gap-1"
       style={{ alignItems: mirrored ? "flex-end" : "flex-start", position: "relative", willChange: "transform, opacity, filter" }}
     >
-      {(isCompleted || isFailed || isFixing || isRewriting || (task.subtext && (isWorking || needsApproval || needsResolve))) && (
+      {(isCompleted || isFailed || isFixing || isRewriting || isWorking || needsApproval || needsResolve || task.subtext) && (
         <motion.div
           initial={{ opacity: 0, y: 4 }}
           animate={{ opacity: 1, y: 0 }}
@@ -616,7 +620,7 @@ function TaskWidget({ task, onApprove, onReject, onResolve, isCollapsing, collap
             borderRadius: isRetro ? 0 : 4
           }}
         >
-          {isCompleted ? (isRetro ? "✓ DONE" : "✓ Done") : isFailed ? (isRetro ? "✕ FAILED" : "✕ Failed") : isFixing ? (isRetro ? "⟳ FIXING..." : "⟳ Fixing...") : isRewriting ? (isRetro ? "↺ REWRITING..." : "↺ Rewriting...") : needsApproval ? (isRetro ? "⚡ APPROVAL REQUIRED" : "Approval Required") : needsResolve ? (isRetro ? "⚡ ACTION REQUIRED" : "Action Required") : (isRetro ? task.subtext?.toUpperCase() : task.subtext)}
+          {isCompleted ? (isRetro ? "DONE" : "Done") : isFailed ? (isRetro ? "FAILED" : "Failed") : isFixing ? (isRetro ? "FIXING..." : "Fixing...") : isRewriting ? (isRetro ? "REWRITING..." : "Rewriting...") : needsApproval ? (isRetro ? "APPROVAL REQUIRED" : "Approval Required") : needsResolve ? (isRetro ? "ACTION REQUIRED" : "Action Required") : isWorking ? (isRetro ? "WORKING" : "Working") : (isRetro ? task.subtext?.toUpperCase() : task.subtext)}
         </motion.div>
       )}
 
@@ -625,7 +629,7 @@ function TaskWidget({ task, onApprove, onReject, onResolve, isCollapsing, collap
         transition={{ duration: 0.3 }}
         style={{ border: isRetro ? "2px solid" : "1px solid", padding: "16px 20px", minWidth: isRetro ? 320 : 300, position: "relative", overflow: "hidden", borderRadius: theme.borderRadius, boxShadow: theme.shadow }}
       >
-        <div className="flex items-center gap-3">
+        <div className="flex items-center" style={{ gap: 32 }}>
           {isCompleted ? (
             <motion.div initial={{ scale: 0 }} animate={{ scale: 1 }} transition={{ type: "spring", stiffness: 500, damping: 25 }} style={{ background: isRetro ? "rgba(16, 185, 129, 0.15)" : "#dcfce7", color: isRetro ? "#10b981" : "#16a34a", fontSize: isRetro ? 14 : 12, width: isRetro ? 18 : 24, height: isRetro ? 18 : 24, display: "flex", alignItems: "center", justifyContent: "center", borderRadius: isRetro ? 0 : 6, textAlign: "center" as const, fontWeight: 600 }}>✓</motion.div>
           ) : isFailed ? (
@@ -1203,22 +1207,22 @@ function SubWorkflowPanel({
       <div className="relative" style={{ width: SUB_CONNECTION_WIDTH, height: totalHeight }}>
         <svg style={{ position: "absolute", top: 0, left: 0, width: "100%", height: "100%", overflow: "visible" }}>
           {/* Main horizontal connection from parent task */}
-          <motion.path d={mirrored ? `M ${SUB_CONNECTION_WIDTH - 4} ${TASK_CONNECTION_Y} L ${SUB_CONNECTION_WIDTH / 2} ${TASK_CONNECTION_Y}` : `M 4 ${TASK_CONNECTION_Y} L ${SUB_CONNECTION_WIDTH / 2} ${TASK_CONNECTION_Y}`} fill="none" stroke={isRetro ? "rgba(224, 112, 32, 0.4)" : "#fcd34d"} strokeWidth="1" initial={{ pathLength: 0 }} animate={{ pathLength: isCollapsing ? 0 : 1 }} transition={{ duration: 0.35, ease: [0.25, 0.1, 0.25, 1] }} />
+          <motion.path d={mirrored ? `M ${SUB_CONNECTION_WIDTH} ${TASK_CONNECTION_Y} L ${SUB_CONNECTION_WIDTH / 2} ${TASK_CONNECTION_Y}` : `M -8 ${TASK_CONNECTION_Y} L ${SUB_CONNECTION_WIDTH / 2} ${TASK_CONNECTION_Y}`} fill="none" stroke={isRetro ? "rgba(224, 112, 32, 0.4)" : "#fcd34d"} strokeWidth="1" initial={{ pathLength: 0 }} animate={{ pathLength: isCollapsing ? 0 : 1 }} transition={{ duration: 0.35, ease: [0.25, 0.1, 0.25, 1] }} />
           {/* Vertical line connecting all sub-tasks */}
           {tasks.length > 1 && (<motion.path d={`M ${SUB_CONNECTION_WIDTH / 2} ${TASK_CONNECTION_Y} L ${SUB_CONNECTION_WIDTH / 2} ${getTaskY(tasks.length - 1)}`} fill="none" stroke={isRetro ? "rgba(224, 112, 32, 0.25)" : "#e5e5e5"} strokeWidth="1" strokeDasharray="4 4" initial={{ pathLength: 0 }} animate={{ pathLength: isCollapsing ? 0 : 1 }} transition={{ duration: 0.35, delay: 0.1 }} />)}
           {/* Horizontal lines to each sub-task */}
-          {tasks.map((_, i) => (<motion.path key={i} d={mirrored ? `M 4 ${getTaskY(i)} L ${SUB_CONNECTION_WIDTH / 2} ${getTaskY(i)}` : `M ${SUB_CONNECTION_WIDTH / 2} ${getTaskY(i)} L ${SUB_CONNECTION_WIDTH - 4} ${getTaskY(i)}`} fill="none" stroke={isRetro ? "rgba(224, 112, 32, 0.3)" : "#fcd34d"} strokeWidth="1" initial={{ pathLength: 0 }} animate={{ pathLength: isCollapsing ? 0 : 1 }} transition={{ duration: 0.3, delay: 0.05 + i * 0.06 }} />))}
+          {tasks.map((_, i) => (<motion.path key={i} d={mirrored ? `M -8 ${getTaskY(i)} L ${SUB_CONNECTION_WIDTH / 2} ${getTaskY(i)}` : `M ${SUB_CONNECTION_WIDTH / 2} ${getTaskY(i)} L ${SUB_CONNECTION_WIDTH + 8} ${getTaskY(i)}`} fill="none" stroke={isRetro ? "rgba(224, 112, 32, 0.3)" : "#fcd34d"} strokeWidth="1" initial={{ pathLength: 0 }} animate={{ pathLength: isCollapsing ? 0 : 1 }} transition={{ duration: 0.3, delay: 0.05 + i * 0.06 }} />))}
         </svg>
         
         {!isCollapsing && (
           <>
             {/* Start node (connects to parent task) */}
-            <motion.div initial={{ scale: 0 }} animate={{ scale: 1 }} style={{ position: "absolute", left: mirrored ? SUB_CONNECTION_WIDTH - 6 : 2, top: TASK_CONNECTION_Y - 2, width: 4, height: 4, borderRadius: isRetro ? 0 : "50%", background: "#e07020", boxShadow: isRetro ? theme.glowWarning : "none" }} />
+            <motion.div initial={{ scale: 0 }} animate={{ scale: 1 }} style={{ position: "absolute", left: mirrored ? SUB_CONNECTION_WIDTH : -8, top: TASK_CONNECTION_Y - 2, width: 4, height: 4, borderRadius: isRetro ? 0 : "50%", background: "#e07020", boxShadow: isRetro ? theme.glowWarning : "none" }} />
             {/* Junction node */}
-            <motion.div initial={{ scale: 0 }} animate={{ scale: 1 }} style={{ position: "absolute", left: GRID_SIZE * 2, top: TASK_CONNECTION_Y - 2, width: 4, height: 4, borderRadius: isRetro ? 0 : "50%", background: "#e07020", boxShadow: isRetro ? theme.glowWarning : "none" }} />
+            <motion.div initial={{ scale: 0 }} animate={{ scale: 1 }} style={{ position: "absolute", left: SUB_CONNECTION_WIDTH / 2, top: TASK_CONNECTION_Y - 2, width: 4, height: 4, borderRadius: isRetro ? 0 : "50%", background: "#e07020", boxShadow: isRetro ? theme.glowWarning : "none" }} />
             {/* Task nodes */}
             {tasks.map((task, i) => (
-              <motion.div key={i} initial={{ scale: 0 }} animate={{ scale: 1 }} transition={{ delay: 0.1 + i * 0.1 }} style={{ position: "absolute", left: mirrored ? 2 : SUB_CONNECTION_WIDTH - 6, top: getTaskY(i) - 2, width: 4, height: 4, borderRadius: isRetro ? 0 : "50%", background: task.status === "working" ? "#e07020" : task.status === "completed" ? (isRetro ? "rgba(94, 234, 212, 0.5)" : "#10b981") : (isRetro ? "rgba(224, 112, 32, 0.4)" : "#d4d4d4"), boxShadow: isRetro && task.status === "working" ? theme.glowWarning : "none" }} />
+              <motion.div key={i} initial={{ scale: 0 }} animate={{ scale: 1 }} transition={{ delay: 0.1 + i * 0.1 }} style={{ position: "absolute", left: mirrored ? -8 : SUB_CONNECTION_WIDTH + 8, top: getTaskY(i) - 2, width: 4, height: 4, borderRadius: isRetro ? 0 : "50%", background: task.status === "working" ? "#e07020" : task.status === "completed" ? (isRetro ? "rgba(94, 234, 212, 0.5)" : "#10b981") : (isRetro ? "rgba(224, 112, 32, 0.4)" : "#d4d4d4"), boxShadow: isRetro && task.status === "working" ? theme.glowWarning : "none" }} />
             ))}
           </>
         )}
@@ -1287,6 +1291,7 @@ export default function Home() {
   const deepCleanTaskCounterRef = useRef({ left: 0, right: 0 });
   const [autoPilot, setAutoPilot] = useState(false);
   const autoPilotTimerRef = useRef<{ left: NodeJS.Timeout | null; right: NodeJS.Timeout | null }>({ left: null, right: null });
+  const [activeCanvas, setActiveCanvas] = useState<"main" | "blueprint">("main");
 
   const leftScenarioRef = useRef<Scenario | null>(null);
   const rightScenarioRef = useRef<Scenario | null>(null);
@@ -2116,6 +2121,8 @@ export default function Home() {
         <button onClick={() => { zoomRef.current = Math.min(zoomRef.current * 1.2, 3); if (canvasRef.current) canvasRef.current.style.transform = `translate(${panRef.current.x}px, ${panRef.current.y}px) scale(${zoomRef.current})`; setZoom(zoomRef.current); }} style={{ background: "transparent", border: "none", color: theme.text, padding: "6px 8px", fontSize: 13, cursor: "pointer", fontFamily: theme.fontFamily, fontWeight: 500, lineHeight: 1 }}>+</button>
       </div>
 
+      {/* Main Canvas */}
+      {activeCanvas === "main" && (
       <div
         className="flex-1 relative overflow-hidden"
         style={{ cursor: isPanning ? "grabbing" : "grab" }}
@@ -2447,6 +2454,167 @@ export default function Home() {
           </div>
         </div>
       </div>
+      )}
+
+      {/* Blueprint Canvas */}
+      {activeCanvas === "blueprint" && (
+      <div
+        className="flex-1 relative overflow-hidden"
+        style={{
+          background: "linear-gradient(135deg, #0a0f1e 0%, #0f1829 100%)",
+          cursor: isPanning ? "grabbing" : "grab"
+        }}
+        onWheel={handleWheel}
+        onMouseDown={handleMouseDown}
+        onMouseMove={handleMouseMove}
+        onMouseUp={handleMouseUp}
+        onMouseLeave={handleMouseUp}
+      >
+        <div ref={canvasRef} style={{ position: "absolute", top: "50%", left: "50%", width: 0, height: 0, transformOrigin: "0 0", willChange: "transform", overflow: "visible" }}>
+          <div style={{
+            position: "absolute",
+            width: 10000,
+            height: 10000,
+            left: -5000,
+            top: -5000,
+            backgroundImage: "linear-gradient(rgba(59, 130, 246, 0.08) 1px, transparent 1px), linear-gradient(90deg, rgba(59, 130, 246, 0.08) 1px, transparent 1px)",
+            backgroundSize: "40px 40px",
+            backgroundPosition: "0 0",
+            pointerEvents: "none"
+          }} />
+
+        <div style={{
+          position: "absolute",
+          top: -400,
+          left: -900,
+          width: 1800,
+          padding: 40
+        }}>
+          <div style={{
+            display: "grid",
+            gridTemplateColumns: "repeat(auto-fit, minmax(380px, 1fr))",
+            gap: 32,
+            maxWidth: 1800,
+            margin: "0 auto"
+          }}>
+            {/* Working State */}
+            <div>
+              <div style={{ color: "#60a5fa", fontSize: 11, fontWeight: 600, letterSpacing: "0.1em", marginBottom: 12, fontFamily: theme.fontFamily }}>WORKING</div>
+              <TaskWidget
+                task={{ id: "bp-1", label: "Process Customer Data", status: "working", progress: 0.65 }}
+              />
+            </div>
+
+            {/* Completed State */}
+            <div>
+              <div style={{ color: "#60a5fa", fontSize: 11, fontWeight: 600, letterSpacing: "0.1em", marginBottom: 12, fontFamily: theme.fontFamily }}>COMPLETED</div>
+              <TaskWidget
+                task={{ id: "bp-2", label: "Generate Analytics Report", status: "completed", progress: 1 }}
+              />
+            </div>
+
+            {/* Needs Approval State */}
+            <div>
+              <div style={{ color: "#60a5fa", fontSize: 11, fontWeight: 600, letterSpacing: "0.1em", marginBottom: 12, fontFamily: theme.fontFamily }}>NEEDS APPROVAL</div>
+              <TaskWidget
+                task={{ id: "bp-3", label: "Update Product Catalog", status: "needs_approval", progress: 1 }}
+              />
+            </div>
+
+            {/* Needs Resolve State */}
+            <div>
+              <div style={{ color: "#60a5fa", fontSize: 11, fontWeight: 600, letterSpacing: "0.1em", marginBottom: 12, fontFamily: theme.fontFamily }}>NEEDS RESOLVE</div>
+              <TaskWidget
+                task={{ id: "bp-4", label: "Sync Inventory Database", status: "needs_resolve", progress: 0.8 }}
+              />
+            </div>
+
+            {/* Failed State */}
+            <div>
+              <div style={{ color: "#60a5fa", fontSize: 11, fontWeight: 600, letterSpacing: "0.1em", marginBottom: 12, fontFamily: theme.fontFamily }}>FAILED</div>
+              <TaskWidget
+                task={{ id: "bp-5", label: "Deploy to Production", status: "failed", progress: 0.3 }}
+              />
+            </div>
+
+            {/* Fixing State */}
+            <div>
+              <div style={{ color: "#60a5fa", fontSize: 11, fontWeight: 600, letterSpacing: "0.1em", marginBottom: 12, fontFamily: theme.fontFamily }}>FIXING</div>
+              <TaskWidget
+                task={{ id: "bp-6", label: "Repair Email Service", status: "fixing", progress: 0.45 }}
+              />
+            </div>
+
+            {/* Rewriting State */}
+            <div>
+              <div style={{ color: "#60a5fa", fontSize: 11, fontWeight: 600, letterSpacing: "0.1em", marginBottom: 12, fontFamily: theme.fontFamily }}>REWRITING</div>
+              <TaskWidget
+                task={{ id: "bp-7", label: "Optimize Query Performance", status: "rewriting", progress: 0.55 }}
+              />
+            </div>
+
+            {/* Email Preview Panel */}
+            <div>
+              <div style={{ color: "#60a5fa", fontSize: 11, fontWeight: 600, letterSpacing: "0.1em", marginBottom: 12, fontFamily: theme.fontFamily }}>EMAIL PREVIEW</div>
+              <EmailPreviewPanel isActive={true} isCollapsing={false} onApprove={() => {}} mirrored={false} />
+            </div>
+
+            {/* Insights Preview Panel */}
+            <div>
+              <div style={{ color: "#60a5fa", fontSize: 11, fontWeight: 600, letterSpacing: "0.1em", marginBottom: 12, fontFamily: theme.fontFamily }}>INSIGHTS PREVIEW</div>
+              <InsightsPreviewPanel isActive={true} isCollapsing={false} onApprove={() => {}} mirrored={false} />
+            </div>
+
+            {/* Sub-Workflow Panel - Left */}
+            <div>
+              <div style={{ color: "#60a5fa", fontSize: 11, fontWeight: 600, letterSpacing: "0.1em", marginBottom: 12, fontFamily: theme.fontFamily }}>SUB-WORKFLOW (LEFT)</div>
+              <SubWorkflowPanel
+                isActive={true}
+                tasks={[
+                  { id: "sub-1", label: "Validate Data Schema", status: "completed" as const, progress: 1 },
+                  { id: "sub-2", label: "Transform Records", status: "completed" as const, progress: 1 },
+                  { id: "sub-3", label: "Index Documents", status: "completed" as const, progress: 1 },
+                  { id: "sub-4", label: "Update References", status: "working" as const, progress: 0.6 },
+                  { id: "sub-5", label: "Generate Metadata", status: "waiting" as const, progress: 0 },
+                  { id: "sub-6", label: "Sync to Cloud", status: "waiting" as const, progress: 0 }
+                ]}
+                mirrored={false}
+                isCollapsing={false}
+              />
+            </div>
+
+            {/* Sub-Workflow Panel - Right */}
+            <div>
+              <div style={{ color: "#60a5fa", fontSize: 11, fontWeight: 600, letterSpacing: "0.1em", marginBottom: 12, fontFamily: theme.fontFamily }}>SUB-WORKFLOW (RIGHT)</div>
+              <SubWorkflowPanel
+                isActive={true}
+                tasks={[
+                  { id: "sub-7", label: "Fetch API Data", status: "completed" as const, progress: 1 },
+                  { id: "sub-8", label: "Parse Response", status: "completed" as const, progress: 1 },
+                  { id: "sub-9", label: "Validate Schema", status: "completed" as const, progress: 1 },
+                  { id: "sub-10", label: "Cache Results", status: "working" as const, progress: 0.75 },
+                  { id: "sub-11", label: "Update Database", status: "waiting" as const, progress: 0 },
+                  { id: "sub-12", label: "Notify Services", status: "waiting" as const, progress: 0 }
+                ]}
+                mirrored={true}
+                isCollapsing={false}
+              />
+            </div>
+
+            {/* Completed Task Widget */}
+            <div>
+              <div style={{ color: "#60a5fa", fontSize: 11, fontWeight: 600, letterSpacing: "0.1em", marginBottom: 12, fontFamily: theme.fontFamily }}>COMPLETED WIDGET</div>
+              <CompletedTaskWidget
+                label="Weekly Analytics Report"
+                onClose={() => {}}
+                mirrored={false}
+              />
+            </div>
+          </div>
+        </div>
+        </div>
+      </div>
+      )}
 
       {/* Task Controls Sidebar */}
       <motion.div
@@ -2571,6 +2739,51 @@ export default function Home() {
         >
           {deepCleanMode === "running" ? "CLEANING..." : deepCleanMode === "collapsing" ? "FINISHING..." : deepCleanMode === "complete" ? "CLEAN!" : "RUN DEEP CLEAN"}
         </button>
+
+        {/* Canvas Switcher */}
+        <div style={{ marginTop: 16, paddingTop: 16, borderTop: `1px solid ${theme.borderDim}` }}>
+          <div style={{ fontSize: 9, color: theme.textDim, marginBottom: 8, letterSpacing: "0.1em", fontWeight: 600 }}>VIEW</div>
+          <div style={{ display: "flex", gap: 4 }}>
+            <button
+              onClick={() => setActiveCanvas("main")}
+              style={{
+                background: activeCanvas === "main" ? "rgba(94, 234, 212, 0.15)" : "rgba(94, 234, 212, 0.05)",
+                border: `1px solid ${activeCanvas === "main" ? "rgba(94, 234, 212, 0.5)" : theme.borderLight}`,
+                color: activeCanvas === "main" ? theme.accent : theme.textDim,
+                padding: "8px 10px",
+                fontSize: 9,
+                letterSpacing: "0.08em",
+                cursor: "pointer",
+                fontFamily: theme.fontFamily,
+                fontWeight: 600,
+                textAlign: "center",
+                transition: "all 0.15s ease",
+                flex: 1
+              }}
+            >
+              MAIN
+            </button>
+            <button
+              onClick={() => setActiveCanvas("blueprint")}
+              style={{
+                background: activeCanvas === "blueprint" ? "rgba(59, 130, 246, 0.15)" : "rgba(59, 130, 246, 0.05)",
+                border: `1px solid ${activeCanvas === "blueprint" ? "rgba(59, 130, 246, 0.5)" : "rgba(59, 130, 246, 0.2)"}`,
+                color: activeCanvas === "blueprint" ? "#60a5fa" : theme.textDim,
+                padding: "8px 10px",
+                fontSize: 9,
+                letterSpacing: "0.08em",
+                cursor: "pointer",
+                fontFamily: theme.fontFamily,
+                fontWeight: 600,
+                textAlign: "center",
+                transition: "all 0.15s ease",
+                flex: 1
+              }}
+            >
+              BLUEPRINT
+            </button>
+          </div>
+        </div>
       </motion.div>
     </div>
     </ThemeContext.Provider>
