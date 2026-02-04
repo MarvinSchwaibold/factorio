@@ -1287,6 +1287,7 @@ export default function Home() {
   const deepCleanTaskCounterRef = useRef({ left: 0, right: 0 });
   const [autoPilot, setAutoPilot] = useState(false);
   const autoPilotTimerRef = useRef<{ left: NodeJS.Timeout | null; right: NodeJS.Timeout | null }>({ left: null, right: null });
+  const [multiAgentMode, setMultiAgentMode] = useState(false);
   
   const leftScenarioRef = useRef<Scenario | null>(null);
   const rightScenarioRef = useRef<Scenario | null>(null);
@@ -1705,25 +1706,22 @@ export default function Home() {
     }
 
     // Handle left workflow
-    if (leftWorkflow.isRunning && leftWorkflow.awaitingApproval) {
+    if (leftWorkflow.isRunning) {
       const needsApproval = leftWorkflow.tasks.some(t => t.status === "needs_approval");
       const needsResolve = leftWorkflow.tasks.some(t => t.status === "needs_resolve");
+      const hasSubWorkflow = leftWorkflow.subWorkflowActive && (leftWorkflow.resolveType === "email_copy" || leftWorkflow.resolveType === "insights" || leftWorkflow.resolveType === "product_descriptions");
 
-      // Clear any existing timer
-      if (autoPilotTimerRef.current.left) clearTimeout(autoPilotTimerRef.current.left);
-
-      if (needsApproval) {
+      if (needsApproval && !autoPilotTimerRef.current.left) {
         autoPilotTimerRef.current.left = setTimeout(() => {
           leftHandlers.handleApprove();
           autoPilotTimerRef.current.left = null;
         }, 800);
-      } else if (needsResolve) {
+      } else if (needsResolve && !autoPilotTimerRef.current.left) {
         autoPilotTimerRef.current.left = setTimeout(() => {
           leftHandlers.handleResolve();
           autoPilotTimerRef.current.left = null;
         }, 800);
-      } else if (leftWorkflow.subWorkflowActive && (leftWorkflow.resolveType === "email_copy" || leftWorkflow.resolveType === "insights" || leftWorkflow.resolveType === "product_descriptions")) {
-        // Auto-approve preview panels or sub-workflows that need manual approval
+      } else if (hasSubWorkflow && leftWorkflow.awaitingApproval && !autoPilotTimerRef.current.left) {
         autoPilotTimerRef.current.left = setTimeout(() => {
           leftHandlers.handleApprovePreview();
           autoPilotTimerRef.current.left = null;
@@ -1732,32 +1730,30 @@ export default function Home() {
     }
 
     // Handle right workflow
-    if (rightWorkflow.isRunning && rightWorkflow.awaitingApproval) {
+    if (rightWorkflow.isRunning) {
       const needsApproval = rightWorkflow.tasks.some(t => t.status === "needs_approval");
       const needsResolve = rightWorkflow.tasks.some(t => t.status === "needs_resolve");
+      const hasSubWorkflow = rightWorkflow.subWorkflowActive && (rightWorkflow.resolveType === "email_copy" || rightWorkflow.resolveType === "insights" || rightWorkflow.resolveType === "product_descriptions");
 
-      // Clear any existing timer
-      if (autoPilotTimerRef.current.right) clearTimeout(autoPilotTimerRef.current.right);
-
-      if (needsApproval) {
+      if (needsApproval && !autoPilotTimerRef.current.right) {
         autoPilotTimerRef.current.right = setTimeout(() => {
           rightHandlers.handleApprove();
           autoPilotTimerRef.current.right = null;
         }, 800);
-      } else if (needsResolve) {
+      } else if (needsResolve && !autoPilotTimerRef.current.right) {
         autoPilotTimerRef.current.right = setTimeout(() => {
           rightHandlers.handleResolve();
           autoPilotTimerRef.current.right = null;
         }, 800);
-      } else if (rightWorkflow.subWorkflowActive && (rightWorkflow.resolveType === "email_copy" || rightWorkflow.resolveType === "insights" || rightWorkflow.resolveType === "product_descriptions")) {
-        // Auto-approve preview panels or sub-workflows that need manual approval
+      } else if (hasSubWorkflow && rightWorkflow.awaitingApproval && !autoPilotTimerRef.current.right) {
         autoPilotTimerRef.current.right = setTimeout(() => {
           rightHandlers.handleApprovePreview();
           autoPilotTimerRef.current.right = null;
         }, 1200);
       }
     }
-  }, [autoPilot, leftWorkflow, rightWorkflow, leftHandlers, rightHandlers]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [autoPilot, leftWorkflow, rightWorkflow]);
 
   // Auto-collapse workflows when all tasks are completed
   useEffect(() => {
@@ -2186,7 +2182,7 @@ export default function Home() {
                           {leftWorkflow.subWorkflowActive && leftWorkflow.resolveType === "insights" && (
                             <InsightsPreviewPanel isActive={leftWorkflow.subWorkflowActive} isCollapsing={leftWorkflow.subWorkflowCollapsing} onApprove={leftHandlers.handleApprovePreview} mirrored />
                           )}
-                          {(leftWorkflow.subWorkflowActive || leftWorkflow.subWorkflowTasks.length > 0) && leftWorkflow.resolveType !== "email_copy" && leftWorkflow.resolveType !== "insights" && (
+                          {leftWorkflow.subWorkflowActive && leftWorkflow.resolveType !== "email_copy" && leftWorkflow.resolveType !== "insights" && (
                             <SubWorkflowPanel isActive={leftWorkflow.subWorkflowActive} tasks={leftWorkflow.subWorkflowTasks} isCollapsing={leftWorkflow.subWorkflowCollapsing} mirrored />
                           )}
                         </div>
@@ -2266,10 +2262,29 @@ export default function Home() {
             {/* Agent Container */}
             {true ? (
               <div className="relative p-6" style={{ border: `1px solid ${theme.border}`, background: theme.cardBg }}>
-                <div style={{ display: "grid", gridTemplateColumns: "80px 140px 80px", gridTemplateRows: "60px 140px 60px", gap: 20, width: 340 }}>
-                  <ServerRack />
+                <div style={{ display: "grid", gridTemplateColumns: multiAgentMode ? "80px 140px 80px" : "80px 140px 80px", gridTemplateRows: multiAgentMode ? "80px 140px 80px" : "60px 140px 60px", gap: 20, width: 340 }}>
+                  {/* Top-left: Marketing Agent or Server Rack */}
+                  {multiAgentMode ? (
+                    <div className="relative flex flex-col items-center justify-center" style={{ border: `1px solid #f97316`, background: anyRunning ? "rgba(249, 115, 22, 0.12)" : "rgba(249, 115, 22, 0.08)" }}>
+                      <motion.div animate={{ opacity: anyRunning ? [0.4, 1, 0.4] : 0.4 }} transition={{ duration: 1.2, repeat: Infinity }} style={{ position: "absolute", inset: 0, border: "1px solid rgba(249, 115, 22, 0.3)" }} />
+                      <span style={{ fontSize: 8, letterSpacing: "0.08em", color: "#f97316", fontWeight: 600 }}>MARKETING</span>
+                    </div>
+                  ) : (
+                    <ServerRack />
+                  )}
+
                   <div style={{ border: `1px solid ${theme.borderDim}`, display: "flex", alignItems: "center", justifyContent: "center" }}><div style={{ width: 32, height: 14, border: `1px solid ${theme.borderDim}` }} /></div>
-                  <ServerRack />
+
+                  {/* Top-right: Inventory Agent or Server Rack */}
+                  {multiAgentMode ? (
+                    <div className="relative flex flex-col items-center justify-center" style={{ border: `1px solid #3b82f6`, background: anyRunning ? "rgba(59, 130, 246, 0.12)" : "rgba(59, 130, 246, 0.08)" }}>
+                      <motion.div animate={{ opacity: anyRunning ? [0.4, 1, 0.4] : 0.4 }} transition={{ duration: 1.2, repeat: Infinity, delay: 0.3 }} style={{ position: "absolute", inset: 0, border: "1px solid rgba(59, 130, 246, 0.3)" }} />
+                      <span style={{ fontSize: 8, letterSpacing: "0.08em", color: "#3b82f6", fontWeight: 600 }}>INVENTORY</span>
+                    </div>
+                  ) : (
+                    <ServerRack />
+                  )}
+
                   <div style={{ border: `1px solid ${theme.borderDim}`, display: "flex", alignItems: "center", justifyContent: "center" }}><div style={{ width: 26, height: 14, border: `1px solid ${theme.borderDim}` }} /></div>
 
                   <div className="relative flex flex-col items-center justify-center" style={{ border: `1px solid ${theme.border}`, background: anyRunning ? "rgba(94, 234, 212, 0.12)" : "rgba(94, 234, 212, 0.08)" }}>
@@ -2283,37 +2298,83 @@ export default function Home() {
                     <div style={{ position: "absolute", bottom: 6, right: 6, width: 14, height: 14, borderBottom: `2px solid ${theme.border}`, borderRight: `2px solid ${theme.border}` }} />
                     {anyRunning && <motion.div animate={{ scale: [1, 1.3, 1], opacity: [0.3, 0.6, 0.3] }} transition={{ duration: 1.5, repeat: Infinity }} style={{ position: "absolute", inset: 0, border: `2px solid ${theme.border}` }} />}
                     <span style={{ fontSize: 13, letterSpacing: "0.06em", textAlign: "center", lineHeight: 1.5, color: theme.accent, fontWeight: 600, marginBottom: 8 }}>SIDEKICK<br />AGENT</span>
-                    <button
-                      onClick={() => setAutoPilot(!autoPilot)}
-                      style={{
-                        background: autoPilot ? "rgba(94, 234, 212, 0.25)" : "transparent",
-                        border: `1px solid ${autoPilot ? "rgba(94, 234, 212, 0.7)" : "rgba(94, 234, 212, 0.4)"}`,
-                        color: autoPilot ? theme.accent : theme.textMuted,
-                        padding: "3px 8px",
-                        fontSize: 9,
-                        cursor: "pointer",
-                        fontFamily: theme.fontFamily,
-                        fontWeight: 600,
-                        letterSpacing: "0.08em",
-                        transition: "all 0.15s ease"
-                      }}
-                      onMouseEnter={(e) => {
-                        e.currentTarget.style.background = "rgba(94, 234, 212, 0.3)";
-                        e.currentTarget.style.borderColor = "rgba(94, 234, 212, 0.8)";
-                      }}
-                      onMouseLeave={(e) => {
-                        e.currentTarget.style.background = autoPilot ? "rgba(94, 234, 212, 0.25)" : "transparent";
-                        e.currentTarget.style.borderColor = autoPilot ? "rgba(94, 234, 212, 0.7)" : "rgba(94, 234, 212, 0.4)";
-                      }}
-                    >
-                      {autoPilot ? "✓ AUTO PILOT" : "AUTO PILOT"}
-                    </button>
+                    <div style={{ display: "flex", flexDirection: "column", gap: 4, alignItems: "center" }}>
+                      <button
+                        onClick={() => setAutoPilot(!autoPilot)}
+                        style={{
+                          background: autoPilot ? "rgba(94, 234, 212, 0.25)" : "transparent",
+                          border: `1px solid ${autoPilot ? "rgba(94, 234, 212, 0.7)" : "rgba(94, 234, 212, 0.4)"}`,
+                          color: autoPilot ? theme.accent : theme.textMuted,
+                          padding: "3px 8px",
+                          fontSize: 9,
+                          cursor: "pointer",
+                          fontFamily: theme.fontFamily,
+                          fontWeight: 600,
+                          letterSpacing: "0.08em",
+                          transition: "all 0.15s ease"
+                        }}
+                        onMouseEnter={(e) => {
+                          e.currentTarget.style.background = "rgba(94, 234, 212, 0.3)";
+                          e.currentTarget.style.borderColor = "rgba(94, 234, 212, 0.8)";
+                        }}
+                        onMouseLeave={(e) => {
+                          e.currentTarget.style.background = autoPilot ? "rgba(94, 234, 212, 0.25)" : "transparent";
+                          e.currentTarget.style.borderColor = autoPilot ? "rgba(94, 234, 212, 0.7)" : "rgba(94, 234, 212, 0.4)";
+                        }}
+                      >
+                        {autoPilot ? "✓ AUTO PILOT" : "AUTO PILOT"}
+                      </button>
+                      <button
+                        onClick={() => setMultiAgentMode(!multiAgentMode)}
+                        style={{
+                          background: multiAgentMode ? "rgba(139, 92, 246, 0.25)" : "transparent",
+                          border: `1px solid ${multiAgentMode ? "rgba(139, 92, 246, 0.7)" : "rgba(139, 92, 246, 0.4)"}`,
+                          color: multiAgentMode ? "#a78bfa" : theme.textMuted,
+                          padding: "3px 8px",
+                          fontSize: 9,
+                          cursor: "pointer",
+                          fontFamily: theme.fontFamily,
+                          fontWeight: 600,
+                          letterSpacing: "0.08em",
+                          transition: "all 0.15s ease"
+                        }}
+                        onMouseEnter={(e) => {
+                          e.currentTarget.style.background = "rgba(139, 92, 246, 0.3)";
+                          e.currentTarget.style.borderColor = "rgba(139, 92, 246, 0.8)";
+                        }}
+                        onMouseLeave={(e) => {
+                          e.currentTarget.style.background = multiAgentMode ? "rgba(139, 92, 246, 0.25)" : "transparent";
+                          e.currentTarget.style.borderColor = multiAgentMode ? "rgba(139, 92, 246, 0.7)" : "rgba(139, 92, 246, 0.4)";
+                        }}
+                      >
+                        {multiAgentMode ? "✓ MULTI" : "MULTI"}
+                      </button>
+                    </div>
                   </div>
 
                   <div style={{ border: `1px solid ${theme.borderDim}`, display: "flex", alignItems: "center", justifyContent: "center" }}><div style={{ width: 26, height: 14, border: `1px solid ${theme.borderDim}` }} /></div>
-                  <ServerRack />
+
+                  {/* Bottom-left: Analytics Agent or Server Rack */}
+                  {multiAgentMode ? (
+                    <div className="relative flex flex-col items-center justify-center" style={{ border: `1px solid #a78bfa`, background: anyRunning ? "rgba(167, 139, 250, 0.12)" : "rgba(167, 139, 250, 0.08)" }}>
+                      <motion.div animate={{ opacity: anyRunning ? [0.4, 1, 0.4] : 0.4 }} transition={{ duration: 1.2, repeat: Infinity, delay: 0.6 }} style={{ position: "absolute", inset: 0, border: "1px solid rgba(167, 139, 250, 0.3)" }} />
+                      <span style={{ fontSize: 8, letterSpacing: "0.08em", color: "#a78bfa", fontWeight: 600 }}>ANALYTICS</span>
+                    </div>
+                  ) : (
+                    <ServerRack />
+                  )}
+
                   <div style={{ border: `1px solid ${theme.borderDim}`, display: "flex", alignItems: "center", justifyContent: "center" }}><div style={{ width: 32, height: 14, border: `1px solid ${theme.borderDim}` }} /></div>
-                  <ServerRack />
+
+                  {/* Bottom-right: Fulfillment Agent or Server Rack */}
+                  {multiAgentMode ? (
+                    <div className="relative flex flex-col items-center justify-center" style={{ border: `1px solid #10b981`, background: anyRunning ? "rgba(16, 185, 129, 0.12)" : "rgba(16, 185, 129, 0.08)" }}>
+                      <motion.div animate={{ opacity: anyRunning ? [0.4, 1, 0.4] : 0.4 }} transition={{ duration: 1.2, repeat: Infinity, delay: 0.9 }} style={{ position: "absolute", inset: 0, border: "1px solid rgba(16, 185, 129, 0.3)" }} />
+                      <span style={{ fontSize: 8, letterSpacing: "0.08em", color: "#10b981", fontWeight: 600 }}>FULFILLMENT</span>
+                    </div>
+                  ) : (
+                    <ServerRack />
+                  )}
                 </div>
               </div>
             ) : (
@@ -2439,7 +2500,7 @@ export default function Home() {
                           {rightWorkflow.subWorkflowActive && rightWorkflow.resolveType === "insights" && (
                             <InsightsPreviewPanel isActive={rightWorkflow.subWorkflowActive} isCollapsing={rightWorkflow.subWorkflowCollapsing} onApprove={rightHandlers.handleApprovePreview} />
                           )}
-                          {(rightWorkflow.subWorkflowActive || rightWorkflow.subWorkflowTasks.length > 0) && rightWorkflow.resolveType !== "email_copy" && rightWorkflow.resolveType !== "insights" && (
+                          {rightWorkflow.subWorkflowActive && rightWorkflow.resolveType !== "email_copy" && rightWorkflow.resolveType !== "insights" && (
                             <SubWorkflowPanel isActive={rightWorkflow.subWorkflowActive} tasks={rightWorkflow.subWorkflowTasks} isCollapsing={rightWorkflow.subWorkflowCollapsing} />
                           )}
                         </div>
