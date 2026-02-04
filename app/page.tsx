@@ -2448,38 +2448,53 @@ export default function Home() {
         </div>
       </div>
 
-      {/* Bottom Bar */}
-      <div style={{ borderTop: `1px solid ${theme.borderDim}`, background: true ? "rgba(13, 15, 13, 0.95)" : "white", padding: "16px 40px", display: "flex", justifyContent: "center", alignItems: "center", gap: true ? 12 : 10, flexShrink: 0 }}>
+      {/* Task Controls Sidebar */}
+      <motion.div
+        initial={{ opacity: 0, x: 20 }}
+        animate={{ opacity: 1, x: 0 }}
+        onWheel={(e) => e.stopPropagation()}
+        style={{
+          position: "fixed",
+          top: 280,
+          right: 20,
+          width: 220,
+          background: "rgba(13, 15, 13, 0.95)",
+          border: `1px solid ${theme.borderLight}`,
+          padding: "16px",
+          zIndex: 1000,
+          display: "flex",
+          flexDirection: "column",
+          gap: 8
+        }}
+      >
         {scenarios.map((scenario) => {
           const isThisSideRunning = scenario.side === "left" ? leftWorkflow.isRunning : rightWorkflow.isRunning;
           const handlers = scenario.side === "left" ? leftHandlers : rightHandlers;
-          
+
           return (
             <button
               key={scenario.id}
               onClick={() => handlers.runScenario(scenario)}
               disabled={isThisSideRunning}
               style={{
-                background: isThisSideRunning ? (true ? "rgba(94, 234, 212, 0.05)" : "#f5f5f5") : (true ? "rgba(94, 234, 212, 0.08)" : "white"),
+                background: isThisSideRunning ? "rgba(94, 234, 212, 0.05)" : "rgba(94, 234, 212, 0.08)",
                 border: `1px solid ${theme.borderLight}`,
                 color: isThisSideRunning ? theme.textDim : theme.text,
-                padding: "10px 20px",
-                fontSize: true ? 11 : 13,
-                letterSpacing: true ? "0.08em" : undefined,
+                padding: "10px 12px",
+                fontSize: 10,
+                letterSpacing: "0.08em",
                 cursor: isThisSideRunning ? "not-allowed" : "pointer",
                 fontFamily: theme.fontFamily,
-                fontWeight: true ? 600 : 500,
-                flex: "1",
-                maxWidth: 200,
+                fontWeight: 600,
                 textAlign: "center",
                 transition: "all 0.15s ease",
                 opacity: isThisSideRunning ? 0.6 : 1,
-                borderRadius: true ? 0 : 8
+                width: "100%"
               }}
-              onMouseEnter={(e) => { if (!isThisSideRunning) { e.currentTarget.style.background = true ? "rgba(94, 234, 212, 0.15)" : "#f5f5f5"; e.currentTarget.style.borderColor = true ? "rgba(94, 234, 212, 0.5)" : "#d4d4d4"; }}}
-              onMouseLeave={(e) => { e.currentTarget.style.background = isThisSideRunning ? (true ? "rgba(94, 234, 212, 0.05)" : "#f5f5f5") : (true ? "rgba(94, 234, 212, 0.08)" : "white"); e.currentTarget.style.borderColor = theme.borderLight; }}
+              onMouseEnter={(e) => { if (!isThisSideRunning) { e.currentTarget.style.background = "rgba(94, 234, 212, 0.15)"; e.currentTarget.style.borderColor = "rgba(94, 234, 212, 0.5)"; }}}
+              onMouseLeave={(e) => { e.currentTarget.style.background = isThisSideRunning ? "rgba(94, 234, 212, 0.05)" : "rgba(94, 234, 212, 0.08)"; e.currentTarget.style.borderColor = theme.borderLight; }}
             >
-              {true ? scenario.buttonLabel.toUpperCase() : scenario.buttonLabel}
+              {scenario.buttonLabel.toUpperCase()}
             </button>
           );
         })}
@@ -2487,20 +2502,18 @@ export default function Home() {
           <button
             onClick={() => { leftHandlers.resetWorkflow(); rightHandlers.resetWorkflow(); }}
             style={{
-              background: anyCompleted && !anyRunning ? (true ? "rgba(16, 185, 129, 0.08)" : "#dcfce7") : (true ? "rgba(239, 68, 68, 0.08)" : "#fee2e2"),
-              border: anyCompleted && !anyRunning ? (true ? "1px solid rgba(16, 185, 129, 0.3)" : "1px solid #bbf7d0") : (true ? "1px solid rgba(239, 68, 68, 0.3)" : "1px solid #fecaca"),
+              background: anyCompleted && !anyRunning ? "rgba(16, 185, 129, 0.08)" : "rgba(239, 68, 68, 0.08)",
+              border: anyCompleted && !anyRunning ? "1px solid rgba(16, 185, 129, 0.3)" : "1px solid rgba(239, 68, 68, 0.3)",
               color: anyCompleted && !anyRunning ? theme.success : theme.error,
-              padding: "10px 20px",
-              fontSize: true ? 11 : 13,
-              letterSpacing: true ? "0.08em" : undefined,
+              padding: "10px 12px",
+              fontSize: 10,
+              letterSpacing: "0.08em",
               cursor: "pointer",
               fontFamily: theme.fontFamily,
-              fontWeight: true ? 600 : 500,
-              flex: "1",
-              maxWidth: 200,
+              fontWeight: 600,
               textAlign: "center",
               transition: "all 0.15s ease",
-              borderRadius: true ? 0 : 8
+              width: "100%"
             }}
             onMouseEnter={(e) => {
               if (anyCompleted && !anyRunning) {
@@ -2521,33 +2534,27 @@ export default function Home() {
               }
             }}
           >
-            {true ? "RESET ALL" : "Reset all"}
+            RESET ALL
           </button>
         )}
         <button
           onClick={startDeepClean}
           disabled={deepCleanMode !== "idle"}
           style={{
-            background: deepCleanMode !== "idle"
-              ? (true ? "rgba(59, 130, 246, 0.2)" : "#dbeafe")
-              : (true ? "rgba(59, 130, 246, 0.08)" : "#eff6ff"),
-            border: deepCleanMode !== "idle"
-              ? (true ? "1px solid rgba(59, 130, 246, 0.6)" : "1px solid #60a5fa")
-              : (true ? "1px solid rgba(59, 130, 246, 0.3)" : "1px solid #bfdbfe"),
-            color: true ? "#60a5fa" : "#2563eb",
-            padding: "10px 20px",
-            fontSize: true ? 11 : 13,
-            letterSpacing: true ? "0.08em" : undefined,
+            background: deepCleanMode !== "idle" ? "rgba(59, 130, 246, 0.2)" : "rgba(59, 130, 246, 0.08)",
+            border: deepCleanMode !== "idle" ? "1px solid rgba(59, 130, 246, 0.6)" : "1px solid rgba(59, 130, 246, 0.3)",
+            color: "#60a5fa",
+            padding: "10px 12px",
+            fontSize: 10,
+            letterSpacing: "0.08em",
             cursor: deepCleanMode !== "idle" ? "not-allowed" : "pointer",
             fontFamily: theme.fontFamily,
-            fontWeight: true ? 600 : 500,
-            flex: "1",
-            maxWidth: 200,
+            fontWeight: 600,
             textAlign: "center",
             transition: "all 0.15s ease",
-            borderRadius: true ? 0 : 8,
             opacity: deepCleanMode !== "idle" ? 0.8 : 1,
-            boxShadow: deepCleanMode === "running" ? (true ? "0 0 20px rgba(59, 130, 246, 0.4)" : "0 0 12px rgba(37, 99, 235, 0.3)") : "none"
+            boxShadow: deepCleanMode === "running" ? "0 0 20px rgba(59, 130, 246, 0.4)" : "none",
+            width: "100%"
           }}
           onMouseEnter={(e) => {
             if (deepCleanMode === "idle") {
@@ -2557,18 +2564,14 @@ export default function Home() {
             }
           }}
           onMouseLeave={(e) => {
-            e.currentTarget.style.background = deepCleanMode !== "idle"
-              ? (true ? "rgba(59, 130, 246, 0.2)" : "#dbeafe")
-              : (true ? "rgba(59, 130, 246, 0.08)" : "#eff6ff");
-            e.currentTarget.style.borderColor = deepCleanMode !== "idle"
-              ? (true ? "rgba(59, 130, 246, 0.6)" : "#60a5fa")
-              : (true ? "rgba(59, 130, 246, 0.3)" : "#bfdbfe");
-            e.currentTarget.style.boxShadow = deepCleanMode === "running" ? (true ? "0 0 20px rgba(59, 130, 246, 0.4)" : "0 0 12px rgba(37, 99, 235, 0.3)") : "none";
+            e.currentTarget.style.background = deepCleanMode !== "idle" ? "rgba(59, 130, 246, 0.2)" : "rgba(59, 130, 246, 0.08)";
+            e.currentTarget.style.borderColor = deepCleanMode !== "idle" ? "rgba(59, 130, 246, 0.6)" : "rgba(59, 130, 246, 0.3)";
+            e.currentTarget.style.boxShadow = deepCleanMode === "running" ? "0 0 20px rgba(59, 130, 246, 0.4)" : "none";
           }}
         >
           {deepCleanMode === "running" ? "CLEANING..." : deepCleanMode === "collapsing" ? "FINISHING..." : deepCleanMode === "complete" ? "CLEAN!" : "RUN DEEP CLEAN"}
         </button>
-      </div>
+      </motion.div>
     </div>
     </ThemeContext.Provider>
   );
