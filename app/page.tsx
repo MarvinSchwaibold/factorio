@@ -2488,12 +2488,12 @@ export default function Home() {
           top: -400,
           left: -900,
           width: 1800,
-          padding: 40
+          padding: 24
         }}>
           <div style={{
             display: "grid",
             gridTemplateColumns: "repeat(auto-fit, minmax(380px, 1fr))",
-            gap: 32,
+            gap: 20,
             maxWidth: 1800,
             margin: "0 auto"
           }}>
