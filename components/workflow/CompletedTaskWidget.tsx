@@ -6,7 +6,7 @@ import { ThemeContext } from "@/lib/theme";
 
 export function CompletedTaskWidget({ label, onClose, mirrored }: { label: string; onClose: () => void; mirrored?: boolean }) {
   const theme = useContext(ThemeContext);
-  const isRetro = true;
+  const isRetro = false;
 
   return (
     <motion.div

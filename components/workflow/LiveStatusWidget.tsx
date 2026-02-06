@@ -24,7 +24,7 @@ export function LiveStatusWidget({
   deepCleanMode: "idle" | "running" | "collapsing" | "complete";
 }) {
   const theme = useContext(ThemeContext);
-  const isRetro = true;
+  const isRetro = false;
 
   const totalsRef = useRef({
     tasksProcessed: 0,

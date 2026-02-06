@@ -18,7 +18,7 @@ export function SubWorkflowPanel({
   mirrored?: boolean;
 }) {
   const theme = useContext(ThemeContext);
-  const isRetro = true;
+  const isRetro = false;
 
   if (!isActive && tasks.length === 0) return null;
 

@@ -17,7 +17,7 @@ export function InsightsPreviewPanel({
   mirrored?: boolean;
 }) {
   const theme = useContext(ThemeContext);
-  const isRetro = true;
+  const isRetro = false;
 
   if (!isActive) return null;
 

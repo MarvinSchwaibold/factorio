@@ -17,7 +17,7 @@ export function EmailPreviewPanel({
   mirrored?: boolean;
 }) {
   const theme = useContext(ThemeContext);
-  const isRetro = true;
+  const isRetro = false;
 
   const [subject, setSubject] = useState("Your exclusive 20% off awaits!");
   const [body, setBody] = useState("Hi valued customer,\n\nWe noticed you've been eyeing some items in your cart. Here's a special 20% discount just for you!\n\nUse code: SAVE20\n\nOffer expires in 48 hours.");

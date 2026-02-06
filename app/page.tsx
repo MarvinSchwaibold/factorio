@@ -2,6 +2,8 @@
 
 import { useState, useRef, useCallback, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
+import { Grid3x3 } from "lucide-react";
+import { Toggle } from "@base-ui/react/toggle";
 import { theme, ThemeContext } from "@/lib/theme";
 import type { Task, SubWorkflowTask, WorkflowState } from "@/lib/types";
 import {
@@ -15,8 +17,11 @@ import {
   InsightsPreviewPanel, SubWorkflowPanel
 } from "@/components/workflow";
 import { useWorkflow } from "@/hooks/useWorkflow";
-import { SideNav } from "@/components/SideNav";
-import { PlaceholderView } from "@/components/PlaceholderView";
+import { SideNav, SIDEBAR_WIDTH_COLLAPSED, SIDEBAR_WIDTH_EXPANDED } from "@/components/SideNav";
+import { CommerceView } from "@/components/CommerceView";
+import { InsightsView } from "@/components/InsightsView";
+import { ActivityView } from "@/components/ActivityView";
+import { SettingsView } from "@/components/SettingsView";
 
 export default function Home() {
   const [zoom, setZoom] = useState(1);
@@ -36,7 +41,9 @@ export default function Home() {
   const deepCleanTaskCounterRef = useRef({ left: 0, right: 0 });
   const [autoPilot, setAutoPilot] = useState(false);
   const autoPilotTimerRef = useRef<{ left: NodeJS.Timeout | null; right: NodeJS.Timeout | null }>({ left: null, right: null });
-  const [activeCanvas, setActiveCanvas] = useState<"main" | "blueprint" | "history" | "analytics" | "settings">("main");
+  const [activeCanvas, setActiveCanvas] = useState<"canvas" | "blueprint" | "commerce" | "insights" | "activity" | "settings">("canvas");
+  const [sidebarExpanded, setSidebarExpanded] = useState(false);
+  const sidebarWidth = sidebarExpanded ? SIDEBAR_WIDTH_EXPANDED : SIDEBAR_WIDTH_COLLAPSED;
 
   const accentColor = theme.accent;
 
@@ -401,13 +408,13 @@ export default function Home() {
 
   return (
     <ThemeContext.Provider value={theme}>
-    <div className="h-screen w-screen overflow-hidden relative flex flex-col" style={{ background: theme.background, fontFamily: theme.fontFamily }}>
+    <div className="h-screen w-screen overflow-hidden relative flex flex-col" style={{ background: "#ffffff", fontFamily: theme.fontFamily }}>
 
       {/* Side Navigation */}
-      <SideNav activeView={activeCanvas} onViewChange={(view) => setActiveCanvas(view as typeof activeCanvas)} />
+      <SideNav activeView={activeCanvas} onViewChange={(view) => setActiveCanvas(view as typeof activeCanvas)} isExpanded={sidebarExpanded} onToggleExpand={() => setSidebarExpanded(!sidebarExpanded)} />
 
-      {/* Fixed UI Elements - Outside canvas area to prevent clipping */}
-      <LiveStatusWidget
+      {/* Fixed UI Elements - Only on main canvas */}
+      {activeCanvas === "canvas" && <LiveStatusWidget
         leftWorkflow={{
           tasks: leftWorkflow.tasks,
           isRunning: leftWorkflow.isRunning,
@@ -423,22 +430,62 @@ export default function Home() {
           isCompleted: rightWorkflow.isCompleted
         }}
         deepCleanMode={deepCleanMode}
-      />
+      />}
 
-      {/* Zoom Controls */}
-      <div style={{ position: "fixed", top: 20, left: 76, display: "flex", alignItems: "center", gap: 8, zIndex: 1000, background: "rgba(0, 0, 0, 0.6)", border: `1px solid ${theme.borderLight}`, padding: "6px 8px", borderRadius: 0 }}>
-        <button onClick={resetView} style={{ background: "transparent", border: "none", color: theme.textMuted, padding: "6px 10px", fontSize: 11, cursor: "pointer", fontFamily: theme.fontFamily, fontWeight: 500, letterSpacing: "0.05em" }}>RESET</button>
+      {/* Zoom Controls - only on canvas/blueprint */}
+      {(activeCanvas === "canvas" || activeCanvas === "blueprint") && <div style={{ position: "fixed", top: 20, left: sidebarWidth + 20, display: "flex", alignItems: "center", gap: 8, zIndex: 1000, background: "white", border: `1px solid ${theme.borderLight}`, padding: "6px 8px", borderRadius: 8, boxShadow: "0 1px 3px rgba(0,0,0,0.08)", transition: "left 300ms cubic-bezier(0.4, 0, 0.2, 1)" }}>
+        <button onClick={resetView} style={{ background: "transparent", border: "none", color: theme.textMuted, padding: "6px 10px", fontSize: 11, cursor: "pointer", fontFamily: theme.fontFamily, fontWeight: 500, letterSpacing: "0.02em" }}>Reset</button>
         <div style={{ width: 1, height: 16, background: theme.borderLight }} />
         <button onClick={() => { zoomRef.current = Math.max(zoomRef.current * 0.8, 0.25); if (canvasRef.current) canvasRef.current.style.transform = `translate(${panRef.current.x}px, ${panRef.current.y}px) scale(${zoomRef.current})`; setZoom(zoomRef.current); }} style={{ background: "transparent", border: "none", color: theme.text, padding: "6px 8px", fontSize: 13, cursor: "pointer", fontFamily: theme.fontFamily, fontWeight: 500, lineHeight: 1 }}>−</button>
         <span style={{ color: theme.textMuted, fontSize: 11, fontFamily: theme.fontFamily, minWidth: 36, textAlign: "center", fontWeight: 500 }}>{Math.round(zoom * 100)}%</span>
         <button onClick={() => { zoomRef.current = Math.min(zoomRef.current * 1.2, 3); if (canvasRef.current) canvasRef.current.style.transform = `translate(${panRef.current.x}px, ${panRef.current.y}px) scale(${zoomRef.current})`; setZoom(zoomRef.current); }} style={{ background: "transparent", border: "none", color: theme.text, padding: "6px 8px", fontSize: 13, cursor: "pointer", fontFamily: theme.fontFamily, fontWeight: 500, lineHeight: 1 }}>+</button>
-      </div>
+        <div style={{ width: 1, height: 16, background: theme.borderLight }} />
+        <button
+          onClick={() => {
+            if (activeCanvas === "blueprint") {
+              setActiveCanvas("canvas");
+              setZoom(1);
+              setPan({ x: 0, y: 0 });
+              zoomRef.current = 1;
+              panRef.current = { x: 0, y: 0 };
+            } else {
+              setActiveCanvas("blueprint");
+              setZoom(0.55);
+              setPan({ x: 0, y: 0 });
+              zoomRef.current = 0.55;
+              panRef.current = { x: 0, y: 0 };
+            }
+            if (canvasRef.current) {
+              canvasRef.current.style.transform = `translate(0px, 0px) scale(${activeCanvas === "blueprint" ? 1 : 0.55})`;
+            }
+          }}
+          style={{
+            background: activeCanvas === "blueprint" ? "rgba(13, 148, 136, 0.08)" : "transparent",
+            border: "none",
+            color: activeCanvas === "blueprint" ? theme.accent : theme.textMuted,
+            padding: "6px 8px",
+            cursor: "pointer",
+            fontFamily: theme.fontFamily,
+            display: "flex",
+            alignItems: "center",
+            gap: 4,
+            fontSize: 11,
+            fontWeight: 500,
+            borderRadius: 4,
+            transition: "all 0.15s ease",
+          }}
+        >
+          <Grid3x3 size={14} />
+          Blueprint
+        </button>
+      </div>}
 
       {/* Main Canvas */}
-      {activeCanvas === "main" && (
+      {activeCanvas === "canvas" && (
+      <div style={{ marginLeft: sidebarWidth, transition: "margin-left 300ms cubic-bezier(0.4, 0, 0.2, 1)", height: "100vh", overflow: "hidden", padding: 8, display: "flex" }}>
       <div
         className="flex-1 relative overflow-hidden"
-        style={{ cursor: isPanning ? "grabbing" : "grab" }}
+        style={{ cursor: isPanning ? "grabbing" : "grab", background: "#f5f5f5", borderRadius: 12 }}
         onWheel={handleWheel}
         onMouseDown={handleMouseDown}
         onMouseMove={handleMouseMove}
@@ -566,14 +613,14 @@ export default function Home() {
             </div>
 
             {/* Agent Container */}
-            <div className="relative p-6" style={{ border: `1px solid ${theme.border}`, background: theme.cardBg }}>
+            <div className="relative p-6" style={{ border: `1px solid ${theme.border}`, background: theme.cardBg, borderRadius: 12, boxShadow: "0 1px 3px rgba(0,0,0,0.06)" }}>
               <div style={{ display: "grid", gridTemplateColumns: "80px 140px 80px", gridTemplateRows: "60px 140px 60px", gap: 20, width: 340 }}>
                 <ServerRack />
                 <div style={{ border: `1px solid ${theme.borderDim}`, display: "flex", alignItems: "center", justifyContent: "center" }}><div style={{ width: 32, height: 14, border: `1px solid ${theme.borderDim}` }} /></div>
                 <ServerRack />
                 <div style={{ border: `1px solid ${theme.borderDim}`, display: "flex", alignItems: "center", justifyContent: "center" }}><div style={{ width: 26, height: 14, border: `1px solid ${theme.borderDim}` }} /></div>
 
-                <div className="relative flex flex-col items-center justify-center" style={{ border: `1px solid ${theme.border}`, background: anyRunning ? "rgba(94, 234, 212, 0.12)" : "rgba(94, 234, 212, 0.08)" }}>
+                <div className="relative flex flex-col items-center justify-center" style={{ border: `1px solid ${theme.border}`, background: anyRunning ? "rgba(13, 148, 136, 0.06)" : "#f9fafb", borderRadius: 8 }}>
                   <div style={{ position: "absolute", top: -11, left: "50%", transform: "translateX(-50%)", width: 1, height: 10, background: theme.borderLight }} />
                   <div style={{ position: "absolute", bottom: -11, left: "50%", transform: "translateX(-50%)", width: 1, height: 10, background: theme.borderLight }} />
                   <div style={{ position: "absolute", left: -11, top: "50%", transform: "translateY(-50%)", width: 10, height: 1, background: theme.borderLight }} />
@@ -584,31 +631,26 @@ export default function Home() {
                   <div style={{ position: "absolute", bottom: 6, right: 6, width: 14, height: 14, borderBottom: `2px solid ${theme.border}`, borderRight: `2px solid ${theme.border}` }} />
                   {anyRunning && <motion.div animate={{ scale: [1, 1.3, 1], opacity: [0.3, 0.6, 0.3] }} transition={{ duration: 1.5, repeat: Infinity }} style={{ position: "absolute", inset: 0, border: `2px solid ${theme.border}` }} />}
                   <span style={{ fontSize: 13, letterSpacing: "0.06em", textAlign: "center", lineHeight: 1.5, color: theme.accent, fontWeight: 600, marginBottom: 8 }}>SIDEKICK<br />AGENT</span>
-                  <button
-                    onClick={() => setAutoPilot(!autoPilot)}
-                    style={{
-                      background: autoPilot ? "rgba(94, 234, 212, 0.25)" : "transparent",
-                      border: `1px solid ${autoPilot ? "rgba(94, 234, 212, 0.7)" : "rgba(94, 234, 212, 0.4)"}`,
-                      color: autoPilot ? theme.accent : theme.textMuted,
+                  <Toggle
+                    pressed={autoPilot}
+                    onPressedChange={setAutoPilot}
+                    className="autopilot-toggle"
+                    style={(state) => ({
+                      background: state.pressed ? "rgba(13, 148, 136, 0.12)" : "transparent",
+                      border: `1px solid ${state.pressed ? "rgba(13, 148, 136, 0.4)" : "#d1d5db"}`,
+                      color: state.pressed ? theme.accent : theme.textMuted,
                       padding: "3px 8px",
                       fontSize: 9,
                       cursor: "pointer",
                       fontFamily: theme.fontFamily,
                       fontWeight: 600,
-                      letterSpacing: "0.08em",
-                      transition: "all 0.15s ease"
-                    }}
-                    onMouseEnter={(e) => {
-                      e.currentTarget.style.background = "rgba(94, 234, 212, 0.3)";
-                      e.currentTarget.style.borderColor = "rgba(94, 234, 212, 0.8)";
-                    }}
-                    onMouseLeave={(e) => {
-                      e.currentTarget.style.background = autoPilot ? "rgba(94, 234, 212, 0.25)" : "transparent";
-                      e.currentTarget.style.borderColor = autoPilot ? "rgba(94, 234, 212, 0.7)" : "rgba(94, 234, 212, 0.4)";
-                    }}
+                      letterSpacing: "0.02em",
+                      transition: "all 0.15s ease",
+                      borderRadius: 4,
+                    })}
                   >
                     {autoPilot ? "✓ AUTO PILOT" : "AUTO PILOT"}
-                  </button>
+                  </Toggle>
                 </div>
 
                 <div style={{ border: `1px solid ${theme.borderDim}`, display: "flex", alignItems: "center", justifyContent: "center" }}><div style={{ width: 26, height: 14, border: `1px solid ${theme.borderDim}` }} /></div>
@@ -718,14 +760,17 @@ export default function Home() {
           </div>
         </div>
       </div>
+      </div>
       )}
 
       {/* Blueprint Canvas */}
       {activeCanvas === "blueprint" && (
+      <div style={{ marginLeft: sidebarWidth, transition: "margin-left 300ms cubic-bezier(0.4, 0, 0.2, 1)", height: "100vh", overflow: "hidden", padding: 8, display: "flex" }}>
       <div
         className="flex-1 relative overflow-hidden"
         style={{
-          background: "linear-gradient(135deg, #0a0f1e 0%, #0f1829 100%)",
+          background: "#f5f5f5",
+          borderRadius: 12,
           cursor: isPanning ? "grabbing" : "grab"
         }}
         onWheel={handleWheel}
@@ -741,7 +786,7 @@ export default function Home() {
             height: 10000,
             left: -5000,
             top: -5000,
-            backgroundImage: "linear-gradient(rgba(59, 130, 246, 0.08) 1px, transparent 1px), linear-gradient(90deg, rgba(59, 130, 246, 0.08) 1px, transparent 1px)",
+            backgroundImage: theme.gridPattern,
             backgroundSize: "40px 40px",
             backgroundPosition: "0 0",
             pointerEvents: "none"
@@ -763,7 +808,7 @@ export default function Home() {
           }}>
             {/* Working State */}
             <div>
-              <div style={{ color: "#60a5fa", fontSize: 11, fontWeight: 600, letterSpacing: "0.1em", marginBottom: 12, fontFamily: theme.fontFamily }}>WORKING</div>
+              <div style={{ color: theme.textMuted, fontSize: 11, fontWeight: 600, letterSpacing: "0.02em", marginBottom: 12, fontFamily: theme.fontFamily }}>WORKING</div>
               <TaskWidget
                 task={{ id: "bp-1", label: "Process Customer Data", status: "working" }}
               />
@@ -771,7 +816,7 @@ export default function Home() {
 
             {/* Completed State */}
             <div>
-              <div style={{ color: "#60a5fa", fontSize: 11, fontWeight: 600, letterSpacing: "0.1em", marginBottom: 12, fontFamily: theme.fontFamily }}>COMPLETED</div>
+              <div style={{ color: theme.textMuted, fontSize: 11, fontWeight: 600, letterSpacing: "0.02em", marginBottom: 12, fontFamily: theme.fontFamily }}>COMPLETED</div>
               <TaskWidget
                 task={{ id: "bp-2", label: "Generate Analytics Report", status: "completed" }}
               />
@@ -779,7 +824,7 @@ export default function Home() {
 
             {/* Needs Approval State */}
             <div>
-              <div style={{ color: "#60a5fa", fontSize: 11, fontWeight: 600, letterSpacing: "0.1em", marginBottom: 12, fontFamily: theme.fontFamily }}>NEEDS APPROVAL</div>
+              <div style={{ color: theme.textMuted, fontSize: 11, fontWeight: 600, letterSpacing: "0.02em", marginBottom: 12, fontFamily: theme.fontFamily }}>NEEDS APPROVAL</div>
               <TaskWidget
                 task={{ id: "bp-3", label: "Update Product Catalog", status: "needs_approval" }}
               />
@@ -787,7 +832,7 @@ export default function Home() {
 
             {/* Needs Resolve State */}
             <div>
-              <div style={{ color: "#60a5fa", fontSize: 11, fontWeight: 600, letterSpacing: "0.1em", marginBottom: 12, fontFamily: theme.fontFamily }}>NEEDS RESOLVE</div>
+              <div style={{ color: theme.textMuted, fontSize: 11, fontWeight: 600, letterSpacing: "0.02em", marginBottom: 12, fontFamily: theme.fontFamily }}>NEEDS RESOLVE</div>
               <TaskWidget
                 task={{ id: "bp-4", label: "Sync Inventory Database", status: "needs_resolve" }}
               />
@@ -795,7 +840,7 @@ export default function Home() {
 
             {/* Failed State */}
             <div>
-              <div style={{ color: "#60a5fa", fontSize: 11, fontWeight: 600, letterSpacing: "0.1em", marginBottom: 12, fontFamily: theme.fontFamily }}>FAILED</div>
+              <div style={{ color: theme.textMuted, fontSize: 11, fontWeight: 600, letterSpacing: "0.02em", marginBottom: 12, fontFamily: theme.fontFamily }}>FAILED</div>
               <TaskWidget
                 task={{ id: "bp-5", label: "Deploy to Production", status: "failed" }}
               />
@@ -803,7 +848,7 @@ export default function Home() {
 
             {/* Fixing State */}
             <div>
-              <div style={{ color: "#60a5fa", fontSize: 11, fontWeight: 600, letterSpacing: "0.1em", marginBottom: 12, fontFamily: theme.fontFamily }}>FIXING</div>
+              <div style={{ color: theme.textMuted, fontSize: 11, fontWeight: 600, letterSpacing: "0.02em", marginBottom: 12, fontFamily: theme.fontFamily }}>FIXING</div>
               <TaskWidget
                 task={{ id: "bp-6", label: "Repair Email Service", status: "fixing" }}
               />
@@ -811,7 +856,7 @@ export default function Home() {
 
             {/* Rewriting State */}
             <div>
-              <div style={{ color: "#60a5fa", fontSize: 11, fontWeight: 600, letterSpacing: "0.1em", marginBottom: 12, fontFamily: theme.fontFamily }}>REWRITING</div>
+              <div style={{ color: theme.textMuted, fontSize: 11, fontWeight: 600, letterSpacing: "0.02em", marginBottom: 12, fontFamily: theme.fontFamily }}>REWRITING</div>
               <TaskWidget
                 task={{ id: "bp-7", label: "Optimize Query Performance", status: "rewriting" }}
               />
@@ -819,19 +864,19 @@ export default function Home() {
 
             {/* Email Preview Panel */}
             <div>
-              <div style={{ color: "#60a5fa", fontSize: 11, fontWeight: 600, letterSpacing: "0.1em", marginBottom: 12, fontFamily: theme.fontFamily }}>EMAIL PREVIEW</div>
+              <div style={{ color: theme.textMuted, fontSize: 11, fontWeight: 600, letterSpacing: "0.02em", marginBottom: 12, fontFamily: theme.fontFamily }}>EMAIL PREVIEW</div>
               <EmailPreviewPanel isActive={true} isCollapsing={false} onApprove={() => {}} mirrored={false} />
             </div>
 
             {/* Insights Preview Panel */}
             <div>
-              <div style={{ color: "#60a5fa", fontSize: 11, fontWeight: 600, letterSpacing: "0.1em", marginBottom: 12, fontFamily: theme.fontFamily }}>INSIGHTS PREVIEW</div>
+              <div style={{ color: theme.textMuted, fontSize: 11, fontWeight: 600, letterSpacing: "0.02em", marginBottom: 12, fontFamily: theme.fontFamily }}>INSIGHTS PREVIEW</div>
               <InsightsPreviewPanel isActive={true} isCollapsing={false} onApprove={() => {}} mirrored={false} />
             </div>
 
             {/* Sub-Workflow Panel - Left */}
             <div>
-              <div style={{ color: "#60a5fa", fontSize: 11, fontWeight: 600, letterSpacing: "0.1em", marginBottom: 12, fontFamily: theme.fontFamily }}>SUB-WORKFLOW (LEFT)</div>
+              <div style={{ color: theme.textMuted, fontSize: 11, fontWeight: 600, letterSpacing: "0.02em", marginBottom: 12, fontFamily: theme.fontFamily }}>SUB-WORKFLOW (LEFT)</div>
               <SubWorkflowPanel
                 isActive={true}
                 tasks={[
@@ -849,7 +894,7 @@ export default function Home() {
 
             {/* Sub-Workflow Panel - Right */}
             <div>
-              <div style={{ color: "#60a5fa", fontSize: 11, fontWeight: 600, letterSpacing: "0.1em", marginBottom: 12, fontFamily: theme.fontFamily }}>SUB-WORKFLOW (RIGHT)</div>
+              <div style={{ color: theme.textMuted, fontSize: 11, fontWeight: 600, letterSpacing: "0.02em", marginBottom: 12, fontFamily: theme.fontFamily }}>SUB-WORKFLOW (RIGHT)</div>
               <SubWorkflowPanel
                 isActive={true}
                 tasks={[
@@ -867,7 +912,7 @@ export default function Home() {
 
             {/* Completed Task Widget */}
             <div>
-              <div style={{ color: "#60a5fa", fontSize: 11, fontWeight: 600, letterSpacing: "0.1em", marginBottom: 12, fontFamily: theme.fontFamily }}>COMPLETED WIDGET</div>
+              <div style={{ color: theme.textMuted, fontSize: 11, fontWeight: 600, letterSpacing: "0.02em", marginBottom: 12, fontFamily: theme.fontFamily }}>COMPLETED WIDGET</div>
               <CompletedTaskWidget
                 label="Weekly Analytics Report"
                 onClose={() => {}}
@@ -878,15 +923,23 @@ export default function Home() {
         </div>
         </div>
       </div>
+      </div>
       )}
 
-      {/* Placeholder Views */}
-      {activeCanvas === "history" && <PlaceholderView title="History" />}
-      {activeCanvas === "analytics" && <PlaceholderView title="Analytics" />}
-      {activeCanvas === "settings" && <PlaceholderView title="Settings" />}
+      {/* Content Views */}
+      {(activeCanvas === "commerce" || activeCanvas === "insights" || activeCanvas === "activity" || activeCanvas === "settings") && (
+        <div style={{ marginLeft: sidebarWidth, transition: "margin-left 300ms cubic-bezier(0.4, 0, 0.2, 1)", height: "100vh", overflow: "hidden", padding: 8, display: "flex" }}>
+        <div style={{ flex: 1, background: "#f5f5f5", borderRadius: 12, overflow: "auto" }}>
+          {activeCanvas === "commerce" && <CommerceView />}
+          {activeCanvas === "insights" && <InsightsView />}
+          {activeCanvas === "activity" && <ActivityView />}
+          {activeCanvas === "settings" && <SettingsView />}
+        </div>
+        </div>
+      )}
 
-      {/* Task Controls Sidebar */}
-      <motion.div
+      {/* Task Controls Sidebar - Only on main canvas */}
+      {activeCanvas === "canvas" && <motion.div
         initial={{ opacity: 0, x: 20 }}
         animate={{ opacity: 1, x: 0 }}
         onWheel={(e) => e.stopPropagation()}
@@ -895,9 +948,11 @@ export default function Home() {
           top: 280,
           right: 20,
           width: 220,
-          background: "rgba(13, 15, 13, 0.95)",
+          background: "#ffffff",
           border: `1px solid ${theme.borderLight}`,
           padding: "16px",
+          borderRadius: 12,
+          boxShadow: "0 1px 3px rgba(0,0,0,0.08)",
           zIndex: 1000,
           display: "flex",
           flexDirection: "column",
@@ -914,22 +969,23 @@ export default function Home() {
               onClick={() => handlers.runScenario(scenario)}
               disabled={isThisSideRunning}
               style={{
-                background: isThisSideRunning ? "rgba(94, 234, 212, 0.05)" : "rgba(94, 234, 212, 0.08)",
+                background: isThisSideRunning ? "#f9fafb" : "#f9fafb",
                 border: `1px solid ${theme.borderLight}`,
                 color: isThisSideRunning ? theme.textDim : theme.text,
                 padding: "10px 12px",
-                fontSize: 10,
-                letterSpacing: "0.08em",
+                fontSize: 11,
+                letterSpacing: "0.02em",
                 cursor: isThisSideRunning ? "not-allowed" : "pointer",
                 fontFamily: theme.fontFamily,
                 fontWeight: 600,
                 textAlign: "center",
                 transition: "all 0.15s ease",
                 opacity: isThisSideRunning ? 0.6 : 1,
-                width: "100%"
+                width: "100%",
+                borderRadius: 8,
               }}
-              onMouseEnter={(e) => { if (!isThisSideRunning) { e.currentTarget.style.background = "rgba(94, 234, 212, 0.15)"; e.currentTarget.style.borderColor = "rgba(94, 234, 212, 0.5)"; }}}
-              onMouseLeave={(e) => { e.currentTarget.style.background = isThisSideRunning ? "rgba(94, 234, 212, 0.05)" : "rgba(94, 234, 212, 0.08)"; e.currentTarget.style.borderColor = theme.borderLight; }}
+              onMouseEnter={(e) => { if (!isThisSideRunning) { e.currentTarget.style.background = "#f0f0f0"; e.currentTarget.style.borderColor = "#d1d5db"; }}}
+              onMouseLeave={(e) => { e.currentTarget.style.background = "#f9fafb"; e.currentTarget.style.borderColor = theme.borderLight; }}
             >
               {scenario.buttonLabel.toUpperCase()}
             </button>
@@ -980,7 +1036,7 @@ export default function Home() {
           style={{
             background: deepCleanMode !== "idle" ? "rgba(59, 130, 246, 0.2)" : "rgba(59, 130, 246, 0.08)",
             border: deepCleanMode !== "idle" ? "1px solid rgba(59, 130, 246, 0.6)" : "1px solid rgba(59, 130, 246, 0.3)",
-            color: "#60a5fa",
+            color: "#3b82f6",
             padding: "10px 12px",
             fontSize: 10,
             letterSpacing: "0.08em",
@@ -1009,7 +1065,7 @@ export default function Home() {
           {deepCleanMode === "running" ? "CLEANING..." : deepCleanMode === "collapsing" ? "FINISHING..." : deepCleanMode === "complete" ? "CLEAN!" : "RUN DEEP CLEAN"}
         </button>
 
-      </motion.div>
+      </motion.div>}
     </div>
     </ThemeContext.Provider>
   );

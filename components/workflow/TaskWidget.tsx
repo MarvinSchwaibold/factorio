@@ -7,7 +7,7 @@ import type { Task } from "@/lib/types";
 
 export function TaskWidget({ task, onApprove, onReject, onResolve, isCollapsing, collapseIndex, mirrored }: { task: Task; onApprove?: () => void; onReject?: () => void; onResolve?: () => void; isCollapsing?: boolean; collapseIndex?: number; mirrored?: boolean }) {
   const theme = useContext(ThemeContext);
-  const isRetro = true;
+  const isRetro = false;
 
   const isWorking = task.status === "working";
   const isCompleted = task.status === "completed";

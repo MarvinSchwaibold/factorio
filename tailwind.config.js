@@ -7,14 +7,19 @@ module.exports = {
   theme: {
     extend: {
       colors: {
-        background: "#ffffff",
-        foreground: "#111827",
-        "agent-green": "#059669", // Emerald 600
-        "agent-green-dark": "#047857", // Emerald 700
-        "agent-green-light": "#d1fae5", // Emerald 100
-        "border-light": "#e5e7eb",
+        background: "var(--color-bg)",
+        accent: "var(--color-accent)",
+        "text-theme": "var(--color-text)",
+        "text-muted": "var(--color-text-muted)",
+        "text-dim": "var(--color-text-dim)",
+        border: "var(--color-border)",
+        "border-light": "var(--color-border-light)",
+        success: "var(--color-success)",
+        warning: "var(--color-warning)",
+        error: "var(--color-error)",
       },
       fontFamily: {
+        sans: ["var(--font-geist-sans)", "system-ui", "sans-serif"],
         mono: ["var(--font-geist-mono)", "ui-monospace", "SFMono-Regular", "Menlo", "Monaco", "Consolas", "Liberation Mono", "Courier New", "monospace"],
       },
       boxShadow: {

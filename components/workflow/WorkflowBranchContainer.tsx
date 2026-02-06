@@ -23,10 +23,9 @@ export function WorkflowBranchContainer({
 
   if (!isActive && !scenarioLabel && !isCleanComplete) return null;
 
-  const borderColor = isCleanComplete ? "rgba(16, 185, 129, 0.4)" : "rgba(94, 234, 212, 0.25)";
-  const bgColor = isCleanComplete ? "rgba(16, 185, 129, 0.06)" : "rgba(94, 234, 212, 0.03)";
+  const borderColor = isCleanComplete ? "rgba(16, 185, 129, 0.4)" : theme.borderLight;
+  const bgColor = isCleanComplete ? "rgba(16, 185, 129, 0.04)" : "#ffffff";
   const accentColor = isCleanComplete ? "#10b981" : theme.accent;
-  const glowColor = isCleanComplete ? "0 0 8px rgba(16, 185, 129, 0.6)" : theme.glowAccent;
 
   return (
     <motion.div
@@ -45,14 +44,15 @@ export function WorkflowBranchContainer({
         border: `1px solid ${borderColor}`,
         background: bgColor,
         padding: 0,
-        boxShadow: isCleanComplete ? "0 0 20px rgba(16, 185, 129, 0.15)" : "none",
+        borderRadius: 12,
+        boxShadow: isCleanComplete ? "0 0 20px rgba(16, 185, 129, 0.1)" : "0 1px 3px rgba(0, 0, 0, 0.06)",
       }}
     >
       {/* Header */}
       {(scenarioLabel || isCleanComplete) && (
         <div
           style={{
-            borderBottom: `1px solid ${isCleanComplete ? "rgba(16, 185, 129, 0.2)" : "rgba(94, 234, 212, 0.15)"}`,
+            borderBottom: `1px solid ${isCleanComplete ? "rgba(16, 185, 129, 0.2)" : "#f0f0f0"}`,
             padding: "10px 16px",
             display: "flex",
             alignItems: "center",
@@ -66,16 +66,16 @@ export function WorkflowBranchContainer({
               animate={{ scale: 1 }}
               transition={{ type: "spring", stiffness: 400, damping: 15 }}
               style={{
-                width: 14,
-                height: 14,
-                background: "#10b981",
+                width: 20,
+                height: 20,
+                background: "#dcfce7",
                 display: "flex",
                 alignItems: "center",
                 justifyContent: "center",
-                boxShadow: "0 0 10px rgba(16, 185, 129, 0.5)",
+                borderRadius: 6,
               }}
             >
-              <span style={{ color: "#000", fontSize: 10, fontWeight: 900 }}>✓</span>
+              <span style={{ color: "#16a34a", fontSize: 11, fontWeight: 700 }}>✓</span>
             </motion.div>
           ) : (
             <motion.div
@@ -84,30 +84,23 @@ export function WorkflowBranchContainer({
               style={{
                 width: 6,
                 height: 6,
+                borderRadius: "50%",
                 background: accentColor,
-                boxShadow: glowColor,
               }}
             />
           )}
           <span
             style={{
-              fontSize: 10,
-              letterSpacing: "0.12em",
+              fontSize: 11,
+              letterSpacing: "0.02em",
               color: isCleanComplete ? "#10b981" : theme.textMuted,
-              fontWeight: 700,
-              textTransform: "uppercase",
+              fontWeight: 600,
             }}
           >
-            {isCleanComplete ? "SYSTEM OPTIMIZED" : scenarioLabel}
+            {isCleanComplete ? "System Optimized" : scenarioLabel}
           </span>
         </div>
       )}
-
-      {/* Corner accents */}
-      <div style={{ position: "absolute", top: 0, left: 0, width: 8, height: 8, borderTop: `2px solid ${accentColor}`, borderLeft: `2px solid ${accentColor}`, opacity: 0.6 }} />
-      <div style={{ position: "absolute", top: 0, right: 0, width: 8, height: 8, borderTop: `2px solid ${accentColor}`, borderRight: `2px solid ${accentColor}`, opacity: 0.6 }} />
-      <div style={{ position: "absolute", bottom: 0, left: 0, width: 8, height: 8, borderBottom: `2px solid ${accentColor}`, borderLeft: `2px solid ${accentColor}`, opacity: 0.6 }} />
-      <div style={{ position: "absolute", bottom: 0, right: 0, width: 8, height: 8, borderBottom: `2px solid ${accentColor}`, borderRight: `2px solid ${accentColor}`, opacity: 0.6 }} />
 
       {/* Content */}
       <div style={{ padding: "12px 16px" }}>
@@ -124,18 +117,18 @@ export function WorkflowBranchContainer({
               padding: "16px 24px",
             }}
           >
-            <span style={{ fontSize: 11, color: "rgba(16, 185, 129, 0.7)", letterSpacing: "0.08em" }}>
-              ALL ISSUES RESOLVED
+            <span style={{ fontSize: 12, color: "#6b7280" }}>
+              All issues resolved
             </span>
             <div style={{ display: "flex", gap: 12, marginTop: 4 }}>
               <div style={{ textAlign: "center" }}>
                 <div style={{ fontSize: 18, fontWeight: 700, color: "#10b981" }}>0</div>
-                <div style={{ fontSize: 9, color: "rgba(16, 185, 129, 0.5)", letterSpacing: "0.1em" }}>ERRORS</div>
+                <div style={{ fontSize: 10, color: "#9ca3af" }}>Errors</div>
               </div>
-              <div style={{ width: 1, background: "rgba(16, 185, 129, 0.2)" }} />
+              <div style={{ width: 1, background: "#e5e7eb" }} />
               <div style={{ textAlign: "center" }}>
                 <div style={{ fontSize: 18, fontWeight: 700, color: "#10b981" }}>100%</div>
-                <div style={{ fontSize: 9, color: "rgba(16, 185, 129, 0.5)", letterSpacing: "0.1em" }}>HEALTH</div>
+                <div style={{ fontSize: 10, color: "#9ca3af" }}>Health</div>
               </div>
             </div>
           </motion.div>

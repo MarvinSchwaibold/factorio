@@ -2,7 +2,6 @@
 const nextConfig = {
   devIndicators: false,
   output: 'export',
-  distDir: 'dist',
   trailingSlash: true,
 };
 

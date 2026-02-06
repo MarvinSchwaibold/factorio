@@ -3,27 +3,52 @@
 @tailwind utilities;
 
 :root {
-  --bg: #ffffff;
-  --green: #059669; /* Darker green for text on white */
-  --green-dim: rgba(5, 150, 105, 0.1);
-  --green-faint: rgba(5, 150, 105, 0.05);
-  --text-primary: #111827;
-  --text-secondary: #6b7280;
-  --border-color: #e5e7eb;
+  --color-bg: #fafafa;
+  --color-accent: #0d9488;
+  --color-accent-rgb: 13, 148, 136;
+  --color-text: #111827;
+  --color-text-muted: #6b7280;
+  --color-text-dim: #9ca3af;
+  --color-border: #d1d5db;
+  --color-border-light: #e5e7eb;
+  --color-border-dim: #f3f4f6;
+  --color-card-bg: #ffffff;
+  --color-card-bg-hover: #f9fafb;
+  --color-button-bg: rgba(13, 148, 136, 0.08);
+  --color-button-bg-hover: rgba(13, 148, 136, 0.15);
+  --color-input-bg: #f5f5f5;
+  --color-success: #10b981;
+  --color-warning: #e07020;
+  --color-error: #ef4444;
+  --font-family: var(--font-geist-sans), system-ui, sans-serif;
+  --border-radius: 8px;
 }
 
 * {
   box-sizing: border-box;
 }
 
+/* SideNav tab hover */
+.sidenav-tab:hover:not([data-selected]) {
+  background: #f9fafb !important;
+  color: #6b7280 !important;
+}
+
+/* Auto Pilot toggle hover */
+.autopilot-toggle:hover {
+  background: rgba(13, 148, 136, 0.15) !important;
+  border-color: rgba(13, 148, 136, 0.4) !important;
+}
+
 html, body {
-  background: var(--bg);
-  color: var(--text-primary);
-  font-family: 'SF Mono', 'Monaco', 'Inconsolata', 'Roboto Mono', 'Source Code Pro', monospace;
+  background: var(--color-bg);
+  color: var(--color-text);
+  font-family: var(--font-geist-sans), system-ui, sans-serif;
   margin: 0;
   padding: 0;
   overflow: hidden;
   overscroll-behavior: none;
   -webkit-overflow-scrolling: touch;
   touch-action: none;
+  isolation: isolate;
 }
