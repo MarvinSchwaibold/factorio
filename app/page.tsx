@@ -15,6 +15,8 @@ import {
   InsightsPreviewPanel, SubWorkflowPanel
 } from "@/components/workflow";
 import { useWorkflow } from "@/hooks/useWorkflow";
+import { SideNav } from "@/components/SideNav";
+import { PlaceholderView } from "@/components/PlaceholderView";
 
 export default function Home() {
   const [zoom, setZoom] = useState(1);
@@ -34,7 +36,7 @@ export default function Home() {
   const deepCleanTaskCounterRef = useRef({ left: 0, right: 0 });
   const [autoPilot, setAutoPilot] = useState(false);
   const autoPilotTimerRef = useRef<{ left: NodeJS.Timeout | null; right: NodeJS.Timeout | null }>({ left: null, right: null });
-  const [activeCanvas, setActiveCanvas] = useState<"main" | "blueprint">("main");
+  const [activeCanvas, setActiveCanvas] = useState<"main" | "blueprint" | "history" | "analytics" | "settings">("main");
 
   const accentColor = theme.accent;
 
@@ -401,6 +403,9 @@ export default function Home() {
     <ThemeContext.Provider value={theme}>
     <div className="h-screen w-screen overflow-hidden relative flex flex-col" style={{ background: theme.background, fontFamily: theme.fontFamily }}>
 
+      {/* Side Navigation */}
+      <SideNav activeView={activeCanvas} onViewChange={(view) => setActiveCanvas(view as typeof activeCanvas)} />
+
       {/* Fixed UI Elements - Outside canvas area to prevent clipping */}
       <LiveStatusWidget
         leftWorkflow={{
@@ -421,7 +426,7 @@ export default function Home() {
       />
 
       {/* Zoom Controls */}
-      <div style={{ position: "fixed", top: 20, left: 20, display: "flex", alignItems: "center", gap: 8, zIndex: 1000, background: "rgba(0, 0, 0, 0.6)", border: `1px solid ${theme.borderLight}`, padding: "6px 8px", borderRadius: 0 }}>
+      <div style={{ position: "fixed", top: 20, left: 76, display: "flex", alignItems: "center", gap: 8, zIndex: 1000, background: "rgba(0, 0, 0, 0.6)", border: `1px solid ${theme.borderLight}`, padding: "6px 8px", borderRadius: 0 }}>
         <button onClick={resetView} style={{ background: "transparent", border: "none", color: theme.textMuted, padding: "6px 10px", fontSize: 11, cursor: "pointer", fontFamily: theme.fontFamily, fontWeight: 500, letterSpacing: "0.05em" }}>RESET</button>
         <div style={{ width: 1, height: 16, background: theme.borderLight }} />
         <button onClick={() => { zoomRef.current = Math.max(zoomRef.current * 0.8, 0.25); if (canvasRef.current) canvasRef.current.style.transform = `translate(${panRef.current.x}px, ${panRef.current.y}px) scale(${zoomRef.current})`; setZoom(zoomRef.current); }} style={{ background: "transparent", border: "none", color: theme.text, padding: "6px 8px", fontSize: 13, cursor: "pointer", fontFamily: theme.fontFamily, fontWeight: 500, lineHeight: 1 }}>−</button>
@@ -875,6 +880,11 @@ export default function Home() {
       </div>
       )}
 
+      {/* Placeholder Views */}
+      {activeCanvas === "history" && <PlaceholderView title="History" />}
+      {activeCanvas === "analytics" && <PlaceholderView title="Analytics" />}
+      {activeCanvas === "settings" && <PlaceholderView title="Settings" />}
+
       {/* Task Controls Sidebar */}
       <motion.div
         initial={{ opacity: 0, x: 20 }}
@@ -999,50 +1009,6 @@ export default function Home() {
           {deepCleanMode === "running" ? "CLEANING..." : deepCleanMode === "collapsing" ? "FINISHING..." : deepCleanMode === "complete" ? "CLEAN!" : "RUN DEEP CLEAN"}
         </button>
 
-        {/* Canvas Switcher */}
-        <div style={{ marginTop: 16, paddingTop: 16, borderTop: `1px solid ${theme.borderDim}` }}>
-          <div style={{ fontSize: 9, color: theme.textDim, marginBottom: 8, letterSpacing: "0.1em", fontWeight: 600 }}>VIEW</div>
-          <div style={{ display: "flex", gap: 4 }}>
-            <button
-              onClick={() => setActiveCanvas("main")}
-              style={{
-                background: activeCanvas === "main" ? "rgba(94, 234, 212, 0.15)" : "rgba(94, 234, 212, 0.05)",
-                border: `1px solid ${activeCanvas === "main" ? "rgba(94, 234, 212, 0.5)" : theme.borderLight}`,
-                color: activeCanvas === "main" ? theme.accent : theme.textDim,
-                padding: "8px 10px",
-                fontSize: 9,
-                letterSpacing: "0.08em",
-                cursor: "pointer",
-                fontFamily: theme.fontFamily,
-                fontWeight: 600,
-                textAlign: "center",
-                transition: "all 0.15s ease",
-                flex: 1
-              }}
-            >
-              MAIN
-            </button>
-            <button
-              onClick={() => setActiveCanvas("blueprint")}
-              style={{
-                background: activeCanvas === "blueprint" ? "rgba(59, 130, 246, 0.15)" : "rgba(59, 130, 246, 0.05)",
-                border: `1px solid ${activeCanvas === "blueprint" ? "rgba(59, 130, 246, 0.5)" : "rgba(59, 130, 246, 0.2)"}`,
-                color: activeCanvas === "blueprint" ? "#60a5fa" : theme.textDim,
-                padding: "8px 10px",
-                fontSize: 9,
-                letterSpacing: "0.08em",
-                cursor: "pointer",
-                fontFamily: theme.fontFamily,
-                fontWeight: 600,
-                textAlign: "center",
-                transition: "all 0.15s ease",
-                flex: 1
-              }}
-            >
-              BLUEPRINT
-            </button>
-          </div>
-        </div>
       </motion.div>
     </div>
     </ThemeContext.Provider>
