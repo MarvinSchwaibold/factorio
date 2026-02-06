@@ -1,36 +1,26 @@
 "use client";
 
-import { useContext } from "react";
+import { useContext, useMemo } from "react";
 import { TrendingUp, AlertCircle, ArrowUpRight, ArrowDownRight } from "lucide-react";
 import { ThemeContext } from "@/lib/theme";
-
-const metrics = [
-  { label: "Orders today", value: "23", change: "+12%", up: true },
-  { label: "Revenue (MTD)", value: "$14.2k", change: "+8.3%", up: true },
-  { label: "Avg order value", value: "$62", change: "-2.1%", up: false },
-  { label: "Conversion rate", value: "3.4%", change: "+0.5%", up: true },
-];
-
-const alerts = [
-  {
-    type: "warning" as const,
-    message: "Low stock on 3 bestselling products",
-    time: "2h ago",
-  },
-  {
-    type: "info" as const,
-    message: "Weekend traffic up 18% vs. last week",
-    time: "4h ago",
-  },
-  {
-    type: "info" as const,
-    message: "New customer segment identified: repeat buyers (30-day)",
-    time: "1d ago",
-  },
-];
+import { getCommerceData } from "@/lib/commerce-data";
 
 export function InsightsView() {
-  const theme = useContext(ThemeContext);
+  var theme = useContext(ThemeContext);
+  var data = useMemo(function () {
+    return getCommerceData();
+  }, []);
+
+  var m = data.metrics;
+  var changeUp = m.revenueChange >= 0;
+  var aovStr = "$" + m.aov.toFixed(2);
+
+  var card: React.CSSProperties = {
+    background: theme.cardBg,
+    border: "1px solid " + theme.borderLight,
+    borderRadius: 12,
+    overflow: "hidden",
+  };
 
   return (
     <div
@@ -42,7 +32,12 @@ export function InsightsView() {
         overflowY: "auto",
       }}
     >
-      <div style={{ maxWidth: 720 }}>
+      <style>{"\
+        .insights-row { transition: background 120ms ease; }\
+        .insights-row:hover { background: rgba(0,0,0,0.04); }\
+      "}</style>
+
+      <div>
         <h1
           style={{
             fontSize: 18,
@@ -57,141 +52,300 @@ export function InsightsView() {
           style={{
             fontSize: 13,
             color: theme.textMuted,
-            marginBottom: 32,
+            marginBottom: 20,
           }}
         >
-          Performance metrics and agent recommendations
+          {"Performance metrics and observations \u00B7 Kaz\u2019s Candles"}
         </p>
 
-        {/* Metrics grid */}
+        {/* Metrics bar */}
         <div
           style={{
-            display: "grid",
-            gridTemplateColumns: "1fr 1fr",
-            gap: 8,
-            marginBottom: 32,
+            display: "flex",
+            gap: 28,
+            marginBottom: 24,
+            paddingBottom: 16,
+            borderBottom: "1px solid " + theme.borderDim,
           }}
         >
-          {metrics.map((metric) => (
+          {/* Revenue */}
+          <div>
             <div
-              key={metric.label}
               style={{
-                padding: "16px 20px",
-                background: theme.cardBg,
-                border: `1px solid ${theme.borderLight}`,
-                borderRadius: 10,
+                fontSize: 20,
+                fontWeight: 600,
+                color: theme.text,
+                fontVariantNumeric: "tabular-nums",
+                marginBottom: 2,
+                display: "flex",
+                alignItems: "baseline",
+                gap: 6,
               }}
             >
-              <div
+              {"$" +
+                m.revenue.toLocaleString("en-US", {
+                  minimumFractionDigits: 0,
+                  maximumFractionDigits: 0,
+                })}
+              <span
                 style={{
-                  fontSize: 11,
-                  color: theme.textMuted,
-                  marginBottom: 8,
+                  fontSize: 12,
                   fontWeight: 500,
-                }}
-              >
-                {metric.label}
-              </div>
-              <div
-                style={{
+                  color: "#6b7280",
                   display: "flex",
-                  alignItems: "baseline",
-                  gap: 8,
+                  alignItems: "center",
+                  gap: 2,
                 }}
               >
-                <span
-                  style={{
-                    fontSize: 22,
-                    fontWeight: 600,
-                    color: theme.text,
-                    fontVariantNumeric: "tabular-nums",
-                  }}
-                >
-                  {metric.value}
-                </span>
-                <span
-                  style={{
-                    fontSize: 12,
-                    fontWeight: 500,
-                    color: "#6b7280",
-                    display: "flex",
-                    alignItems: "center",
-                    gap: 2,
-                  }}
-                >
-                  {metric.up ? (
-                    <ArrowUpRight size={12} />
-                  ) : (
-                    <ArrowDownRight size={12} />
-                  )}
-                  {metric.change}
-                </span>
-              </div>
+                {changeUp ? (
+                  <ArrowUpRight size={12} />
+                ) : (
+                  <ArrowDownRight size={12} />
+                )}
+                {(changeUp ? "+" : "") + m.revenueChange.toFixed(1) + "%"}
+              </span>
             </div>
-          ))}
+            <div
+              style={{
+                fontSize: 11,
+                color: theme.textMuted,
+                fontWeight: 500,
+              }}
+            >
+              Revenue (30d)
+            </div>
+          </div>
+
+          {/* Orders */}
+          <div>
+            <div
+              style={{
+                fontSize: 20,
+                fontWeight: 600,
+                color: theme.text,
+                fontVariantNumeric: "tabular-nums",
+                marginBottom: 2,
+              }}
+            >
+              {m.orderCount}
+            </div>
+            <div
+              style={{
+                fontSize: 11,
+                color: theme.textMuted,
+                fontWeight: 500,
+              }}
+            >
+              Orders (30d)
+            </div>
+          </div>
+
+          {/* AOV */}
+          <div>
+            <div
+              style={{
+                fontSize: 20,
+                fontWeight: 600,
+                color: theme.text,
+                fontVariantNumeric: "tabular-nums",
+                marginBottom: 2,
+              }}
+            >
+              {aovStr}
+            </div>
+            <div
+              style={{
+                fontSize: 11,
+                color: theme.textMuted,
+                fontWeight: 500,
+              }}
+            >
+              AOV (30d)
+            </div>
+          </div>
         </div>
 
-        {/* Alerts */}
-        <div style={{ marginBottom: 8 }}>
+        {/* Sidekick observations */}
+        <div style={{ ...card, marginBottom: 16 }}>
           <div
             style={{
               fontSize: 13,
               fontWeight: 600,
               color: theme.text,
-              marginBottom: 12,
+              padding: "14px 16px 6px",
               display: "flex",
               alignItems: "center",
               gap: 6,
             }}
           >
             <TrendingUp size={14} />
-            Agent observations
+            Sidekick observations
           </div>
-          <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
-            {alerts.map((alert, i) => (
-              <div
-                key={i}
-                style={{
-                  display: "flex",
-                  alignItems: "flex-start",
-                  gap: 12,
-                  padding: "12px 16px",
-                  background: theme.cardBg,
-                  border: `1px solid ${theme.borderLight}`,
-                  borderRadius: 10,
-                }}
-              >
-                <AlertCircle
-                  size={14}
+          <div style={{ paddingBottom: 6 }}>
+            {data.observations.map(function (obs, i) {
+              return (
+                <div
+                  key={i}
+                  className="insights-row"
                   style={{
-                    color: "#9ca3af",
-                    marginTop: 2,
-                    flexShrink: 0,
+                    display: "flex",
+                    alignItems: "flex-start",
+                    gap: 10,
+                    padding: "8px 16px",
                   }}
-                />
-                <div style={{ flex: 1 }}>
+                >
+                  <AlertCircle
+                    size={14}
+                    style={{
+                      color: "#9ca3af",
+                      marginTop: 2,
+                      flexShrink: 0,
+                    }}
+                  />
                   <div
                     style={{
+                      flex: 1,
                       fontSize: 13,
                       color: theme.text,
                       lineHeight: 1.4,
                     }}
                   >
-                    {alert.message}
+                    {obs.message}
+                  </div>
+                  <div
+                    style={{
+                      fontSize: 11,
+                      color: theme.textDim,
+                      flexShrink: 0,
+                      marginTop: 1,
+                    }}
+                  >
+                    {obs.time}
                   </div>
                 </div>
-                <div
-                  style={{
-                    fontSize: 11,
-                    color: theme.textDim,
-                    flexShrink: 0,
-                    marginTop: 1,
-                  }}
-                >
-                  {alert.time}
-                </div>
-              </div>
-            ))}
+              );
+            })}
+          </div>
+        </div>
+
+        {/* Widget grid */}
+        <div
+          style={{
+            display: "grid",
+            gridTemplateColumns: "1fr 1fr",
+            gap: 16,
+          }}
+        >
+          {/* Top products */}
+          <div style={card}>
+            <div
+              style={{
+                fontSize: 13,
+                fontWeight: 600,
+                color: theme.text,
+                padding: "14px 16px 6px",
+              }}
+            >
+              Top products (30d)
+            </div>
+            <div style={{ paddingBottom: 6 }}>
+              {data.topProducts.map(function (product, i) {
+                return (
+                  <div
+                    key={product.title}
+                    className="insights-row"
+                    style={{
+                      display: "flex",
+                      alignItems: "center",
+                      gap: 10,
+                      padding: "7px 16px",
+                    }}
+                  >
+                    <span
+                      style={{
+                        fontSize: 12,
+                        color: theme.textDim,
+                        fontWeight: 600,
+                        width: 16,
+                        flexShrink: 0,
+                      }}
+                    >
+                      {i + 1}.
+                    </span>
+                    <div style={{ flex: 1 }}>
+                      <div style={{ fontSize: 13, color: theme.text }}>
+                        {product.title}
+                      </div>
+                      <div style={{ fontSize: 11, color: theme.textMuted }}>
+                        {"$" +
+                          product.revenue.toLocaleString("en-US", {
+                            minimumFractionDigits: 0,
+                            maximumFractionDigits: 0,
+                          }) +
+                          " \u00B7 " +
+                          product.units +
+                          " units"}
+                      </div>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+
+          {/* Top customers */}
+          <div style={card}>
+            <div
+              style={{
+                fontSize: 13,
+                fontWeight: 600,
+                color: theme.text,
+                padding: "14px 16px 6px",
+              }}
+            >
+              Top customers
+            </div>
+            <div style={{ paddingBottom: 6 }}>
+              {data.topCustomers.map(function (customer) {
+                return (
+                  <div
+                    key={customer.email}
+                    className="insights-row"
+                    style={{
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "space-between",
+                      padding: "7px 16px",
+                    }}
+                  >
+                    <div>
+                      <div style={{ fontSize: 13, color: theme.text }}>
+                        {customer.name}
+                      </div>
+                      <div style={{ fontSize: 11, color: theme.textMuted }}>
+                        {customer.email}
+                      </div>
+                    </div>
+                    <span
+                      style={{
+                        fontSize: 13,
+                        fontWeight: 500,
+                        color: theme.text,
+                        fontVariantNumeric: "tabular-nums",
+                        flexShrink: 0,
+                        marginLeft: 12,
+                      }}
+                    >
+                      {"$" +
+                        customer.totalSpent.toLocaleString("en-US", {
+                          minimumFractionDigits: 0,
+                          maximumFractionDigits: 0,
+                        })}
+                    </span>
+                  </div>
+                );
+              })}
+            </div>
           </div>
         </div>
       </div>

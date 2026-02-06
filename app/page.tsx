@@ -20,10 +20,8 @@ import { useWorkflow } from "@/hooks/useWorkflow";
 import { SideNav, SIDEBAR_WIDTH_COLLAPSED, SIDEBAR_WIDTH_EXPANDED } from "@/components/SideNav";
 import { CommerceView } from "@/components/CommerceView";
 import { InsightsView } from "@/components/InsightsView";
-import { ActivityView } from "@/components/ActivityView";
 import { SettingsView } from "@/components/SettingsView";
 import { HomeView } from "@/components/HomeView";
-import { InboxView } from "@/components/InboxView";
 import { InlineChat } from "@/components/InlineChat";
 
 export default function Home() {
@@ -44,8 +42,8 @@ export default function Home() {
   const deepCleanTaskCounterRef = useRef({ left: 0, right: 0 });
   const [autoPilot, setAutoPilot] = useState(false);
   const autoPilotTimerRef = useRef<{ left: NodeJS.Timeout | null; right: NodeJS.Timeout | null }>({ left: null, right: null });
-  const [activeCanvas, setActiveCanvas] = useState<"home" | "inbox" | "canvas" | "blueprint" | "commerce" | "insights" | "activity" | "settings">("home");
-  const [sidebarExpanded, setSidebarExpanded] = useState(false);
+  const [activeCanvas, setActiveCanvas] = useState<"home" | "canvas" | "blueprint" | "commerce" | "insights" | "settings">("home");
+  const [sidebarExpanded, setSidebarExpanded] = useState(true);
   const sidebarWidth = sidebarExpanded ? SIDEBAR_WIDTH_EXPANDED : SIDEBAR_WIDTH_COLLAPSED;
 
   const accentColor = theme.accent;
@@ -485,7 +483,7 @@ export default function Home() {
 
       {/* Main Canvas */}
       {activeCanvas === "canvas" && (
-      <div style={{ marginLeft: sidebarWidth, transition: "margin-left 300ms cubic-bezier(0.4, 0, 0.2, 1)", height: "100vh", overflow: "hidden", padding: 8, display: "flex" }}>
+      <div style={{ marginLeft: sidebarWidth, transition: "margin-left 300ms cubic-bezier(0.4, 0, 0.2, 1)", height: "100vh", overflow: "hidden", padding: "8px 8px 8px 4px", display: "flex" }}>
       <div
         className="flex-1 relative overflow-hidden"
         style={{ cursor: isPanning ? "grabbing" : "grab", background: "#ffffff", borderRadius: 12, border: "1px solid #e5e5e5" }}
@@ -633,7 +631,7 @@ export default function Home() {
                   <div style={{ position: "absolute", bottom: 6, left: 6, width: 14, height: 14, borderBottom: `2px solid ${theme.border}`, borderLeft: `2px solid ${theme.border}` }} />
                   <div style={{ position: "absolute", bottom: 6, right: 6, width: 14, height: 14, borderBottom: `2px solid ${theme.border}`, borderRight: `2px solid ${theme.border}` }} />
                   {anyRunning && <motion.div animate={{ scale: [1, 1.3, 1], opacity: [0.3, 0.6, 0.3] }} transition={{ duration: 1.5, repeat: Infinity }} style={{ position: "absolute", inset: 0, border: `2px solid ${theme.border}` }} />}
-                  <span style={{ fontSize: 13, letterSpacing: "0.06em", textAlign: "center", lineHeight: 1.5, color: theme.accent, fontWeight: 600, marginBottom: 8 }}>SIDEKICK<br />AGENT</span>
+                  <svg xmlns="http://www.w3.org/2000/svg" xmlSpace="preserve" style={{ width: 28, height: 32, marginBottom: 8 }} viewBox="0 0 109.5 124.5"><path d="M95.9 23.9c-.1-.6-.6-1-1.1-1-.5 0-9.3-.2-9.3-.2s-7.4-7.2-8.1-7.9c-.7-.7-2.2-.5-2.7-.3 0 0-1.4.4-3.7 1.1-.4-1.3-1-2.8-1.8-4.4-2.6-5-6.5-7.7-11.1-7.7-.3 0-.6 0-1 .1-.1-.2-.3-.3-.4-.5C54.7.9 52.1-.1 49 0c-6 .2-12 4.5-16.8 12.2-3.4 5.4-6 12.2-6.8 17.5-6.9 2.1-11.7 3.6-11.8 3.7-3.5 1.1-3.6 1.2-4 4.5-.3 2.5-9.5 73-9.5 73l76.4 13.2 33.1-8.2c-.1-.1-13.6-91.4-13.7-92zm-28.7-7.1c-1.8.5-3.8 1.2-5.9 1.8 0-3-.4-7.3-1.8-10.9 4.5.9 6.7 6 7.7 9.1zm-10 3.1c-4 1.2-8.4 2.6-12.8 3.9 1.2-4.7 3.6-9.4 6.4-12.5 1.1-1.1 2.6-2.4 4.3-3.2 1.8 3.5 2.2 8.4 2.1 11.8zM49.1 4c1.4 0 2.6.3 3.6.9-1.6.9-3.2 2.1-4.7 3.7-3.8 4.1-6.7 10.5-7.9 16.6-3.6 1.1-7.2 2.2-10.5 3.2C31.7 18.8 39.8 4.3 49.1 4z" style={{ fill: "#95bf47" }} /><path d="M94.8 22.9c-.5 0-9.3-.2-9.3-.2s-7.4-7.2-8.1-7.9c-.3-.3-.6-.4-1-.5V124l33.1-8.2S96 24.5 95.9 23.8c-.1-.5-.6-.9-1.1-.9z" style={{ fill: "#5e8e3e" }} /><path d="m58 39.9-3.8 14.4s-4.3-2-9.4-1.6c-7.5.5-7.5 5.2-7.5 6.4.4 6.4 17.3 7.8 18.3 22.9.7 11.9-6.3 20-16.4 20.6-12.2.8-18.9-6.4-18.9-6.4l2.6-11s6.7 5.1 12.1 4.7c3.5-.2 4.8-3.1 4.7-5.1-.5-8.4-14.3-7.9-15.2-21.7-.7-11.6 6.9-23.4 23.7-24.4 6.5-.5 9.8 1.2 9.8 1.2z" style={{ fill: "#fff" }} /></svg>
                   <Toggle
                     pressed={autoPilot}
                     onPressedChange={setAutoPilot}
@@ -768,7 +766,7 @@ export default function Home() {
 
       {/* Blueprint Canvas */}
       {activeCanvas === "blueprint" && (
-      <div style={{ marginLeft: sidebarWidth, transition: "margin-left 300ms cubic-bezier(0.4, 0, 0.2, 1)", height: "100vh", overflow: "hidden", padding: 8, display: "flex" }}>
+      <div style={{ marginLeft: sidebarWidth, transition: "margin-left 300ms cubic-bezier(0.4, 0, 0.2, 1)", height: "100vh", overflow: "hidden", padding: "8px 8px 8px 4px", display: "flex" }}>
       <div
         className="flex-1 relative overflow-hidden"
         style={{
@@ -931,14 +929,12 @@ export default function Home() {
       )}
 
       {/* Content Views */}
-      {(activeCanvas === "home" || activeCanvas === "inbox" || activeCanvas === "commerce" || activeCanvas === "insights" || activeCanvas === "activity" || activeCanvas === "settings") && (
-        <div style={{ marginLeft: sidebarWidth, transition: "margin-left 300ms cubic-bezier(0.4, 0, 0.2, 1)", height: "100vh", overflow: "hidden", padding: 8, display: "flex" }}>
+      {(activeCanvas === "home" || activeCanvas === "commerce" || activeCanvas === "insights" || activeCanvas === "settings") && (
+        <div style={{ marginLeft: sidebarWidth, transition: "margin-left 300ms cubic-bezier(0.4, 0, 0.2, 1)", height: "100vh", overflow: "hidden", padding: "8px 8px 8px 4px", display: "flex" }}>
         <div style={{ flex: 1, background: "#ffffff", borderRadius: 12, border: "1px solid #e5e5e5", overflow: "auto", display: "flex", flexDirection: "column" }}>
           {activeCanvas === "home" && <HomeView onNavigate={(view) => setActiveCanvas(view as typeof activeCanvas)} />}
-          {activeCanvas === "inbox" && <InboxView />}
           {activeCanvas === "commerce" && <CommerceView />}
           {activeCanvas === "insights" && <InsightsView />}
-          {activeCanvas === "activity" && <ActivityView />}
           {activeCanvas === "settings" && <SettingsView />}
         </div>
         </div>
@@ -1073,8 +1069,8 @@ export default function Home() {
 
       </motion.div>}
 
-      {/* Inline Chat - available on all views */}
-      <InlineChat />
+      {/* Inline Chat - available on all views except home (embedded there) */}
+      {activeCanvas !== "home" && <InlineChat sidebarWidth={sidebarWidth} />}
     </div>
     </ThemeContext.Provider>
   );

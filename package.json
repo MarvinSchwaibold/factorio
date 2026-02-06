@@ -15,6 +15,7 @@
   "license": "ISC",
   "dependencies": {
     "@base-ui/react": "^1.1.0",
+    "@silk-hq/components": "^0.10.0",
     "@tailwindcss/postcss": "^4.1.18",
     "clsx": "^2.1.1",
     "framer-motion": "^12.29.2",

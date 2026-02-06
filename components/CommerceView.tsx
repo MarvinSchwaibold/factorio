@@ -1,38 +1,36 @@
 "use client";
 
-import { useContext } from "react";
-import { Package, ShoppingCart, Users, Warehouse } from "lucide-react";
+import { useContext, useMemo } from "react";
+import {
+  ArrowUpRight,
+  ArrowDownRight,
+  AlertTriangle,
+} from "lucide-react";
 import { ThemeContext } from "@/lib/theme";
+import { getCommerceData } from "@/lib/commerce-data";
 
-const domains = [
-  {
-    icon: <ShoppingCart size={20} />,
-    label: "Orders",
-    count: 128,
-    description: "Recent transactions and fulfillment",
-  },
-  {
-    icon: <Package size={20} />,
-    label: "Products",
-    count: 847,
-    description: "Catalog, variants, and pricing",
-  },
-  {
-    icon: <Users size={20} />,
-    label: "Customers",
-    count: "2.4k",
-    description: "Profiles, segments, and B2B",
-  },
-  {
-    icon: <Warehouse size={20} />,
-    label: "Inventory",
-    count: "3.1k",
-    description: "Stock levels across locations",
-  },
-];
+var STATUS_COLORS: Record<string, { bg: string; text: string }> = {
+  paid: { bg: "#dcfce7", text: "#166534" },
+  pending: { bg: "#fef9c3", text: "#854d0e" },
+  refunded: { bg: "#fee2e2", text: "#991b1b" },
+  partially_refunded: { bg: "#fee2e2", text: "#991b1b" },
+};
 
 export function CommerceView() {
-  const theme = useContext(ThemeContext);
+  var theme = useContext(ThemeContext);
+  var data = useMemo(function () {
+    return getCommerceData();
+  }, []);
+
+  var m = data.metrics;
+  var changeUp = m.revenueChange >= 0;
+
+  var card: React.CSSProperties = {
+    background: theme.cardBg,
+    border: "1px solid " + theme.borderLight,
+    borderRadius: 12,
+    overflow: "hidden",
+  };
 
   return (
     <div
@@ -44,7 +42,13 @@ export function CommerceView() {
         overflowY: "auto",
       }}
     >
-      <div style={{ maxWidth: 720 }}>
+      <style>{"\
+        .commerce-row { transition: background 120ms ease; }\
+        .commerce-row:hover { background: rgba(0,0,0,0.04); }\
+      "}</style>
+
+      <div>
+        {/* Header */}
         <h1
           style={{
             fontSize: 18,
@@ -59,78 +63,297 @@ export function CommerceView() {
           style={{
             fontSize: 13,
             color: theme.textMuted,
-            marginBottom: 32,
+            marginBottom: 20,
           }}
         >
-          Browse and manage your commerce data
+          {"Store overview \u00B7 Kaz\u2019s Candles"}
         </p>
 
-        <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-          {domains.map((domain) => (
+        {/* Metrics bar */}
+        <div
+          style={{
+            display: "flex",
+            gap: 28,
+            marginBottom: 24,
+            paddingBottom: 16,
+            borderBottom: "1px solid " + theme.borderDim,
+          }}
+        >
+          {/* Revenue */}
+          <div>
             <div
-              key={domain.label}
               style={{
+                fontSize: 20,
+                fontWeight: 600,
+                color: theme.text,
+                fontVariantNumeric: "tabular-nums",
+                marginBottom: 2,
                 display: "flex",
-                alignItems: "center",
-                gap: 16,
-                padding: "16px 20px",
-                background: theme.cardBg,
-                border: `1px solid ${theme.borderLight}`,
-                borderRadius: 10,
-                cursor: "pointer",
-                transition: "all 0.15s ease",
-              }}
-              onMouseEnter={(e) => {
-                e.currentTarget.style.borderColor = theme.border;
-                e.currentTarget.style.background = theme.cardBgHover;
-              }}
-              onMouseLeave={(e) => {
-                e.currentTarget.style.borderColor = theme.borderLight;
-                e.currentTarget.style.background = theme.cardBg;
+                alignItems: "baseline",
+                gap: 6,
               }}
             >
-              <div
+              {"$" +
+                m.revenue.toLocaleString("en-US", {
+                  minimumFractionDigits: 0,
+                  maximumFractionDigits: 0,
+                })}
+              <span
                 style={{
-                  width: 40,
-                  height: 40,
-                  borderRadius: 8,
-                  background: "#f3f4f6",
+                  fontSize: 12,
+                  fontWeight: 500,
+                  color: "#6b7280",
                   display: "flex",
                   alignItems: "center",
-                  justifyContent: "center",
-                  color: "#6b7280",
-                  flexShrink: 0,
+                  gap: 2,
                 }}
               >
-                {domain.icon}
-              </div>
-              <div style={{ flex: 1 }}>
-                <div
-                  style={{
-                    fontSize: 14,
-                    fontWeight: 600,
-                    color: theme.text,
-                    marginBottom: 2,
-                  }}
-                >
-                  {domain.label}
-                </div>
-                <div style={{ fontSize: 12, color: theme.textMuted }}>
-                  {domain.description}
-                </div>
-              </div>
-              <div
-                style={{
-                  fontSize: 13,
-                  fontWeight: 500,
-                  color: theme.textDim,
-                  fontVariantNumeric: "tabular-nums",
-                }}
-              >
-                {domain.count}
-              </div>
+                {changeUp ? (
+                  <ArrowUpRight size={12} />
+                ) : (
+                  <ArrowDownRight size={12} />
+                )}
+                {(changeUp ? "+" : "") + m.revenueChange.toFixed(1) + "%"}
+              </span>
             </div>
-          ))}
+            <div
+              style={{
+                fontSize: 11,
+                color: theme.textMuted,
+                fontWeight: 500,
+              }}
+            >
+              Revenue
+            </div>
+          </div>
+
+          {/* Orders */}
+          <div>
+            <div
+              style={{
+                fontSize: 20,
+                fontWeight: 600,
+                color: theme.text,
+                fontVariantNumeric: "tabular-nums",
+                marginBottom: 2,
+              }}
+            >
+              {m.orderCount}
+            </div>
+            <div
+              style={{
+                fontSize: 11,
+                color: theme.textMuted,
+                fontWeight: 500,
+              }}
+            >
+              Orders (30d)
+            </div>
+          </div>
+
+          {/* AOV */}
+          <div>
+            <div
+              style={{
+                fontSize: 20,
+                fontWeight: 600,
+                color: theme.text,
+                fontVariantNumeric: "tabular-nums",
+                marginBottom: 2,
+              }}
+            >
+              {"$" + m.aov.toFixed(2)}
+            </div>
+            <div
+              style={{
+                fontSize: 11,
+                color: theme.textMuted,
+                fontWeight: 500,
+              }}
+            >
+              AOV (30d)
+            </div>
+          </div>
+
+          {/* Low stock */}
+          <div>
+            <div
+              style={{
+                fontSize: 20,
+                fontWeight: 600,
+                color: m.lowStockCount > 0 ? theme.warning : theme.text,
+                fontVariantNumeric: "tabular-nums",
+                marginBottom: 2,
+              }}
+            >
+              {m.lowStockCount}
+            </div>
+            <div
+              style={{
+                fontSize: 11,
+                color: theme.textMuted,
+                fontWeight: 500,
+              }}
+            >
+              Low stock items
+            </div>
+          </div>
+        </div>
+
+        {/* Widget grid */}
+        <div
+          style={{
+            display: "grid",
+            gridTemplateColumns: "1fr 1fr",
+            gap: 16,
+          }}
+        >
+          {/* Recent orders */}
+          <div style={card}>
+            <div
+              style={{
+                fontSize: 13,
+                fontWeight: 600,
+                color: theme.text,
+                padding: "14px 16px 6px",
+              }}
+            >
+              Recent orders
+            </div>
+            <div style={{ paddingBottom: 6 }}>
+              {data.recentOrders.map(function (order) {
+                var statusStyle =
+                  STATUS_COLORS[order.financialStatus] || STATUS_COLORS.pending;
+                return (
+                  <div
+                    key={order.name}
+                    className="commerce-row"
+                    style={{
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "space-between",
+                      padding: "7px 16px",
+                    }}
+                  >
+                    <div
+                      style={{
+                        display: "flex",
+                        alignItems: "center",
+                        gap: 10,
+                      }}
+                    >
+                      <span
+                        style={{
+                          fontSize: 12,
+                          color: theme.textDim,
+                          fontVariantNumeric: "tabular-nums",
+                          fontWeight: 500,
+                        }}
+                      >
+                        {order.name}
+                      </span>
+                      <span style={{ fontSize: 13, color: theme.text }}>
+                        {order.customerName}
+                      </span>
+                      <span
+                        style={{
+                          fontSize: 10,
+                          fontWeight: 500,
+                          padding: "2px 6px",
+                          borderRadius: 4,
+                          background: statusStyle.bg,
+                          color: statusStyle.text,
+                        }}
+                      >
+                        {order.financialStatus}
+                      </span>
+                    </div>
+                    <span
+                      style={{
+                        fontSize: 13,
+                        fontWeight: 500,
+                        color: theme.text,
+                        fontVariantNumeric: "tabular-nums",
+                        flexShrink: 0,
+                        marginLeft: 12,
+                      }}
+                    >
+                      {order.total}
+                    </span>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+
+          {/* Inventory alerts */}
+          <div style={card}>
+            <div
+              style={{
+                fontSize: 13,
+                fontWeight: 600,
+                color: theme.text,
+                padding: "14px 16px 6px",
+                display: "flex",
+                alignItems: "center",
+                gap: 6,
+              }}
+            >
+              <AlertTriangle size={13} />
+              Inventory alerts
+            </div>
+            <div style={{ paddingBottom: 6 }}>
+              {data.inventoryAlerts.map(function (alert) {
+                var isZero = alert.available === 0;
+                return (
+                  <div
+                    key={alert.productTitle + "|" + alert.variantTitle}
+                    className="commerce-row"
+                    style={{
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "space-between",
+                      padding: "7px 16px",
+                    }}
+                  >
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                      <div
+                        style={{
+                          fontSize: 13,
+                          color: theme.text,
+                          whiteSpace: "nowrap",
+                          overflow: "hidden",
+                          textOverflow: "ellipsis",
+                        }}
+                      >
+                        {alert.productTitle}
+                      </div>
+                      {alert.variantTitle !== "Standard" && (
+                        <div
+                          style={{ fontSize: 11, color: theme.textMuted }}
+                        >
+                          {alert.variantTitle}
+                        </div>
+                      )}
+                    </div>
+                    <span
+                      style={{
+                        fontSize: 12,
+                        fontWeight: 500,
+                        color: isZero ? "#991b1b" : theme.warningText,
+                        fontVariantNumeric: "tabular-nums",
+                        flexShrink: 0,
+                        marginLeft: 12,
+                      }}
+                    >
+                      {isZero ? "Out of stock" : alert.available + " left"}
+                    </span>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+
         </div>
       </div>
     </div>
