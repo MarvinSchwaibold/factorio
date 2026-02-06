@@ -29,8 +29,14 @@
 }
 
 /* SideNav tab hover */
+.sidenav-tab {
+  border: none !important;
+  border-left: none !important;
+  border-right: none !important;
+}
+
 .sidenav-tab:hover:not([data-selected]) {
-  background: #f9fafb !important;
+  background: #f3f4f6 !important;
   color: #6b7280 !important;
 }
 

@@ -1,7 +1,7 @@
 "use client";
 
 import { useContext } from "react";
-import { Zap, Package, Lightbulb, Activity, Settings, PanelLeft, PanelLeftClose } from "lucide-react";
+import { Home, Inbox, Zap, Package, Lightbulb, Activity, Settings, PanelLeft, PanelLeftClose } from "lucide-react";
 import { Tabs } from "@base-ui/react/tabs";
 import { ThemeContext } from "@/lib/theme";
 
@@ -25,7 +25,12 @@ export function SideNav({ activeView, onViewChange, isExpanded, onToggleExpand }
   const theme = useContext(ThemeContext);
   const width = isExpanded ? SIDEBAR_WIDTH_EXPANDED : SIDEBAR_WIDTH_COLLAPSED;
 
-  const navItems: NavItem[] = [
+  const topItems: NavItem[] = [
+    { icon: <Home size={18} />, label: "Home", viewKey: "home" },
+    { icon: <Inbox size={18} />, label: "Inbox", viewKey: "inbox" },
+  ];
+
+  const mainItems: NavItem[] = [
     { icon: <Zap size={18} />, label: "Canvas", viewKey: "canvas" },
     { icon: <Package size={18} />, label: "Commerce", viewKey: "commerce" },
     { icon: <Lightbulb size={18} />, label: "Insights", viewKey: "insights" },
@@ -43,18 +48,21 @@ export function SideNav({ activeView, onViewChange, isExpanded, onToggleExpand }
           ? "#f3f4f6"
           : "transparent",
         border: "none",
-        borderLeft: state.active
-          ? "2px solid #111827"
-          : "2px solid transparent",
+        borderLeft: "none",
+        borderRight: "none",
+        outline: "none",
         color: state.active ? "#111827" : "#9ca3af",
-        padding: isExpanded ? "10px 14px" : "10px 0",
+        padding: isExpanded ? "10px 14px" : "10px 6px",
+        margin: isExpanded ? "0 8px" : "0 6px",
+        borderRadius: 8,
         cursor: "pointer",
         fontFamily: theme.fontFamily,
         display: "flex",
         flexDirection: isExpanded ? "row" as const : "column" as const,
         alignItems: "center",
         gap: isExpanded ? 10 : 4,
-        width: "100%",
+        width: isExpanded ? "calc(100% - 16px)" : "calc(100% - 12px)",
+        boxSizing: "border-box" as const,
         transition: "all 0.15s ease",
         ...(isBottom ? { marginBottom: 8 } : {}),
       })}
@@ -63,12 +71,8 @@ export function SideNav({ activeView, onViewChange, isExpanded, onToggleExpand }
       <div style={{ flexShrink: 0, display: "flex", alignItems: "center", justifyContent: "center", width: isExpanded ? 20 : "auto" }}>
         {item.icon}
       </div>
-      {isExpanded ? (
+      {isExpanded && (
         <span style={{ fontSize: 13, fontWeight: 500, whiteSpace: "nowrap", overflow: "hidden" }}>
-          {item.label}
-        </span>
-      ) : (
-        <span style={{ fontSize: 8, fontWeight: 600, letterSpacing: "0.02em" }}>
           {item.label}
         </span>
       )}
@@ -86,7 +90,7 @@ export function SideNav({ activeView, onViewChange, isExpanded, onToggleExpand }
         top: 0,
         width,
         height: "100vh",
-        background: "#ffffff",
+        background: "#f5f5f5",
         borderRight: "none",
         zIndex: 1000,
         display: "flex",
@@ -173,7 +177,12 @@ export function SideNav({ activeView, onViewChange, isExpanded, onToggleExpand }
           flex: 1,
         }}
       >
-        {navItems.map((item) => renderTab(item))}
+        {topItems.map((item) => renderTab(item))}
+
+        {/* Divider */}
+        <div style={{ height: 1, background: theme.borderDim, margin: isExpanded ? "6px 14px" : "6px 10px" }} />
+
+        {mainItems.map((item) => renderTab(item))}
 
         {/* Spacer */}
         <div style={{ flex: 1 }} />

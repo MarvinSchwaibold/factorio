@@ -22,6 +22,9 @@ import { CommerceView } from "@/components/CommerceView";
 import { InsightsView } from "@/components/InsightsView";
 import { ActivityView } from "@/components/ActivityView";
 import { SettingsView } from "@/components/SettingsView";
+import { HomeView } from "@/components/HomeView";
+import { InboxView } from "@/components/InboxView";
+import { InlineChat } from "@/components/InlineChat";
 
 export default function Home() {
   const [zoom, setZoom] = useState(1);
@@ -41,7 +44,7 @@ export default function Home() {
   const deepCleanTaskCounterRef = useRef({ left: 0, right: 0 });
   const [autoPilot, setAutoPilot] = useState(false);
   const autoPilotTimerRef = useRef<{ left: NodeJS.Timeout | null; right: NodeJS.Timeout | null }>({ left: null, right: null });
-  const [activeCanvas, setActiveCanvas] = useState<"canvas" | "blueprint" | "commerce" | "insights" | "activity" | "settings">("canvas");
+  const [activeCanvas, setActiveCanvas] = useState<"home" | "inbox" | "canvas" | "blueprint" | "commerce" | "insights" | "activity" | "settings">("home");
   const [sidebarExpanded, setSidebarExpanded] = useState(false);
   const sidebarWidth = sidebarExpanded ? SIDEBAR_WIDTH_EXPANDED : SIDEBAR_WIDTH_COLLAPSED;
 
@@ -408,7 +411,7 @@ export default function Home() {
 
   return (
     <ThemeContext.Provider value={theme}>
-    <div className="h-screen w-screen overflow-hidden relative flex flex-col" style={{ background: "#ffffff", fontFamily: theme.fontFamily }}>
+    <div className="h-screen w-screen overflow-hidden relative flex flex-col" style={{ background: "#f5f5f5", fontFamily: theme.fontFamily }}>
 
       {/* Side Navigation */}
       <SideNav activeView={activeCanvas} onViewChange={(view) => setActiveCanvas(view as typeof activeCanvas)} isExpanded={sidebarExpanded} onToggleExpand={() => setSidebarExpanded(!sidebarExpanded)} />
@@ -485,7 +488,7 @@ export default function Home() {
       <div style={{ marginLeft: sidebarWidth, transition: "margin-left 300ms cubic-bezier(0.4, 0, 0.2, 1)", height: "100vh", overflow: "hidden", padding: 8, display: "flex" }}>
       <div
         className="flex-1 relative overflow-hidden"
-        style={{ cursor: isPanning ? "grabbing" : "grab", background: "#f5f5f5", borderRadius: 12 }}
+        style={{ cursor: isPanning ? "grabbing" : "grab", background: "#ffffff", borderRadius: 12, border: "1px solid #e5e5e5" }}
         onWheel={handleWheel}
         onMouseDown={handleMouseDown}
         onMouseMove={handleMouseMove}
@@ -769,8 +772,9 @@ export default function Home() {
       <div
         className="flex-1 relative overflow-hidden"
         style={{
-          background: "#f5f5f5",
+          background: "#ffffff",
           borderRadius: 12,
+          border: "1px solid #e5e5e5",
           cursor: isPanning ? "grabbing" : "grab"
         }}
         onWheel={handleWheel}
@@ -927,9 +931,11 @@ export default function Home() {
       )}
 
       {/* Content Views */}
-      {(activeCanvas === "commerce" || activeCanvas === "insights" || activeCanvas === "activity" || activeCanvas === "settings") && (
+      {(activeCanvas === "home" || activeCanvas === "inbox" || activeCanvas === "commerce" || activeCanvas === "insights" || activeCanvas === "activity" || activeCanvas === "settings") && (
         <div style={{ marginLeft: sidebarWidth, transition: "margin-left 300ms cubic-bezier(0.4, 0, 0.2, 1)", height: "100vh", overflow: "hidden", padding: 8, display: "flex" }}>
-        <div style={{ flex: 1, background: "#f5f5f5", borderRadius: 12, overflow: "auto" }}>
+        <div style={{ flex: 1, background: "#ffffff", borderRadius: 12, border: "1px solid #e5e5e5", overflow: "auto", display: "flex", flexDirection: "column" }}>
+          {activeCanvas === "home" && <HomeView onNavigate={(view) => setActiveCanvas(view as typeof activeCanvas)} />}
+          {activeCanvas === "inbox" && <InboxView />}
           {activeCanvas === "commerce" && <CommerceView />}
           {activeCanvas === "insights" && <InsightsView />}
           {activeCanvas === "activity" && <ActivityView />}
@@ -1066,6 +1072,9 @@ export default function Home() {
         </button>
 
       </motion.div>}
+
+      {/* Inline Chat - available on all views */}
+      <InlineChat />
     </div>
     </ThemeContext.Provider>
   );
