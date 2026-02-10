@@ -1,7 +1,7 @@
 "use client";
 
-import { useContext } from "react";
-import { Home, Zap, Package, Lightbulb, Settings, PanelLeft, PanelLeftClose } from "lucide-react";
+import { useContext, useRef, useCallback, useEffect, useLayoutEffect, useState } from "react";
+import { Home, Package, Lightbulb, Settings, PanelLeftClose, Map, LayoutDashboard, Workflow } from "lucide-react";
 import { Tabs } from "@base-ui/react/tabs";
 import { ThemeContext } from "@/lib/theme";
 
@@ -14,23 +14,416 @@ interface NavItem {
 export const SIDEBAR_WIDTH_COLLAPSED = 56;
 export const SIDEBAR_WIDTH_EXPANDED = 200;
 
+export type AppMode = "map" | "admin";
+
 interface SideNavProps {
   activeView: string;
   onViewChange: (view: string) => void;
   isExpanded: boolean;
   onToggleExpand: () => void;
+  appMode: AppMode;
+  onModeChange: (mode: AppMode) => void;
 }
 
-export function SideNav({ activeView, onViewChange, isExpanded, onToggleExpand }: SideNavProps) {
+// --- Draggable segmented toggle (adapted from artifact-main ViewToggle) ---
+
+const EASE = 0.2;
+const TOGGLE_PADDING = 2;
+
+const rubberband = (overscroll: number, maxOverscroll = 8) => {
+  const factor = 0.2;
+  return (overscroll * factor * maxOverscroll) / (maxOverscroll + overscroll * factor);
+};
+
+const isSettled = (
+  posDiff: number,
+  scaleXDiff: number,
+  scaleYDiff: number,
+  containerScaleDiff: number,
+  containerTranslateDiff: number
+) =>
+  Math.abs(posDiff) < 0.3 &&
+  Math.abs(scaleXDiff) < 0.001 &&
+  Math.abs(scaleYDiff) < 0.001 &&
+  Math.abs(containerScaleDiff) < 0.001 &&
+  Math.abs(containerTranslateDiff) < 0.3;
+
+interface ModeToggleProps {
+  appMode: AppMode;
+  onModeChange: (mode: AppMode) => void;
+  isDark: boolean;
+  fontFamily: string;
+}
+
+function ModeToggle({ appMode, onModeChange, isDark, fontFamily }: ModeToggleProps) {
+  const activeIndex = appMode === "map" ? 0 : 1;
+  const [localIndex, setLocalIndex] = useState(activeIndex);
+  const [isDragging, setIsDragging] = useState(false);
+  const [hoverIndex, setHoverIndex] = useState<number | null>(null);
+
+  const containerRef = useRef<HTMLDivElement>(null);
+  const handleRef = useRef<HTMLDivElement>(null);
+  const handleVisualRef = useRef<HTMLDivElement>(null);
+  const rafRef = useRef<number | null>(null);
+
+  const currentPosRef = useRef(0);
+  const targetPosRef = useRef(0);
+  const currentScaleXRef = useRef(1);
+  const targetScaleXRef = useRef(1);
+  const currentScaleYRef = useRef(1);
+  const targetScaleYRef = useRef(1);
+  const prevPosRef = useRef(0);
+  const handleWidthRef = useRef(0);
+  const containerWidthRef = useRef(0);
+
+  const currentContainerScaleRef = useRef(1);
+  const targetContainerScaleRef = useRef(1);
+  const currentContainerTranslateRef = useRef(0);
+  const targetContainerTranslateRef = useRef(0);
+  const overscrollDirectionRef = useRef<"left" | "right" | null>(null);
+
+  const pointerDownTimeRef = useRef(0);
+  const pointerDownXRef = useRef(0);
+  const pointerMaxDistanceRef = useRef(0);
+  const currentIndexRef = useRef(activeIndex);
+  const blockClickRef = useRef(false);
+
+  // Sync from parent
+  useEffect(() => {
+    currentIndexRef.current = activeIndex;
+    setLocalIndex(activeIndex);
+  }, [activeIndex]);
+
+  const getPositionForIndex = useCallback((index: number) => {
+    const containerWidth = containerWidthRef.current;
+    const handleWidth = handleWidthRef.current;
+    if (index === 0) return TOGGLE_PADDING;
+    return containerWidth - handleWidth - TOGGLE_PADDING - 2;
+  }, []);
+
+  const updateHandle = useCallback((pos: number, scaleX: number, scaleY: number) => {
+    if (handleRef.current) {
+      handleRef.current.style.transform = `translateX(${pos}px) scale(${scaleX}, ${scaleY})`;
+    }
+  }, []);
+
+  const updateContainer = useCallback((translate: number, scale: number) => {
+    if (containerRef.current) {
+      containerRef.current.style.transform = `translateX(${translate}px) scaleX(${scale})`;
+    }
+  }, []);
+
+  // Measure on mount/resize
+  useLayoutEffect(() => {
+    const measure = () => {
+      if (containerRef.current && handleRef.current) {
+        containerWidthRef.current = containerRef.current.offsetWidth;
+        handleWidthRef.current = handleRef.current.offsetWidth;
+        const initialPos = getPositionForIndex(activeIndex);
+        currentPosRef.current = initialPos;
+        targetPosRef.current = initialPos;
+        prevPosRef.current = initialPos;
+        updateHandle(initialPos, 1, 1);
+      }
+    };
+    measure();
+    window.addEventListener("resize", measure);
+    return () => window.removeEventListener("resize", measure);
+  }, [activeIndex, getPositionForIndex, updateHandle]);
+
+  // Animation loop
+  useEffect(() => {
+    if (!isDragging) {
+      targetPosRef.current = getPositionForIndex(localIndex);
+      targetScaleXRef.current = 1;
+      targetScaleYRef.current = 1;
+      targetContainerScaleRef.current = 1;
+      targetContainerTranslateRef.current = 0;
+    }
+
+    const animate = () => {
+      const posDiff = targetPosRef.current - currentPosRef.current;
+      const scaleXDiff = targetScaleXRef.current - currentScaleXRef.current;
+      const scaleYDiff = targetScaleYRef.current - currentScaleYRef.current;
+      const containerScaleDiff = targetContainerScaleRef.current - currentContainerScaleRef.current;
+      const containerTranslateDiff = targetContainerTranslateRef.current - currentContainerTranslateRef.current;
+
+      const movementDelta = currentPosRef.current - prevPosRef.current;
+      prevPosRef.current = currentPosRef.current;
+      const maxDelta = 10;
+      const squishAmount = Math.min(Math.abs(movementDelta) / maxDelta, 1) * 0.15;
+      if (isDragging) {
+        targetScaleYRef.current = 1 - squishAmount;
+      }
+
+      if (isSettled(posDiff, scaleXDiff, scaleYDiff, containerScaleDiff, containerTranslateDiff) && !isDragging) {
+        currentPosRef.current = targetPosRef.current;
+        currentScaleXRef.current = targetScaleXRef.current;
+        currentScaleYRef.current = targetScaleYRef.current;
+        currentContainerScaleRef.current = targetContainerScaleRef.current;
+        currentContainerTranslateRef.current = targetContainerTranslateRef.current;
+        updateHandle(currentPosRef.current, currentScaleXRef.current, currentScaleYRef.current);
+        updateContainer(currentContainerTranslateRef.current, currentContainerScaleRef.current);
+        rafRef.current = null;
+        return;
+      }
+
+      currentPosRef.current += posDiff * EASE;
+      currentScaleXRef.current += scaleXDiff * EASE;
+      currentScaleYRef.current += scaleYDiff * EASE;
+      currentContainerScaleRef.current += containerScaleDiff * EASE;
+      currentContainerTranslateRef.current += containerTranslateDiff * EASE;
+      updateHandle(currentPosRef.current, currentScaleXRef.current, currentScaleYRef.current);
+      updateContainer(currentContainerTranslateRef.current, currentContainerScaleRef.current);
+
+      rafRef.current = requestAnimationFrame(animate);
+    };
+
+    if (!rafRef.current) {
+      rafRef.current = requestAnimationFrame(animate);
+    }
+
+    return () => {
+      if (rafRef.current && !isDragging) {
+        cancelAnimationFrame(rafRef.current);
+        rafRef.current = null;
+      }
+    };
+  }, [isDragging, localIndex, getPositionForIndex, updateHandle, updateContainer]);
+
+  const handlePointerDown = useCallback((e: React.PointerEvent) => {
+    e.preventDefault();
+    (e.target as HTMLElement).setPointerCapture(e.pointerId);
+    pointerDownTimeRef.current = Date.now();
+    pointerDownXRef.current = e.clientX;
+    pointerMaxDistanceRef.current = 0;
+    blockClickRef.current = true;
+    setIsDragging(true);
+  }, []);
+
+  const handlePointerMove = useCallback((e: React.PointerEvent) => {
+    if (!containerRef.current) return;
+    if (!(e.target as HTMLElement).hasPointerCapture(e.pointerId)) return;
+
+    const distance = Math.abs(e.clientX - pointerDownXRef.current);
+    pointerMaxDistanceRef.current = Math.max(pointerMaxDistanceRef.current, distance);
+
+    const rect = containerRef.current.getBoundingClientRect();
+    const handleWidth = handleWidthRef.current;
+    const containerWidth = containerWidthRef.current;
+    const rawX = e.clientX - rect.left - handleWidth / 2;
+    const minPos = TOGGLE_PADDING;
+    const maxPos = containerWidth - handleWidth - TOGGLE_PADDING;
+
+    let targetPos: number;
+
+    if (rawX < minPos) {
+      const overscroll = minPos - rawX;
+      targetPos = minPos - rubberband(overscroll);
+      overscrollDirectionRef.current = "left";
+      const rubberbandAmount = rubberband(overscroll);
+      targetContainerTranslateRef.current = -rubberbandAmount;
+      targetContainerScaleRef.current = (rubberbandAmount * 0.5 + containerWidth) / containerWidth;
+      if (containerRef.current) containerRef.current.style.transformOrigin = "right center";
+    } else if (rawX > maxPos) {
+      const overscroll = rawX - maxPos;
+      targetPos = maxPos;
+      overscrollDirectionRef.current = "right";
+      const rubberbandAmount = rubberband(overscroll);
+      targetContainerTranslateRef.current = rubberbandAmount;
+      targetContainerScaleRef.current = (rubberbandAmount * 0.5 + containerWidth) / containerWidth;
+      if (containerRef.current) containerRef.current.style.transformOrigin = "left center";
+    } else {
+      targetPos = rawX;
+      overscrollDirectionRef.current = null;
+      targetContainerScaleRef.current = 1;
+      targetContainerTranslateRef.current = 0;
+    }
+
+    targetPosRef.current = targetPos;
+
+    const cursorX = e.clientX - rect.left;
+    const containerMidpoint = containerWidth / 2;
+    const newIndex = cursorX < containerMidpoint ? 0 : 1;
+    currentIndexRef.current = newIndex;
+    if (newIndex !== localIndex) setLocalIndex(newIndex);
+  }, [localIndex]);
+
+  const handleLostPointerCapture = useCallback(() => {
+    setIsDragging(false);
+    const elapsed = Date.now() - pointerDownTimeRef.current;
+    const movedTooFar = pointerMaxDistanceRef.current > 10;
+    const isQuickTap = elapsed < 200 && !movedTooFar;
+    const finalIndex = currentIndexRef.current;
+
+    if (isQuickTap && containerRef.current) {
+      const rect = containerRef.current.getBoundingClientRect();
+      const clickX = pointerDownXRef.current - rect.left;
+      const midpoint = rect.width / 2;
+      const clickedIndex = clickX < midpoint ? 0 : 1;
+      currentIndexRef.current = clickedIndex;
+      setLocalIndex(clickedIndex);
+      onModeChange(clickedIndex === 0 ? "map" : "admin");
+      setTimeout(() => { blockClickRef.current = false; }, 50);
+      return;
+    }
+
+    const newMode: AppMode = finalIndex === 0 ? "map" : "admin";
+    if (newMode !== appMode) {
+      onModeChange(newMode);
+    }
+    setTimeout(() => { blockClickRef.current = false; }, 50);
+  }, [appMode, onModeChange]);
+
+  const getHoverOffset = () => {
+    if (isDragging || hoverIndex === null || hoverIndex === localIndex)
+      return { x: 0, scaleX: 1, scaleY: 1 };
+    if (localIndex === 0 && hoverIndex === 1) return { x: 2, scaleX: 1.03, scaleY: 0.97 };
+    if (localIndex === 1 && hoverIndex === 0) return { x: -2, scaleX: 1.03, scaleY: 0.97 };
+    return { x: 0, scaleX: 1, scaleY: 1 };
+  };
+
+  const hoverEffect = getHoverOffset();
+
+  // Colors
+  const containerBg = isDark ? "#1a1a1a" : "#e5e5e5";
+  const containerBorder = isDark ? "#2a2a2a" : "#d1d5db";
+  const activeTextColor = "#ffffff";
+  const inactiveTextColor = isDark ? "#888888" : "#6b7280";
+
+  // Handle gradient: luxe dark button from artifact
+  const handleBackground = isDark
+    ? "linear-gradient(180deg, #1c1f20 0%, #0f1315 80%, #2a3133 96%)"
+    : "linear-gradient(180deg, #1c1f20 0%, #0f1315 80%, #2a3133 96%)";
+  const handleBoxShadow = "0 0 0 1px #0f1315 inset, 3px 5px 2px -5px #fff inset, 1px 1.5px 0 0 rgba(15, 19, 21, 0.75) inset, 0 4px 0.25px -2px #fbfbfb inset, 1px 1px 3px 3px #131718 inset, 0 -3px 1px 0 rgba(15, 19, 21, 0.5) inset, 2px -2px 3px 0 rgba(11, 54, 72, 0.75) inset, 0 -3px 3px 1px rgba(214, 221, 223, 0.1) inset";
+
+  return (
+    <div style={{ position: "relative", height: 36, margin: "0 8px 8px 8px" }}>
+      <div
+        ref={containerRef}
+        style={{
+          position: "relative",
+          display: "grid",
+          gridTemplateColumns: "1fr 1fr",
+          gridTemplateRows: "100%",
+          background: containerBg,
+          borderRadius: 10,
+          padding: TOGGLE_PADDING,
+          height: 36,
+          border: `1px solid ${containerBorder}`,
+          willChange: "transform",
+          cursor: "grab",
+          boxSizing: "border-box",
+        }}
+        onPointerDown={handlePointerDown}
+        onPointerMove={handlePointerMove}
+        onLostPointerCapture={handleLostPointerCapture}
+      >
+        {/* Animated handle */}
+        <div
+          ref={handleRef}
+          style={{
+            position: "absolute",
+            top: TOGGLE_PADDING,
+            bottom: TOGGLE_PADDING,
+            width: "calc(50% - 2px)",
+            willChange: "transform",
+            pointerEvents: "none",
+            transformOrigin: "center center",
+          }}
+        >
+          <div
+            ref={handleVisualRef}
+            style={{
+              position: "absolute",
+              inset: 0,
+              borderRadius: 8,
+              background: handleBackground,
+              boxShadow: handleBoxShadow,
+              transition: "transform 200ms ease-out",
+              transform: `translateX(${hoverEffect.x}px) scale(${hoverEffect.scaleX}, ${hoverEffect.scaleY})`,
+            }}
+          />
+        </div>
+
+        {/* Map label */}
+        <div
+          onMouseEnter={() => setHoverIndex(0)}
+          onMouseLeave={() => setHoverIndex(null)}
+          style={{
+            position: "relative",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            padding: "0 12px",
+            borderRadius: 8,
+            fontSize: 11,
+            fontWeight: 600,
+            fontFamily,
+            color: localIndex === 0 ? activeTextColor : inactiveTextColor,
+            transition: "color 200ms ease",
+            cursor: "grab",
+            zIndex: 10,
+            letterSpacing: "0.02em",
+            userSelect: "none",
+            height: "100%",
+          }}
+        >
+          Map
+        </div>
+
+        {/* Admin label */}
+        <div
+          onMouseEnter={() => setHoverIndex(1)}
+          onMouseLeave={() => setHoverIndex(null)}
+          style={{
+            position: "relative",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            padding: "0 12px",
+            borderRadius: 8,
+            fontSize: 11,
+            fontWeight: 600,
+            fontFamily,
+            color: localIndex === 1 ? activeTextColor : inactiveTextColor,
+            transition: "color 200ms ease",
+            cursor: "grab",
+            zIndex: 10,
+            letterSpacing: "0.02em",
+            userSelect: "none",
+            height: "100%",
+          }}
+        >
+          Admin
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// --- End toggle ---
+
+export function SideNav({ activeView, onViewChange, isExpanded, onToggleExpand, appMode, onModeChange }: SideNavProps) {
   const theme = useContext(ThemeContext);
   const width = isExpanded ? SIDEBAR_WIDTH_EXPANDED : SIDEBAR_WIDTH_COLLAPSED;
 
-  const topItems: NavItem[] = [
-    { icon: <Home size={18} />, label: "Home", viewKey: "home" },
+  const isMap = appMode === "map";
+
+  // Colors based on mode
+  const navBg = isMap ? "#111111" : "#f5f5f5";
+  const tabActiveBg = isMap ? "#2a2a2a" : "#e5e5e5";
+  const tabHoverBg = isMap ? "#2a2a2a" : "#e5e5e5";
+  const tabText = isMap ? "#e5e5e5" : "#111827";
+  const tabActiveText = isMap ? "#e5e5e5" : "#111827";
+
+  const mapItems: NavItem[] = [
+    { icon: <Workflow size={18} />, label: "Flow", viewKey: "canvas" },
+    { icon: <Map size={18} />, label: "Map", viewKey: "mapview" },
   ];
 
-  const mainItems: NavItem[] = [
-    { icon: <Zap size={18} />, label: "Canvas", viewKey: "canvas" },
+  const adminItems: NavItem[] = [
+    { icon: <Home size={18} />, label: "Home", viewKey: "home" },
     { icon: <Package size={18} />, label: "Commerce", viewKey: "commerce" },
     { icon: <Lightbulb size={18} />, label: "Insights", viewKey: "insights" },
   ];
@@ -43,13 +436,13 @@ export function SideNav({ activeView, onViewChange, isExpanded, onToggleExpand }
       value={item.viewKey}
       style={(state) => ({
         background: state.active
-          ? "#e5e5e5"
+          ? tabActiveBg
           : "transparent",
         border: "none",
         borderLeft: "none",
         borderRight: "none",
         outline: "none",
-        color: state.active ? "#111827" : "#111827",
+        color: state.active ? tabActiveText : tabText,
         padding: isExpanded ? "7px 14px" : "7px 6px",
         marginTop: 0,
         marginBottom: isBottom ? 12 : 0,
@@ -79,16 +472,43 @@ export function SideNav({ activeView, onViewChange, isExpanded, onToggleExpand }
     </Tabs.Tab>
   );
 
+  // Icon toggle (collapsed)
+  const renderModeToggleCollapsed = () => (
+    <button
+      onClick={() => onModeChange(isMap ? "admin" : "map")}
+      title={isMap ? "Map mode" : "Admin mode"}
+      style={{
+        background: "transparent",
+        border: "none",
+        color: isMap ? "#e5e5e5" : "#111827",
+        cursor: "pointer",
+        padding: "7px 6px",
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "center",
+        borderRadius: 8,
+        width: "calc(100% - 12px)",
+        marginLeft: 6,
+        marginRight: 6,
+        marginBottom: 4,
+        boxSizing: "border-box" as const,
+      }}
+      className="sidenav-tab"
+    >
+      {isMap ? <Map size={18} /> : <LayoutDashboard size={18} />}
+    </button>
+  );
+
   return (
     <>
     <style>{`
       .sidenav-tab:not([data-active]):hover {
-        background: #e5e5e5 !important;
-        color: #111827 !important;
+        background: ${tabHoverBg} !important;
+        color: ${tabText} !important;
       }
       .sidenav-tab[data-active]:hover {
-        background: #e5e5e5 !important;
-        color: #111827 !important;
+        background: ${tabActiveBg} !important;
+        color: ${tabActiveText} !important;
       }
     `}</style>
     <Tabs.Root
@@ -101,7 +521,7 @@ export function SideNav({ activeView, onViewChange, isExpanded, onToggleExpand }
         top: 0,
         width,
         height: "100vh",
-        background: "#f5f5f5",
+        background: navBg,
         borderRight: "none",
         zIndex: 1000,
         display: "flex",
@@ -153,7 +573,7 @@ export function SideNav({ activeView, onViewChange, isExpanded, onToggleExpand }
           style={{
             background: "transparent",
             border: "none",
-            color: theme.textDim,
+            color: isMap ? "#555555" : theme.textDim,
             cursor: "pointer",
             padding: isExpanded ? 4 : 0,
             display: "flex",
@@ -169,12 +589,18 @@ export function SideNav({ activeView, onViewChange, isExpanded, onToggleExpand }
             pointerEvents: isExpanded ? "auto" : "none",
             flexShrink: 0,
           }}
-          onMouseEnter={(e) => { e.currentTarget.style.color = theme.text; }}
-          onMouseLeave={(e) => { e.currentTarget.style.color = theme.textDim; }}
+          onMouseEnter={(e) => { e.currentTarget.style.color = isMap ? "#e5e5e5" : theme.text; }}
+          onMouseLeave={(e) => { e.currentTarget.style.color = isMap ? "#555555" : theme.textDim; }}
         >
           <PanelLeftClose size={16} />
         </button>
       </div>
+
+      {/* Mode Toggle */}
+      {isExpanded
+        ? <ModeToggle appMode={appMode} onModeChange={onModeChange} isDark={isMap} fontFamily={theme.fontFamily} />
+        : renderModeToggleCollapsed()
+      }
 
       {/* Nav Items */}
       <Tabs.List
@@ -186,14 +612,14 @@ export function SideNav({ activeView, onViewChange, isExpanded, onToggleExpand }
           flex: 1,
         }}
       >
-        {topItems.map((item) => renderTab(item))}
-
-{mainItems.map((item) => renderTab(item))}
+        {/* Nav items per mode */}
+        {isMap && mapItems.map((item) => renderTab(item))}
+        {!isMap && adminItems.map((item) => renderTab(item))}
 
         {/* Spacer */}
         <div style={{ flex: 1 }} />
 
-        {/* Settings - bottom anchored */}
+        {/* Settings - always visible */}
         {renderTab(settingsItem, true)}
       </Tabs.List>
     </Tabs.Root>

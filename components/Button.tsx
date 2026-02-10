@@ -22,7 +22,8 @@ function ensureStyles() {
       gap: 8px;
       color: #fff;
       font-size: 0.75rem;
-      font-weight: 400;
+      font-weight: 500;
+      font-family: var(--font-geist-sans), system-ui, sans-serif;
       letter-spacing: -0.01em;
       line-height: 1.1;
       border: none;

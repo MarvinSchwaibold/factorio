@@ -109,8 +109,8 @@ export function LiveStatusWidget({
         top: 20,
         right: 20,
         minWidth: isRetro ? 220 : 200,
-        background: isRetro ? "rgba(13, 15, 13, 0.95)" : "white",
-        border: isRetro ? `1px solid ${isActive ? "rgba(94, 234, 212, 0.4)" : "rgba(94, 234, 212, 0.2)"}` : `1px solid ${isActive ? "#d4d4d4" : "#e5e5e5"}`,
+        background: isRetro ? "rgba(13, 15, 13, 0.95)" : theme.cardBg,
+        border: isRetro ? `1px solid ${isActive ? "rgba(94, 234, 212, 0.4)" : "rgba(94, 234, 212, 0.2)"}` : `1px solid ${isActive ? theme.border : theme.borderLight}`,
         borderRadius: isRetro ? 0 : 12,
         padding: isRetro ? "12px 16px" : "14px 18px",
         boxShadow: isRetro ? (isActive ? "0 0 20px rgba(94, 234, 212, 0.1)" : "none") : "0 4px 12px rgba(0,0,0,0.08)",
@@ -119,7 +119,7 @@ export function LiveStatusWidget({
       }}
     >
       {/* Header with status */}
-      <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 10, paddingBottom: 8, borderBottom: `1px solid ${isRetro ? "rgba(94, 234, 212, 0.15)" : "#f0f0f0"}` }}>
+      <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 10, paddingBottom: 8, borderBottom: `1px solid ${isRetro ? "rgba(94, 234, 212, 0.15)" : theme.borderDim}` }}>
         <motion.div
           animate={isActive ? { scale: [1, 1.2, 1], opacity: [0.6, 1, 0.6] } : { scale: 1, opacity: 0.3 }}
           transition={{ duration: 1, repeat: isActive ? Infinity : 0 }}
@@ -137,7 +137,7 @@ export function LiveStatusWidget({
           fontSize: isRetro ? 10 : 11,
           fontWeight: 600,
           letterSpacing: isRetro ? "0.1em" : "0.02em",
-          color: isRetro ? "#5eead4" : "#171717"
+          color: isRetro ? "#5eead4" : theme.text
         }}>
           {statusMessage}
         </span>
@@ -145,7 +145,7 @@ export function LiveStatusWidget({
 
       {/* Current Stats */}
       <div style={{ marginBottom: 10 }}>
-        <div style={{ fontSize: isRetro ? 8 : 9, color: isRetro ? "rgba(94, 234, 212, 0.4)" : "#a3a3a3", letterSpacing: isRetro ? "0.15em" : "0.05em", marginBottom: 6, fontWeight: 600 }}>
+        <div style={{ fontSize: isRetro ? 8 : 9, color: isRetro ? "rgba(94, 234, 212, 0.4)" : theme.textDim, letterSpacing: isRetro ? "0.15em" : "0.05em", marginBottom: 6, fontWeight: 600 }}>
           {isRetro ? "CURRENT" : "Current"}
         </div>
         <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
@@ -160,8 +160,8 @@ export function LiveStatusWidget({
       </div>
 
       {/* Total Stats */}
-      <div style={{ paddingTop: 8, borderTop: `1px solid ${isRetro ? "rgba(94, 234, 212, 0.1)" : "#f5f5f5"}` }}>
-        <div style={{ fontSize: isRetro ? 8 : 9, color: isRetro ? "rgba(94, 234, 212, 0.4)" : "#a3a3a3", letterSpacing: isRetro ? "0.15em" : "0.05em", marginBottom: 6, fontWeight: 600 }}>
+      <div style={{ paddingTop: 8, borderTop: `1px solid ${isRetro ? "rgba(94, 234, 212, 0.1)" : theme.borderDim}` }}>
+        <div style={{ fontSize: isRetro ? 8 : 9, color: isRetro ? "rgba(94, 234, 212, 0.4)" : theme.textDim, letterSpacing: isRetro ? "0.15em" : "0.05em", marginBottom: 6, fontWeight: 600 }}>
           {isRetro ? "SESSION TOTAL" : "Session Total"}
         </div>
         <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>

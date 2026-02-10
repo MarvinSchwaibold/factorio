@@ -24,7 +24,7 @@ export function WorkflowBranchContainer({
   if (!isActive && !scenarioLabel && !isCleanComplete) return null;
 
   const borderColor = isCleanComplete ? "rgba(16, 185, 129, 0.4)" : theme.borderLight;
-  const bgColor = isCleanComplete ? "rgba(16, 185, 129, 0.04)" : "#ffffff";
+  const bgColor = isCleanComplete ? "rgba(16, 185, 129, 0.04)" : theme.cardBg;
   const accentColor = isCleanComplete ? "#10b981" : theme.accent;
 
   return (
@@ -52,7 +52,7 @@ export function WorkflowBranchContainer({
       {(scenarioLabel || isCleanComplete) && (
         <div
           style={{
-            borderBottom: `1px solid ${isCleanComplete ? "rgba(16, 185, 129, 0.2)" : "#f0f0f0"}`,
+            borderBottom: `1px solid ${isCleanComplete ? "rgba(16, 185, 129, 0.2)" : theme.borderDim}`,
             padding: "10px 16px",
             display: "flex",
             alignItems: "center",

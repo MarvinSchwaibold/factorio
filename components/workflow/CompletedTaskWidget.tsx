@@ -46,7 +46,7 @@ export function CompletedTaskWidget({ label, onClose, mirrored }: { label: strin
           minWidth: isRetro ? 320 : 300,
           position: "relative",
           overflow: "hidden",
-          background: isRetro ? theme.successBg : "white",
+          background: isRetro ? theme.successBg : theme.cardBg,
           borderRadius: theme.borderRadius,
           boxShadow: theme.shadow
         }}
@@ -62,7 +62,7 @@ export function CompletedTaskWidget({ label, onClose, mirrored }: { label: strin
             display: "flex",
             alignItems: "center",
             justifyContent: "center",
-            background: isRetro ? "transparent" : "#f5f5f5",
+            background: isRetro ? "transparent" : theme.cardBgHover,
             border: isRetro ? `2px solid rgba(16, 185, 129, 0.4)` : "none",
             color: isRetro ? "rgba(16, 185, 129, 0.6)" : "#737373",
             cursor: "pointer",
@@ -79,7 +79,7 @@ export function CompletedTaskWidget({ label, onClose, mirrored }: { label: strin
               e.currentTarget.style.color = "#10b981";
               e.currentTarget.style.borderColor = "#10b981";
             } else {
-              e.currentTarget.style.background = "#e5e5e5";
+              e.currentTarget.style.background = theme.border;
             }
           }}
           onMouseLeave={(e) => {
@@ -88,7 +88,7 @@ export function CompletedTaskWidget({ label, onClose, mirrored }: { label: strin
               e.currentTarget.style.color = "rgba(16, 185, 129, 0.6)";
               e.currentTarget.style.borderColor = "rgba(16, 185, 129, 0.4)";
             } else {
-              e.currentTarget.style.background = "#f5f5f5";
+              e.currentTarget.style.background = theme.cardBgHover;
             }
           }}
         >
@@ -117,7 +117,7 @@ export function CompletedTaskWidget({ label, onClose, mirrored }: { label: strin
             ✓
           </motion.div>
 
-          <span style={{ fontSize: isRetro ? 13 : 14, letterSpacing: isRetro ? "0.06em" : undefined, color: isRetro ? theme.success : "#171717", fontWeight: 600 }}>
+          <span style={{ fontSize: isRetro ? 13 : 14, letterSpacing: isRetro ? "0.06em" : undefined, color: isRetro ? theme.success : theme.text, fontWeight: 600 }}>
             {isRetro ? label.toUpperCase() : label}
           </span>
         </div>

@@ -27,14 +27,14 @@ export function TaskWidget({ task, onApprove, onReject, onResolve, isCollapsing,
     rewriting: { border: "#a855f7", bg: "rgba(168, 85, 247, 0.12)", text: "#c084fc", subtext: "#a855f7" },
     idle: { border: "rgba(94, 234, 212, 0.2)", bg: "transparent", text: "rgba(94, 234, 212, 0.3)", subtext: "transparent" }
   } : {
-    working: { border: "#e5e5e5", bg: "white", text: "#171717", subtext: "#3b82f6" },
-    completed: { border: "#d1fae5", bg: "white", text: "#10b981", subtext: "#10b981" },
-    needs_approval: { border: "#fcd34d", bg: "white", text: "#171717", subtext: "#e07020" },
-    needs_resolve: { border: "#fcd34d", bg: "white", text: "#171717", subtext: "#e07020" },
-    failed: { border: "#fecaca", bg: "white", text: "#dc2626", subtext: "#ef4444" },
-    fixing: { border: "#bfdbfe", bg: "white", text: "#2563eb", subtext: "#3b82f6" },
-    rewriting: { border: "#e9d5ff", bg: "white", text: "#7c3aed", subtext: "#a855f7" },
-    idle: { border: "#e5e5e5", bg: "white", text: "#a3a3a3", subtext: "transparent" }
+    working: { border: theme.border, bg: theme.cardBg, text: theme.text, subtext: "#3b82f6" },
+    completed: { border: "#d1fae5", bg: theme.cardBg, text: "#10b981", subtext: "#10b981" },
+    needs_approval: { border: "#fcd34d", bg: theme.cardBg, text: theme.text, subtext: "#e07020" },
+    needs_resolve: { border: "#fcd34d", bg: theme.cardBg, text: theme.text, subtext: "#e07020" },
+    failed: { border: "#fecaca", bg: theme.cardBg, text: "#dc2626", subtext: "#ef4444" },
+    fixing: { border: "#bfdbfe", bg: theme.cardBg, text: "#2563eb", subtext: "#3b82f6" },
+    rewriting: { border: "#e9d5ff", bg: theme.cardBg, text: "#7c3aed", subtext: "#a855f7" },
+    idle: { border: theme.border, bg: theme.cardBg, text: theme.textDim, subtext: "transparent" }
   };
 
   const colors = stateColors[task.status] || stateColors.idle;
@@ -146,7 +146,7 @@ export function TaskWidget({ task, onApprove, onReject, onResolve, isCollapsing,
               </div>
             )
           ) : (
-            <div style={{ width: isRetro ? 14 : 24, height: isRetro ? 14 : 24, border: `1px solid ${isRetro ? "rgba(94, 234, 212, 0.2)" : "#e5e5e5"}`, borderRadius: isRetro ? 0 : 6 }} />
+            <div style={{ width: isRetro ? 14 : 24, height: isRetro ? 14 : 24, border: `1px solid ${isRetro ? "rgba(94, 234, 212, 0.2)" : theme.border}`, borderRadius: isRetro ? 0 : 6 }} />
           )}
 
           <span style={{ fontSize: isRetro ? 13 : 14, letterSpacing: isRetro ? "0.06em" : undefined, color: colors.text, fontWeight: isRetro ? 600 : 500 }}>{task.label}</span>
@@ -170,9 +170,9 @@ export function TaskWidget({ task, onApprove, onReject, onResolve, isCollapsing,
               >{isRetro ? "✓ APPROVE" : "Approve"}</button>
               <button
                 onClick={onReject}
-                style={{ background: isRetro ? "transparent" : "white", border: isRetro ? "2px solid rgba(239, 68, 68, 0.3)" : "1px solid #e5e5e5", color: isRetro ? "#f87171" : "#525252", padding: isRetro ? "12px 20px" : "10px 16px", fontSize: isRetro ? 11 : 13, letterSpacing: isRetro ? "0.1em" : undefined, cursor: "pointer", fontFamily: isRetro ? "monospace" : undefined, fontWeight: isRetro ? 700 : 500, borderRadius: isRetro ? 0 : 8 }}
-                onMouseEnter={(e) => { e.currentTarget.style.background = isRetro ? "rgba(239, 68, 68, 0.1)" : "#f5f5f5"; }}
-                onMouseLeave={(e) => { e.currentTarget.style.background = isRetro ? "transparent" : "white"; }}
+                style={{ background: isRetro ? "transparent" : theme.cardBg, border: isRetro ? "2px solid rgba(239, 68, 68, 0.3)" : `1px solid ${theme.border}`, color: isRetro ? "#f87171" : theme.textMuted, padding: isRetro ? "12px 20px" : "10px 16px", fontSize: isRetro ? 11 : 13, letterSpacing: isRetro ? "0.1em" : undefined, cursor: "pointer", fontFamily: isRetro ? "monospace" : undefined, fontWeight: isRetro ? 700 : 500, borderRadius: isRetro ? 0 : 8 }}
+                onMouseEnter={(e) => { e.currentTarget.style.background = isRetro ? "rgba(239, 68, 68, 0.1)" : theme.cardBgHover; }}
+                onMouseLeave={(e) => { e.currentTarget.style.background = isRetro ? "transparent" : theme.cardBg; }}
               >{isRetro ? "✕ REJECT" : "Reject"}</button>
             </div>
           </motion.div>

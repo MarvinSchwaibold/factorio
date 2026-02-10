@@ -4,7 +4,7 @@ import { useState, useRef, useCallback, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Grid3x3 } from "lucide-react";
 import { Toggle } from "@base-ui/react/toggle";
-import { theme, ThemeContext } from "@/lib/theme";
+import { theme, darkTheme, ThemeContext } from "@/lib/theme";
 import type { Task, SubWorkflowTask, WorkflowState } from "@/lib/types";
 import {
   GRID_SIZE, WIDGET_GAP, TASK_ROW_HEIGHT, TASK_CONNECTION_Y,
@@ -17,12 +17,13 @@ import {
   InsightsPreviewPanel, SubWorkflowPanel
 } from "@/components/workflow";
 import { useWorkflow } from "@/hooks/useWorkflow";
-import { SideNav, SIDEBAR_WIDTH_COLLAPSED, SIDEBAR_WIDTH_EXPANDED } from "@/components/SideNav";
+import { SideNav, SIDEBAR_WIDTH_COLLAPSED, SIDEBAR_WIDTH_EXPANDED, type AppMode } from "@/components/SideNav";
 import { CommerceView } from "@/components/CommerceView";
 import { InsightsView } from "@/components/InsightsView";
 import { SettingsView } from "@/components/SettingsView";
 import { HomeView } from "@/components/HomeView";
 import { InlineChat } from "@/components/InlineChat";
+import { Agentation } from "agentation";
 
 export default function Home() {
   const [zoom, setZoom] = useState(1);
@@ -42,11 +43,23 @@ export default function Home() {
   const deepCleanTaskCounterRef = useRef({ left: 0, right: 0 });
   const [autoPilot, setAutoPilot] = useState(false);
   const autoPilotTimerRef = useRef<{ left: NodeJS.Timeout | null; right: NodeJS.Timeout | null }>({ left: null, right: null });
-  const [activeCanvas, setActiveCanvas] = useState<"home" | "canvas" | "blueprint" | "commerce" | "insights" | "settings">("home");
+  const [activeCanvas, setActiveCanvas] = useState<"home" | "canvas" | "blueprint" | "commerce" | "insights" | "settings" | "mapview">("home");
+  const [appMode, setAppMode] = useState<AppMode>("admin");
   const [sidebarExpanded, setSidebarExpanded] = useState(true);
   const sidebarWidth = sidebarExpanded ? SIDEBAR_WIDTH_EXPANDED : SIDEBAR_WIDTH_COLLAPSED;
 
-  const accentColor = theme.accent;
+  const currentTheme = appMode === "map" ? darkTheme : theme;
+  const accentColor = currentTheme.accent;
+  const isDark = appMode === "map";
+
+  const handleModeChange = (mode: AppMode) => {
+    setAppMode(mode);
+    if (mode === "map") {
+      setActiveCanvas("canvas");
+    } else {
+      setActiveCanvas("home");
+    }
+  };
 
   const zoomSyncTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
@@ -408,11 +421,18 @@ export default function Home() {
   const anyCompleted = leftWorkflow.isCompleted || rightWorkflow.isCompleted;
 
   return (
-    <ThemeContext.Provider value={theme}>
-    <div className="h-screen w-screen overflow-hidden relative flex flex-col" style={{ background: "#f5f5f5", fontFamily: theme.fontFamily }}>
+    <ThemeContext.Provider value={currentTheme}>
+    <div className="h-screen w-screen overflow-hidden relative flex flex-col" style={{ background: appMode === "map" ? "#0f0f0f" : "#f5f5f5", fontFamily: theme.fontFamily }}>
 
       {/* Side Navigation */}
-      <SideNav activeView={activeCanvas} onViewChange={(view) => setActiveCanvas(view as typeof activeCanvas)} isExpanded={sidebarExpanded} onToggleExpand={() => setSidebarExpanded(!sidebarExpanded)} />
+      <SideNav
+        activeView={activeCanvas}
+        onViewChange={(view) => setActiveCanvas(view as typeof activeCanvas)}
+        isExpanded={sidebarExpanded}
+        onToggleExpand={() => setSidebarExpanded(!sidebarExpanded)}
+        appMode={appMode}
+        onModeChange={handleModeChange}
+      />
 
       {/* Fixed UI Elements - Only on main canvas */}
       {activeCanvas === "canvas" && <LiveStatusWidget
@@ -434,13 +454,13 @@ export default function Home() {
       />}
 
       {/* Zoom Controls - only on canvas/blueprint */}
-      {(activeCanvas === "canvas" || activeCanvas === "blueprint") && <div style={{ position: "fixed", top: 20, left: sidebarWidth + 20, display: "flex", alignItems: "center", gap: 8, zIndex: 1000, background: "white", border: `1px solid ${theme.borderLight}`, padding: "6px 8px", borderRadius: 8, boxShadow: "0 1px 3px rgba(0,0,0,0.08)", transition: "left 300ms cubic-bezier(0.4, 0, 0.2, 1)" }}>
-        <button onClick={resetView} style={{ background: "transparent", border: "none", color: theme.textMuted, padding: "6px 10px", fontSize: 11, cursor: "pointer", fontFamily: theme.fontFamily, fontWeight: 500, letterSpacing: "0.02em" }}>Reset</button>
-        <div style={{ width: 1, height: 16, background: theme.borderLight }} />
-        <button onClick={() => { zoomRef.current = Math.max(zoomRef.current * 0.8, 0.25); if (canvasRef.current) canvasRef.current.style.transform = `translate(${panRef.current.x}px, ${panRef.current.y}px) scale(${zoomRef.current})`; setZoom(zoomRef.current); }} style={{ background: "transparent", border: "none", color: theme.text, padding: "6px 8px", fontSize: 13, cursor: "pointer", fontFamily: theme.fontFamily, fontWeight: 500, lineHeight: 1 }}>−</button>
-        <span style={{ color: theme.textMuted, fontSize: 11, fontFamily: theme.fontFamily, minWidth: 36, textAlign: "center", fontWeight: 500 }}>{Math.round(zoom * 100)}%</span>
-        <button onClick={() => { zoomRef.current = Math.min(zoomRef.current * 1.2, 3); if (canvasRef.current) canvasRef.current.style.transform = `translate(${panRef.current.x}px, ${panRef.current.y}px) scale(${zoomRef.current})`; setZoom(zoomRef.current); }} style={{ background: "transparent", border: "none", color: theme.text, padding: "6px 8px", fontSize: 13, cursor: "pointer", fontFamily: theme.fontFamily, fontWeight: 500, lineHeight: 1 }}>+</button>
-        <div style={{ width: 1, height: 16, background: theme.borderLight }} />
+      {(activeCanvas === "canvas" || activeCanvas === "blueprint") && <div style={{ position: "fixed", top: 20, left: sidebarWidth + 20, display: "flex", alignItems: "center", gap: 8, zIndex: 1000, background: appMode === "map" ? "#1a1a1a" : "white", border: `1px solid ${appMode === "map" ? "#2a2a2a" : currentTheme.borderLight}`, padding: "6px 8px", borderRadius: 8, boxShadow: appMode === "map" ? "0 1px 3px rgba(0,0,0,0.3)" : "0 1px 3px rgba(0,0,0,0.08)", transition: "left 300ms cubic-bezier(0.4, 0, 0.2, 1)" }}>
+        <button onClick={resetView} style={{ background: "transparent", border: "none", color: currentTheme.textMuted, padding: "6px 10px", fontSize: 11, cursor: "pointer", fontFamily: theme.fontFamily, fontWeight: 500, letterSpacing: "0.02em" }}>Reset</button>
+        <div style={{ width: 1, height: 16, background: currentTheme.borderLight }} />
+        <button onClick={() => { zoomRef.current = Math.max(zoomRef.current * 0.8, 0.25); if (canvasRef.current) canvasRef.current.style.transform = `translate(${panRef.current.x}px, ${panRef.current.y}px) scale(${zoomRef.current})`; setZoom(zoomRef.current); }} style={{ background: "transparent", border: "none", color: currentTheme.text, padding: "6px 8px", fontSize: 13, cursor: "pointer", fontFamily: theme.fontFamily, fontWeight: 500, lineHeight: 1 }}>−</button>
+        <span style={{ color: currentTheme.textMuted, fontSize: 11, fontFamily: theme.fontFamily, minWidth: 36, textAlign: "center", fontWeight: 500 }}>{Math.round(zoom * 100)}%</span>
+        <button onClick={() => { zoomRef.current = Math.min(zoomRef.current * 1.2, 3); if (canvasRef.current) canvasRef.current.style.transform = `translate(${panRef.current.x}px, ${panRef.current.y}px) scale(${zoomRef.current})`; setZoom(zoomRef.current); }} style={{ background: "transparent", border: "none", color: currentTheme.text, padding: "6px 8px", fontSize: 13, cursor: "pointer", fontFamily: theme.fontFamily, fontWeight: 500, lineHeight: 1 }}>+</button>
+        <div style={{ width: 1, height: 16, background: currentTheme.borderLight }} />
         <button
           onClick={() => {
             if (activeCanvas === "blueprint") {
@@ -463,7 +483,7 @@ export default function Home() {
           style={{
             background: activeCanvas === "blueprint" ? "rgba(13, 148, 136, 0.08)" : "transparent",
             border: "none",
-            color: activeCanvas === "blueprint" ? theme.accent : theme.textMuted,
+            color: activeCanvas === "blueprint" ? currentTheme.accent : currentTheme.textMuted,
             padding: "6px 8px",
             cursor: "pointer",
             fontFamily: theme.fontFamily,
@@ -486,7 +506,7 @@ export default function Home() {
       <div style={{ marginLeft: sidebarWidth, transition: "margin-left 300ms cubic-bezier(0.4, 0, 0.2, 1)", height: "100vh", overflow: "hidden", padding: "8px 8px 8px 4px", display: "flex" }}>
       <div
         className="flex-1 relative overflow-hidden"
-        style={{ cursor: isPanning ? "grabbing" : "grab", background: "#ffffff", borderRadius: 12, border: "1px solid #e5e5e5" }}
+        style={{ cursor: isPanning ? "grabbing" : "grab", background: appMode === "map" ? "#141414" : "#ffffff", borderRadius: 12, border: appMode === "map" ? "1px solid #2a2a2a" : "1px solid #e5e5e5" }}
         onWheel={handleWheel}
         onMouseDown={handleMouseDown}
         onMouseMove={handleMouseMove}
@@ -504,7 +524,7 @@ export default function Home() {
               height: 10000,
               left: -5000,
               top: -5000,
-              backgroundImage: theme.gridPattern,
+              backgroundImage: currentTheme.gridPattern,
               backgroundSize: `${GRID_SIZE}px ${GRID_SIZE}px`,
               backgroundPosition: "0 0",
               pointerEvents: "none"
@@ -596,14 +616,14 @@ export default function Home() {
                 return (
                   <div className="relative" style={{ width: CONNECTION_WIDTH, height: Math.max(300, actualTasksHeight) }}>
                     <svg style={{ position: "absolute", top: 0, left: 0, width: "100%", height: "100%", overflow: "visible" }}>
-                      {!leftWorkflow.isCollapsing && <motion.path d={`M ${CONNECTION_WIDTH} ${AGENT_CENTER_Y} L ${CONNECTION_BEND_X} ${AGENT_CENTER_Y} L ${CONNECTION_BEND_X} ${targetY} L 0 ${targetY}`} fill="none" stroke={leftWorkflow.isCompleted ? "rgba(16, 185, 129, 0.4)" : hasReviewTask ? "rgba(224, 112, 32, 0.5)" : theme.connectionLine} strokeWidth="1" initial={{ pathLength: 0, opacity: 1 }} animate={{ pathLength: leftWorkflow.lineProgress > 0 || leftWorkflow.isCompleted ? 1 : 0, opacity: 1 }} exit={{ pathLength: 0, opacity: 0 }} transition={{ pathLength: { duration: 0.6 }, opacity: { duration: 0.3, ease: [0.32, 0.72, 0, 1] } }} />}
-                      {leftWorkflow.tasks.length > 1 && !leftWorkflow.isCompleted && !leftWorkflow.isCollapsing && <motion.path d={`M ${CONNECTION_BEND_X} ${CONNECTION_LINE_Y} L ${CONNECTION_BEND_X} ${CONNECTION_LINE_Y + (leftWorkflow.tasks.length - 1) * TASK_ROW_HEIGHT}`} fill="none" stroke={theme.connectionLineDim} strokeWidth="1" strokeDasharray="4 4" initial={{ pathLength: 0, opacity: 1 }} animate={{ pathLength: 1, opacity: 1 }} exit={{ pathLength: 0, opacity: 0 }} transition={{ duration: 0.5, ease: [0.32, 0.72, 0, 1] }} />}
-                      {!leftWorkflow.isCompleted && !leftWorkflow.isCollapsing && leftWorkflow.tasks.map((_, i) => <motion.path key={i} d={`M ${CONNECTION_BEND_X} ${CONNECTION_LINE_Y + i * TASK_ROW_HEIGHT} L 0 ${CONNECTION_LINE_Y + i * TASK_ROW_HEIGHT}`} fill="none" stroke={i === targetTaskIndex && hasReviewTask ? "rgba(224, 112, 32, 0.5)" : theme.connectionLine} strokeWidth="1" initial={{ pathLength: 0, opacity: 1 }} animate={{ pathLength: 1, opacity: 1 }} exit={{ pathLength: 0, opacity: 0 }} transition={{ duration: 0.45, ease: [0.32, 0.72, 0, 1] }} />)}
+                      {!leftWorkflow.isCollapsing && <motion.path d={`M ${CONNECTION_WIDTH} ${AGENT_CENTER_Y} L ${CONNECTION_BEND_X} ${AGENT_CENTER_Y} L ${CONNECTION_BEND_X} ${targetY} L 0 ${targetY}`} fill="none" stroke={leftWorkflow.isCompleted ? "rgba(16, 185, 129, 0.4)" : hasReviewTask ? "rgba(224, 112, 32, 0.5)" : currentTheme.connectionLine} strokeWidth="1" initial={{ pathLength: 0, opacity: 1 }} animate={{ pathLength: leftWorkflow.lineProgress > 0 || leftWorkflow.isCompleted ? 1 : 0, opacity: 1 }} exit={{ pathLength: 0, opacity: 0 }} transition={{ pathLength: { duration: 0.6 }, opacity: { duration: 0.3, ease: [0.32, 0.72, 0, 1] } }} />}
+                      {leftWorkflow.tasks.length > 1 && !leftWorkflow.isCompleted && !leftWorkflow.isCollapsing && <motion.path d={`M ${CONNECTION_BEND_X} ${CONNECTION_LINE_Y} L ${CONNECTION_BEND_X} ${CONNECTION_LINE_Y + (leftWorkflow.tasks.length - 1) * TASK_ROW_HEIGHT}`} fill="none" stroke={currentTheme.connectionLineDim} strokeWidth="1" strokeDasharray="4 4" initial={{ pathLength: 0, opacity: 1 }} animate={{ pathLength: 1, opacity: 1 }} exit={{ pathLength: 0, opacity: 0 }} transition={{ duration: 0.5, ease: [0.32, 0.72, 0, 1] }} />}
+                      {!leftWorkflow.isCompleted && !leftWorkflow.isCollapsing && leftWorkflow.tasks.map((_, i) => <motion.path key={i} d={`M ${CONNECTION_BEND_X} ${CONNECTION_LINE_Y + i * TASK_ROW_HEIGHT} L 0 ${CONNECTION_LINE_Y + i * TASK_ROW_HEIGHT}`} fill="none" stroke={i === targetTaskIndex && hasReviewTask ? "rgba(224, 112, 32, 0.5)" : currentTheme.connectionLine} strokeWidth="1" initial={{ pathLength: 0, opacity: 1 }} animate={{ pathLength: 1, opacity: 1 }} exit={{ pathLength: 0, opacity: 0 }} transition={{ duration: 0.45, ease: [0.32, 0.72, 0, 1] }} />)}
                     </svg>
-                    {!leftWorkflow.isCompleted && !leftWorkflow.isCollapsing && leftWorkflow.tasks.length > 0 && leftWorkflow.lineProgress > 0.3 && <motion.div initial={{ scale: 0, opacity: 0, y: 0 }} animate={leftWorkflow.isCollapsing ? { scale: [1, 1.3, 0], opacity: [1, 0.8, 0], y: -12, filter: "blur(8px)" } : { scale: [1, 1.2, 1], opacity: 1, y: 0 }} transition={leftWorkflow.isCollapsing ? { duration: 0.5, delay: 0.3 + leftWorkflow.tasks.length * 0.06, ease: [0.32, 0.72, 0, 1] } : { duration: 1, repeat: Infinity }} style={{ position: "absolute", left: CONNECTION_WIDTH - 3, top: AGENT_CENTER_Y - 3, width: 6, height: 6, borderRadius: 0, background: hasReviewTask ? "#e07020" : accentColor, boxShadow: hasReviewTask ? "0 0 8px #e07020" : theme.glowAccent }} />}
-                    {!leftWorkflow.isCompleted && !leftWorkflow.isCollapsing && leftWorkflow.tasks.length > 0 && leftWorkflow.lineProgress > 0.6 && <motion.div initial={{ scale: 0, opacity: 0 }} animate={leftWorkflow.isCollapsing ? { scale: [1, 1.3, 0], opacity: [1, 0.8, 0], filter: "blur(8px)" } : { scale: [1, 1.2, 1], opacity: 1 }} transition={leftWorkflow.isCollapsing ? { duration: 0.5, delay: 0.2 + leftWorkflow.tasks.length * 0.06, ease: [0.32, 0.72, 0, 1] } : { duration: 1, repeat: Infinity, delay: 0.2 }} style={{ position: "absolute", left: CONNECTION_BEND_X - 3, top: targetY - 3, width: 6, height: 6, borderRadius: 0, background: hasReviewTask ? "#e07020" : accentColor, boxShadow: hasReviewTask ? "0 0 8px #e07020" : theme.glowAccent }} />}
+                    {!leftWorkflow.isCompleted && !leftWorkflow.isCollapsing && leftWorkflow.tasks.length > 0 && leftWorkflow.lineProgress > 0.3 && <motion.div initial={{ scale: 0, opacity: 0, y: 0 }} animate={leftWorkflow.isCollapsing ? { scale: [1, 1.3, 0], opacity: [1, 0.8, 0], y: -12, filter: "blur(8px)" } : { scale: [1, 1.2, 1], opacity: 1, y: 0 }} transition={leftWorkflow.isCollapsing ? { duration: 0.5, delay: 0.3 + leftWorkflow.tasks.length * 0.06, ease: [0.32, 0.72, 0, 1] } : { duration: 1, repeat: Infinity }} style={{ position: "absolute", left: CONNECTION_WIDTH - 3, top: AGENT_CENTER_Y - 3, width: 6, height: 6, borderRadius: 0, background: hasReviewTask ? "#e07020" : accentColor, boxShadow: hasReviewTask ? "0 0 8px #e07020" : currentTheme.glowAccent }} />}
+                    {!leftWorkflow.isCompleted && !leftWorkflow.isCollapsing && leftWorkflow.tasks.length > 0 && leftWorkflow.lineProgress > 0.6 && <motion.div initial={{ scale: 0, opacity: 0 }} animate={leftWorkflow.isCollapsing ? { scale: [1, 1.3, 0], opacity: [1, 0.8, 0], filter: "blur(8px)" } : { scale: [1, 1.2, 1], opacity: 1 }} transition={leftWorkflow.isCollapsing ? { duration: 0.5, delay: 0.2 + leftWorkflow.tasks.length * 0.06, ease: [0.32, 0.72, 0, 1] } : { duration: 1, repeat: Infinity, delay: 0.2 }} style={{ position: "absolute", left: CONNECTION_BEND_X - 3, top: targetY - 3, width: 6, height: 6, borderRadius: 0, background: hasReviewTask ? "#e07020" : accentColor, boxShadow: hasReviewTask ? "0 0 8px #e07020" : currentTheme.glowAccent }} />}
                     {leftWorkflow.isCompleted && <motion.div initial={{ scale: 0 }} animate={{ scale: 1 }} transition={{ type: "spring", stiffness: 400, damping: 20 }} style={{ position: "absolute", left: -3, top: CONNECTION_LINE_Y - 6, width: 12, height: 12, borderRadius: 0, background: "#10b981", boxShadow: "0 0 12px rgba(16, 185, 129, 0.6)" }} />}
-                    {!leftWorkflow.isCompleted && !leftWorkflow.isCollapsing && leftWorkflow.tasks.length > 0 && leftWorkflow.tasks.map((task, i) => <motion.div key={`node-${i}`} initial={{ scale: 0, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0, opacity: 0 }} transition={{ duration: 0.3 }} style={{ position: "absolute", left: -3, top: CONNECTION_LINE_Y - 3 + i * TASK_ROW_HEIGHT, width: 6, height: 6, borderRadius: 0, background: task.status === "needs_approval" || task.status === "needs_resolve" ? "#e07020" : task.status === "failed" ? "#ef4444" : task.status === "fixing" ? "#3b82f6" : task.status === "rewriting" ? "#a855f7" : task.status === "completed" ? "#10b981" : task.status === "working" ? accentColor : theme.dotDim, boxShadow: task.status === "needs_approval" || task.status === "needs_resolve" ? "0 0 8px #e07020" : task.status === "failed" ? "0 0 8px #ef4444" : task.status === "fixing" ? "0 0 8px #3b82f6" : task.status === "rewriting" ? "0 0 8px #a855f7" : task.status === "completed" ? "0 0 8px #10b981" : task.status === "working" ? theme.glowAccent : "none" }} />)}
+                    {!leftWorkflow.isCompleted && !leftWorkflow.isCollapsing && leftWorkflow.tasks.length > 0 && leftWorkflow.tasks.map((task, i) => <motion.div key={`node-${i}`} initial={{ scale: 0, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0, opacity: 0 }} transition={{ duration: 0.3 }} style={{ position: "absolute", left: -3, top: CONNECTION_LINE_Y - 3 + i * TASK_ROW_HEIGHT, width: 6, height: 6, borderRadius: 0, background: task.status === "needs_approval" || task.status === "needs_resolve" ? "#e07020" : task.status === "failed" ? "#ef4444" : task.status === "fixing" ? "#3b82f6" : task.status === "rewriting" ? "#a855f7" : task.status === "completed" ? "#10b981" : task.status === "working" ? accentColor : currentTheme.dotDim, boxShadow: task.status === "needs_approval" || task.status === "needs_resolve" ? "0 0 8px #e07020" : task.status === "failed" ? "0 0 8px #ef4444" : task.status === "fixing" ? "0 0 8px #3b82f6" : task.status === "rewriting" ? "0 0 8px #a855f7" : task.status === "completed" ? "0 0 8px #10b981" : task.status === "working" ? currentTheme.glowAccent : "none" }} />)}
                     {leftWorkflow.isRunning && !leftWorkflow.awaitingApproval && !leftWorkflow.isCompleted && !leftWorkflow.isCollapsing && Array.from({ length: numDots }).map((_, i) => <EnergyDot key={`main-${i}`} delay={(i / numDots) * cycleDuration} color={hasReviewTask ? "#e07020" : accentColor} duration={cycleDuration} path={`M ${CONNECTION_WIDTH} ${AGENT_CENTER_Y} L ${CONNECTION_BEND_X} ${AGENT_CENTER_Y}`} />)}
                     {leftWorkflow.isRunning && !leftWorkflow.awaitingApproval && !leftWorkflow.isCompleted && !leftWorkflow.isCollapsing && leftWorkflow.tasks.map((_, taskIndex) =>
                       Array.from({ length: 2 }).map((__, i) => <EnergyDot key={`branch-${taskIndex}-${i}`} delay={(i / 2) * 1.5 + taskIndex * 0.3} color={taskIndex === targetTaskIndex && hasReviewTask ? "#e07020" : accentColor} duration={1.5} path={`M ${CONNECTION_BEND_X} ${CONNECTION_LINE_Y + taskIndex * TASK_ROW_HEIGHT} L 0 ${CONNECTION_LINE_Y + taskIndex * TASK_ROW_HEIGHT}`} />)
@@ -614,23 +634,23 @@ export default function Home() {
             </div>
 
             {/* Agent Container */}
-            <div className="relative p-6" style={{ border: `1px solid ${theme.border}`, background: theme.cardBg, borderRadius: 12, boxShadow: "0 1px 3px rgba(0,0,0,0.06)" }}>
+            <div className="relative p-6" style={{ border: `1px solid ${currentTheme.border}`, background: currentTheme.cardBg, borderRadius: 12, boxShadow: "0 1px 3px rgba(0,0,0,0.06)" }}>
               <div style={{ display: "grid", gridTemplateColumns: "80px 140px 80px", gridTemplateRows: "60px 140px 60px", gap: 20, width: 340 }}>
                 <ServerRack />
-                <div style={{ border: `1px solid ${theme.borderDim}`, display: "flex", alignItems: "center", justifyContent: "center" }}><div style={{ width: 32, height: 14, border: `1px solid ${theme.borderDim}` }} /></div>
+                <div style={{ border: `1px solid ${currentTheme.borderDim}`, display: "flex", alignItems: "center", justifyContent: "center" }}><div style={{ width: 32, height: 14, border: `1px solid ${currentTheme.borderDim}` }} /></div>
                 <ServerRack />
-                <div style={{ border: `1px solid ${theme.borderDim}`, display: "flex", alignItems: "center", justifyContent: "center" }}><div style={{ width: 26, height: 14, border: `1px solid ${theme.borderDim}` }} /></div>
+                <div style={{ border: `1px solid ${currentTheme.borderDim}`, display: "flex", alignItems: "center", justifyContent: "center" }}><div style={{ width: 26, height: 14, border: `1px solid ${currentTheme.borderDim}` }} /></div>
 
-                <div className="relative flex flex-col items-center justify-center" style={{ border: `1px solid ${theme.border}`, background: anyRunning ? "rgba(13, 148, 136, 0.06)" : "#f9fafb", borderRadius: 8 }}>
-                  <div style={{ position: "absolute", top: -11, left: "50%", transform: "translateX(-50%)", width: 1, height: 10, background: theme.borderLight }} />
-                  <div style={{ position: "absolute", bottom: -11, left: "50%", transform: "translateX(-50%)", width: 1, height: 10, background: theme.borderLight }} />
-                  <div style={{ position: "absolute", left: -11, top: "50%", transform: "translateY(-50%)", width: 10, height: 1, background: theme.borderLight }} />
-                  <div style={{ position: "absolute", right: -11, top: "50%", transform: "translateY(-50%)", width: 10, height: 1, background: theme.borderLight }} />
-                  <div style={{ position: "absolute", top: 6, left: 6, width: 14, height: 14, borderTop: `2px solid ${theme.border}`, borderLeft: `2px solid ${theme.border}` }} />
-                  <div style={{ position: "absolute", top: 6, right: 6, width: 14, height: 14, borderTop: `2px solid ${theme.border}`, borderRight: `2px solid ${theme.border}` }} />
-                  <div style={{ position: "absolute", bottom: 6, left: 6, width: 14, height: 14, borderBottom: `2px solid ${theme.border}`, borderLeft: `2px solid ${theme.border}` }} />
-                  <div style={{ position: "absolute", bottom: 6, right: 6, width: 14, height: 14, borderBottom: `2px solid ${theme.border}`, borderRight: `2px solid ${theme.border}` }} />
-                  {anyRunning && <motion.div animate={{ scale: [1, 1.3, 1], opacity: [0.3, 0.6, 0.3] }} transition={{ duration: 1.5, repeat: Infinity }} style={{ position: "absolute", inset: 0, border: `2px solid ${theme.border}` }} />}
+                <div className="relative flex flex-col items-center justify-center" style={{ border: `1px solid ${currentTheme.border}`, background: anyRunning ? "rgba(13, 148, 136, 0.06)" : currentTheme.cardBgHover, borderRadius: 8 }}>
+                  <div style={{ position: "absolute", top: -11, left: "50%", transform: "translateX(-50%)", width: 1, height: 10, background: currentTheme.borderLight }} />
+                  <div style={{ position: "absolute", bottom: -11, left: "50%", transform: "translateX(-50%)", width: 1, height: 10, background: currentTheme.borderLight }} />
+                  <div style={{ position: "absolute", left: -11, top: "50%", transform: "translateY(-50%)", width: 10, height: 1, background: currentTheme.borderLight }} />
+                  <div style={{ position: "absolute", right: -11, top: "50%", transform: "translateY(-50%)", width: 10, height: 1, background: currentTheme.borderLight }} />
+                  <div style={{ position: "absolute", top: 6, left: 6, width: 14, height: 14, borderTop: `2px solid ${currentTheme.border}`, borderLeft: `2px solid ${currentTheme.border}` }} />
+                  <div style={{ position: "absolute", top: 6, right: 6, width: 14, height: 14, borderTop: `2px solid ${currentTheme.border}`, borderRight: `2px solid ${currentTheme.border}` }} />
+                  <div style={{ position: "absolute", bottom: 6, left: 6, width: 14, height: 14, borderBottom: `2px solid ${currentTheme.border}`, borderLeft: `2px solid ${currentTheme.border}` }} />
+                  <div style={{ position: "absolute", bottom: 6, right: 6, width: 14, height: 14, borderBottom: `2px solid ${currentTheme.border}`, borderRight: `2px solid ${currentTheme.border}` }} />
+                  {anyRunning && <motion.div animate={{ scale: [1, 1.3, 1], opacity: [0.3, 0.6, 0.3] }} transition={{ duration: 1.5, repeat: Infinity }} style={{ position: "absolute", inset: 0, border: `2px solid ${currentTheme.border}` }} />}
                   <svg xmlns="http://www.w3.org/2000/svg" xmlSpace="preserve" style={{ width: 28, height: 32, marginBottom: 8 }} viewBox="0 0 109.5 124.5"><path d="M95.9 23.9c-.1-.6-.6-1-1.1-1-.5 0-9.3-.2-9.3-.2s-7.4-7.2-8.1-7.9c-.7-.7-2.2-.5-2.7-.3 0 0-1.4.4-3.7 1.1-.4-1.3-1-2.8-1.8-4.4-2.6-5-6.5-7.7-11.1-7.7-.3 0-.6 0-1 .1-.1-.2-.3-.3-.4-.5C54.7.9 52.1-.1 49 0c-6 .2-12 4.5-16.8 12.2-3.4 5.4-6 12.2-6.8 17.5-6.9 2.1-11.7 3.6-11.8 3.7-3.5 1.1-3.6 1.2-4 4.5-.3 2.5-9.5 73-9.5 73l76.4 13.2 33.1-8.2c-.1-.1-13.6-91.4-13.7-92zm-28.7-7.1c-1.8.5-3.8 1.2-5.9 1.8 0-3-.4-7.3-1.8-10.9 4.5.9 6.7 6 7.7 9.1zm-10 3.1c-4 1.2-8.4 2.6-12.8 3.9 1.2-4.7 3.6-9.4 6.4-12.5 1.1-1.1 2.6-2.4 4.3-3.2 1.8 3.5 2.2 8.4 2.1 11.8zM49.1 4c1.4 0 2.6.3 3.6.9-1.6.9-3.2 2.1-4.7 3.7-3.8 4.1-6.7 10.5-7.9 16.6-3.6 1.1-7.2 2.2-10.5 3.2C31.7 18.8 39.8 4.3 49.1 4z" style={{ fill: "#95bf47" }} /><path d="M94.8 22.9c-.5 0-9.3-.2-9.3-.2s-7.4-7.2-8.1-7.9c-.3-.3-.6-.4-1-.5V124l33.1-8.2S96 24.5 95.9 23.8c-.1-.5-.6-.9-1.1-.9z" style={{ fill: "#5e8e3e" }} /><path d="m58 39.9-3.8 14.4s-4.3-2-9.4-1.6c-7.5.5-7.5 5.2-7.5 6.4.4 6.4 17.3 7.8 18.3 22.9.7 11.9-6.3 20-16.4 20.6-12.2.8-18.9-6.4-18.9-6.4l2.6-11s6.7 5.1 12.1 4.7c3.5-.2 4.8-3.1 4.7-5.1-.5-8.4-14.3-7.9-15.2-21.7-.7-11.6 6.9-23.4 23.7-24.4 6.5-.5 9.8 1.2 9.8 1.2z" style={{ fill: "#fff" }} /></svg>
                   <Toggle
                     pressed={autoPilot}
@@ -638,8 +658,8 @@ export default function Home() {
                     className="autopilot-toggle"
                     style={(state) => ({
                       background: state.pressed ? "rgba(13, 148, 136, 0.12)" : "transparent",
-                      border: `1px solid ${state.pressed ? "rgba(13, 148, 136, 0.4)" : "#d1d5db"}`,
-                      color: state.pressed ? theme.accent : theme.textMuted,
+                      border: `1px solid ${state.pressed ? "rgba(13, 148, 136, 0.4)" : currentTheme.border}`,
+                      color: state.pressed ? currentTheme.accent : currentTheme.textMuted,
                       padding: "3px 8px",
                       fontSize: 9,
                       cursor: "pointer",
@@ -654,9 +674,9 @@ export default function Home() {
                   </Toggle>
                 </div>
 
-                <div style={{ border: `1px solid ${theme.borderDim}`, display: "flex", alignItems: "center", justifyContent: "center" }}><div style={{ width: 26, height: 14, border: `1px solid ${theme.borderDim}` }} /></div>
+                <div style={{ border: `1px solid ${currentTheme.borderDim}`, display: "flex", alignItems: "center", justifyContent: "center" }}><div style={{ width: 26, height: 14, border: `1px solid ${currentTheme.borderDim}` }} /></div>
                 <ServerRack />
-                <div style={{ border: `1px solid ${theme.borderDim}`, display: "flex", alignItems: "center", justifyContent: "center" }}><div style={{ width: 32, height: 14, border: `1px solid ${theme.borderDim}` }} /></div>
+                <div style={{ border: `1px solid ${currentTheme.borderDim}`, display: "flex", alignItems: "center", justifyContent: "center" }}><div style={{ width: 32, height: 14, border: `1px solid ${currentTheme.borderDim}` }} /></div>
                 <ServerRack />
               </div>
             </div>
@@ -677,14 +697,14 @@ export default function Home() {
                 return (
                   <div className="relative" style={{ width: CONNECTION_WIDTH, height: Math.max(300, actualTasksHeight) }}>
                     <svg style={{ position: "absolute", top: 0, left: 0, width: "100%", height: "100%", overflow: "visible" }}>
-                      {!rightWorkflow.isCollapsing && <motion.path d={`M 0 ${AGENT_CENTER_Y} L ${CONNECTION_BEND_X} ${AGENT_CENTER_Y} L ${CONNECTION_BEND_X} ${targetY} L ${CONNECTION_WIDTH} ${targetY}`} fill="none" stroke={rightWorkflow.isCompleted ? "rgba(16, 185, 129, 0.4)" : hasReviewTask ? "rgba(224, 112, 32, 0.5)" : theme.connectionLine} strokeWidth="1" initial={{ pathLength: 0, opacity: 1 }} animate={{ pathLength: rightWorkflow.lineProgress > 0 || rightWorkflow.isCompleted ? 1 : 0, opacity: 1 }} exit={{ pathLength: 0, opacity: 0 }} transition={{ pathLength: { duration: 0.6 }, opacity: { duration: 0.3, ease: [0.32, 0.72, 0, 1] } }} />}
-                      {rightWorkflow.tasks.length > 1 && !rightWorkflow.isCompleted && !rightWorkflow.isCollapsing && <motion.path d={`M ${CONNECTION_BEND_X} ${CONNECTION_LINE_Y} L ${CONNECTION_BEND_X} ${CONNECTION_LINE_Y + (rightWorkflow.tasks.length - 1) * TASK_ROW_HEIGHT}`} fill="none" stroke={theme.connectionLineDim} strokeWidth="1" strokeDasharray="4 4" initial={{ pathLength: 0, opacity: 1 }} animate={{ pathLength: 1, opacity: 1 }} exit={{ pathLength: 0, opacity: 0 }} transition={{ duration: 0.5, ease: [0.32, 0.72, 0, 1] }} />}
-                      {!rightWorkflow.isCompleted && !rightWorkflow.isCollapsing && rightWorkflow.tasks.map((_, i) => <motion.path key={i} d={`M ${CONNECTION_BEND_X} ${CONNECTION_LINE_Y + i * TASK_ROW_HEIGHT} L ${CONNECTION_WIDTH} ${CONNECTION_LINE_Y + i * TASK_ROW_HEIGHT}`} fill="none" stroke={i === targetTaskIndex && hasReviewTask ? "rgba(224, 112, 32, 0.5)" : theme.connectionLine} strokeWidth="1" initial={{ pathLength: 0, opacity: 1 }} animate={{ pathLength: 1, opacity: 1 }} exit={{ pathLength: 0, opacity: 0 }} transition={{ duration: 0.45, ease: [0.32, 0.72, 0, 1] }} />)}
+                      {!rightWorkflow.isCollapsing && <motion.path d={`M 0 ${AGENT_CENTER_Y} L ${CONNECTION_BEND_X} ${AGENT_CENTER_Y} L ${CONNECTION_BEND_X} ${targetY} L ${CONNECTION_WIDTH} ${targetY}`} fill="none" stroke={rightWorkflow.isCompleted ? "rgba(16, 185, 129, 0.4)" : hasReviewTask ? "rgba(224, 112, 32, 0.5)" : currentTheme.connectionLine} strokeWidth="1" initial={{ pathLength: 0, opacity: 1 }} animate={{ pathLength: rightWorkflow.lineProgress > 0 || rightWorkflow.isCompleted ? 1 : 0, opacity: 1 }} exit={{ pathLength: 0, opacity: 0 }} transition={{ pathLength: { duration: 0.6 }, opacity: { duration: 0.3, ease: [0.32, 0.72, 0, 1] } }} />}
+                      {rightWorkflow.tasks.length > 1 && !rightWorkflow.isCompleted && !rightWorkflow.isCollapsing && <motion.path d={`M ${CONNECTION_BEND_X} ${CONNECTION_LINE_Y} L ${CONNECTION_BEND_X} ${CONNECTION_LINE_Y + (rightWorkflow.tasks.length - 1) * TASK_ROW_HEIGHT}`} fill="none" stroke={currentTheme.connectionLineDim} strokeWidth="1" strokeDasharray="4 4" initial={{ pathLength: 0, opacity: 1 }} animate={{ pathLength: 1, opacity: 1 }} exit={{ pathLength: 0, opacity: 0 }} transition={{ duration: 0.5, ease: [0.32, 0.72, 0, 1] }} />}
+                      {!rightWorkflow.isCompleted && !rightWorkflow.isCollapsing && rightWorkflow.tasks.map((_, i) => <motion.path key={i} d={`M ${CONNECTION_BEND_X} ${CONNECTION_LINE_Y + i * TASK_ROW_HEIGHT} L ${CONNECTION_WIDTH} ${CONNECTION_LINE_Y + i * TASK_ROW_HEIGHT}`} fill="none" stroke={i === targetTaskIndex && hasReviewTask ? "rgba(224, 112, 32, 0.5)" : currentTheme.connectionLine} strokeWidth="1" initial={{ pathLength: 0, opacity: 1 }} animate={{ pathLength: 1, opacity: 1 }} exit={{ pathLength: 0, opacity: 0 }} transition={{ duration: 0.45, ease: [0.32, 0.72, 0, 1] }} />)}
                     </svg>
-                    {!rightWorkflow.isCompleted && !rightWorkflow.isCollapsing && rightWorkflow.tasks.length > 0 && rightWorkflow.lineProgress > 0.3 && <motion.div initial={{ scale: 0, opacity: 0, y: 0 }} animate={rightWorkflow.isCollapsing ? { scale: [1, 1.3, 0], opacity: [1, 0.8, 0], y: -12, filter: "blur(8px)" } : { scale: [1, 1.2, 1], opacity: 1, y: 0 }} transition={rightWorkflow.isCollapsing ? { duration: 0.5, delay: 0.3 + rightWorkflow.tasks.length * 0.06, ease: [0.32, 0.72, 0, 1] } : { duration: 1, repeat: Infinity }} style={{ position: "absolute", left: -3, top: AGENT_CENTER_Y - 3, width: 6, height: 6, borderRadius: 0, background: hasReviewTask ? "#e07020" : accentColor, boxShadow: hasReviewTask ? "0 0 8px #e07020" : theme.glowAccent }} />}
-                    {!rightWorkflow.isCompleted && !rightWorkflow.isCollapsing && rightWorkflow.tasks.length > 0 && rightWorkflow.lineProgress > 0.6 && <motion.div initial={{ scale: 0, opacity: 0 }} animate={rightWorkflow.isCollapsing ? { scale: [1, 1.3, 0], opacity: [1, 0.8, 0], filter: "blur(8px)" } : { scale: [1, 1.2, 1], opacity: 1 }} transition={rightWorkflow.isCollapsing ? { duration: 0.5, delay: 0.2 + rightWorkflow.tasks.length * 0.06, ease: [0.32, 0.72, 0, 1] } : { duration: 1, repeat: Infinity, delay: 0.2 }} style={{ position: "absolute", left: CONNECTION_BEND_X - 3, top: targetY - 3, width: 6, height: 6, borderRadius: 0, background: hasReviewTask ? "#e07020" : accentColor, boxShadow: hasReviewTask ? "0 0 8px #e07020" : theme.glowAccent }} />}
+                    {!rightWorkflow.isCompleted && !rightWorkflow.isCollapsing && rightWorkflow.tasks.length > 0 && rightWorkflow.lineProgress > 0.3 && <motion.div initial={{ scale: 0, opacity: 0, y: 0 }} animate={rightWorkflow.isCollapsing ? { scale: [1, 1.3, 0], opacity: [1, 0.8, 0], y: -12, filter: "blur(8px)" } : { scale: [1, 1.2, 1], opacity: 1, y: 0 }} transition={rightWorkflow.isCollapsing ? { duration: 0.5, delay: 0.3 + rightWorkflow.tasks.length * 0.06, ease: [0.32, 0.72, 0, 1] } : { duration: 1, repeat: Infinity }} style={{ position: "absolute", left: -3, top: AGENT_CENTER_Y - 3, width: 6, height: 6, borderRadius: 0, background: hasReviewTask ? "#e07020" : accentColor, boxShadow: hasReviewTask ? "0 0 8px #e07020" : currentTheme.glowAccent }} />}
+                    {!rightWorkflow.isCompleted && !rightWorkflow.isCollapsing && rightWorkflow.tasks.length > 0 && rightWorkflow.lineProgress > 0.6 && <motion.div initial={{ scale: 0, opacity: 0 }} animate={rightWorkflow.isCollapsing ? { scale: [1, 1.3, 0], opacity: [1, 0.8, 0], filter: "blur(8px)" } : { scale: [1, 1.2, 1], opacity: 1 }} transition={rightWorkflow.isCollapsing ? { duration: 0.5, delay: 0.2 + rightWorkflow.tasks.length * 0.06, ease: [0.32, 0.72, 0, 1] } : { duration: 1, repeat: Infinity, delay: 0.2 }} style={{ position: "absolute", left: CONNECTION_BEND_X - 3, top: targetY - 3, width: 6, height: 6, borderRadius: 0, background: hasReviewTask ? "#e07020" : accentColor, boxShadow: hasReviewTask ? "0 0 8px #e07020" : currentTheme.glowAccent }} />}
                     {rightWorkflow.isCompleted && <motion.div initial={{ scale: 0 }} animate={{ scale: 1 }} transition={{ type: "spring", stiffness: 400, damping: 20 }} style={{ position: "absolute", left: CONNECTION_WIDTH - 6, top: CONNECTION_LINE_Y - 6, width: 12, height: 12, borderRadius: 0, background: "#10b981", boxShadow: "0 0 12px rgba(16, 185, 129, 0.6)" }} />}
-                    {!rightWorkflow.isCompleted && !rightWorkflow.isCollapsing && rightWorkflow.tasks.length > 0 && rightWorkflow.tasks.map((task, i) => <motion.div key={`node-${i}`} initial={{ scale: 0, opacity: 0, x: 0, y: 0 }} animate={rightWorkflow.isCollapsing ? { scale: [1, 1.4, 0], opacity: [1, 0.6, 0], x: 15, y: -8, filter: "blur(10px)" } : { scale: 1, opacity: 1, x: 0, y: 0 }} transition={rightWorkflow.isCollapsing ? { duration: 0.55, delay: i * 0.06, ease: [0.32, 0.72, 0, 1] } : { duration: 0.3 }} style={{ position: "absolute", left: CONNECTION_WIDTH - 3, top: CONNECTION_LINE_Y - 3 + i * TASK_ROW_HEIGHT, width: 6, height: 6, borderRadius: 0, background: task.status === "needs_approval" || task.status === "needs_resolve" ? "#e07020" : task.status === "failed" ? "#ef4444" : task.status === "fixing" ? "#3b82f6" : task.status === "rewriting" ? "#a855f7" : task.status === "completed" ? "#10b981" : task.status === "working" ? accentColor : theme.dotDim, boxShadow: task.status === "needs_approval" || task.status === "needs_resolve" ? "0 0 8px #e07020" : task.status === "failed" ? "0 0 8px #ef4444" : task.status === "fixing" ? "0 0 8px #3b82f6" : task.status === "rewriting" ? "0 0 8px #a855f7" : task.status === "completed" ? "0 0 8px #10b981" : task.status === "working" ? theme.glowAccent : "none" }} />)}
+                    {!rightWorkflow.isCompleted && !rightWorkflow.isCollapsing && rightWorkflow.tasks.length > 0 && rightWorkflow.tasks.map((task, i) => <motion.div key={`node-${i}`} initial={{ scale: 0, opacity: 0, x: 0, y: 0 }} animate={rightWorkflow.isCollapsing ? { scale: [1, 1.4, 0], opacity: [1, 0.6, 0], x: 15, y: -8, filter: "blur(10px)" } : { scale: 1, opacity: 1, x: 0, y: 0 }} transition={rightWorkflow.isCollapsing ? { duration: 0.55, delay: i * 0.06, ease: [0.32, 0.72, 0, 1] } : { duration: 0.3 }} style={{ position: "absolute", left: CONNECTION_WIDTH - 3, top: CONNECTION_LINE_Y - 3 + i * TASK_ROW_HEIGHT, width: 6, height: 6, borderRadius: 0, background: task.status === "needs_approval" || task.status === "needs_resolve" ? "#e07020" : task.status === "failed" ? "#ef4444" : task.status === "fixing" ? "#3b82f6" : task.status === "rewriting" ? "#a855f7" : task.status === "completed" ? "#10b981" : task.status === "working" ? accentColor : currentTheme.dotDim, boxShadow: task.status === "needs_approval" || task.status === "needs_resolve" ? "0 0 8px #e07020" : task.status === "failed" ? "0 0 8px #ef4444" : task.status === "fixing" ? "0 0 8px #3b82f6" : task.status === "rewriting" ? "0 0 8px #a855f7" : task.status === "completed" ? "0 0 8px #10b981" : task.status === "working" ? currentTheme.glowAccent : "none" }} />)}
                     {rightWorkflow.isRunning && !rightWorkflow.awaitingApproval && !rightWorkflow.isCompleted && !rightWorkflow.isCollapsing && Array.from({ length: numDots }).map((_, i) => <EnergyDot key={`main-${i}`} delay={(i / numDots) * cycleDuration} color={hasReviewTask ? "#e07020" : accentColor} duration={cycleDuration} path={`M 0 ${AGENT_CENTER_Y} L ${CONNECTION_BEND_X} ${AGENT_CENTER_Y}`} />)}
                     {rightWorkflow.isRunning && !rightWorkflow.awaitingApproval && !rightWorkflow.isCompleted && !rightWorkflow.isCollapsing && rightWorkflow.tasks.map((_, taskIndex) =>
                       Array.from({ length: 2 }).map((__, i) => <EnergyDot key={`branch-${taskIndex}-${i}`} delay={(i / 2) * 1.5 + taskIndex * 0.3} color={taskIndex === targetTaskIndex && hasReviewTask ? "#e07020" : accentColor} duration={1.5} path={`M ${CONNECTION_BEND_X} ${CONNECTION_LINE_Y + taskIndex * TASK_ROW_HEIGHT} L ${CONNECTION_WIDTH} ${CONNECTION_LINE_Y + taskIndex * TASK_ROW_HEIGHT}`} />)
@@ -770,10 +790,10 @@ export default function Home() {
       <div
         className="flex-1 relative overflow-hidden"
         style={{
-          background: "#ffffff",
+          background: appMode === "map" ? "#141414" : "#ffffff",
           borderRadius: 12,
-          border: "1px solid #e5e5e5",
-          cursor: isPanning ? "grabbing" : "grab"
+          border: appMode === "map" ? "1px solid #2a2a2a" : "1px solid #e5e5e5",
+          cursor: isPanning ? "grabbing" : "grab",
         }}
         onWheel={handleWheel}
         onMouseDown={handleMouseDown}
@@ -788,7 +808,7 @@ export default function Home() {
             height: 10000,
             left: -5000,
             top: -5000,
-            backgroundImage: theme.gridPattern,
+            backgroundImage: currentTheme.gridPattern,
             backgroundSize: "40px 40px",
             backgroundPosition: "0 0",
             pointerEvents: "none"
@@ -810,7 +830,7 @@ export default function Home() {
           }}>
             {/* Working State */}
             <div>
-              <div style={{ color: theme.textMuted, fontSize: 11, fontWeight: 600, letterSpacing: "0.02em", marginBottom: 12, fontFamily: theme.fontFamily }}>WORKING</div>
+              <div style={{ color: currentTheme.textMuted, fontSize: 11, fontWeight: 600, letterSpacing: "0.02em", marginBottom: 12, fontFamily: theme.fontFamily }}>WORKING</div>
               <TaskWidget
                 task={{ id: "bp-1", label: "Process Customer Data", status: "working" }}
               />
@@ -818,7 +838,7 @@ export default function Home() {
 
             {/* Completed State */}
             <div>
-              <div style={{ color: theme.textMuted, fontSize: 11, fontWeight: 600, letterSpacing: "0.02em", marginBottom: 12, fontFamily: theme.fontFamily }}>COMPLETED</div>
+              <div style={{ color: currentTheme.textMuted, fontSize: 11, fontWeight: 600, letterSpacing: "0.02em", marginBottom: 12, fontFamily: theme.fontFamily }}>COMPLETED</div>
               <TaskWidget
                 task={{ id: "bp-2", label: "Generate Analytics Report", status: "completed" }}
               />
@@ -826,7 +846,7 @@ export default function Home() {
 
             {/* Needs Approval State */}
             <div>
-              <div style={{ color: theme.textMuted, fontSize: 11, fontWeight: 600, letterSpacing: "0.02em", marginBottom: 12, fontFamily: theme.fontFamily }}>NEEDS APPROVAL</div>
+              <div style={{ color: currentTheme.textMuted, fontSize: 11, fontWeight: 600, letterSpacing: "0.02em", marginBottom: 12, fontFamily: theme.fontFamily }}>NEEDS APPROVAL</div>
               <TaskWidget
                 task={{ id: "bp-3", label: "Update Product Catalog", status: "needs_approval" }}
               />
@@ -834,7 +854,7 @@ export default function Home() {
 
             {/* Needs Resolve State */}
             <div>
-              <div style={{ color: theme.textMuted, fontSize: 11, fontWeight: 600, letterSpacing: "0.02em", marginBottom: 12, fontFamily: theme.fontFamily }}>NEEDS RESOLVE</div>
+              <div style={{ color: currentTheme.textMuted, fontSize: 11, fontWeight: 600, letterSpacing: "0.02em", marginBottom: 12, fontFamily: theme.fontFamily }}>NEEDS RESOLVE</div>
               <TaskWidget
                 task={{ id: "bp-4", label: "Sync Inventory Database", status: "needs_resolve" }}
               />
@@ -842,7 +862,7 @@ export default function Home() {
 
             {/* Failed State */}
             <div>
-              <div style={{ color: theme.textMuted, fontSize: 11, fontWeight: 600, letterSpacing: "0.02em", marginBottom: 12, fontFamily: theme.fontFamily }}>FAILED</div>
+              <div style={{ color: currentTheme.textMuted, fontSize: 11, fontWeight: 600, letterSpacing: "0.02em", marginBottom: 12, fontFamily: theme.fontFamily }}>FAILED</div>
               <TaskWidget
                 task={{ id: "bp-5", label: "Deploy to Production", status: "failed" }}
               />
@@ -850,7 +870,7 @@ export default function Home() {
 
             {/* Fixing State */}
             <div>
-              <div style={{ color: theme.textMuted, fontSize: 11, fontWeight: 600, letterSpacing: "0.02em", marginBottom: 12, fontFamily: theme.fontFamily }}>FIXING</div>
+              <div style={{ color: currentTheme.textMuted, fontSize: 11, fontWeight: 600, letterSpacing: "0.02em", marginBottom: 12, fontFamily: theme.fontFamily }}>FIXING</div>
               <TaskWidget
                 task={{ id: "bp-6", label: "Repair Email Service", status: "fixing" }}
               />
@@ -858,7 +878,7 @@ export default function Home() {
 
             {/* Rewriting State */}
             <div>
-              <div style={{ color: theme.textMuted, fontSize: 11, fontWeight: 600, letterSpacing: "0.02em", marginBottom: 12, fontFamily: theme.fontFamily }}>REWRITING</div>
+              <div style={{ color: currentTheme.textMuted, fontSize: 11, fontWeight: 600, letterSpacing: "0.02em", marginBottom: 12, fontFamily: theme.fontFamily }}>REWRITING</div>
               <TaskWidget
                 task={{ id: "bp-7", label: "Optimize Query Performance", status: "rewriting" }}
               />
@@ -866,19 +886,19 @@ export default function Home() {
 
             {/* Email Preview Panel */}
             <div>
-              <div style={{ color: theme.textMuted, fontSize: 11, fontWeight: 600, letterSpacing: "0.02em", marginBottom: 12, fontFamily: theme.fontFamily }}>EMAIL PREVIEW</div>
+              <div style={{ color: currentTheme.textMuted, fontSize: 11, fontWeight: 600, letterSpacing: "0.02em", marginBottom: 12, fontFamily: theme.fontFamily }}>EMAIL PREVIEW</div>
               <EmailPreviewPanel isActive={true} isCollapsing={false} onApprove={() => {}} mirrored={false} />
             </div>
 
             {/* Insights Preview Panel */}
             <div>
-              <div style={{ color: theme.textMuted, fontSize: 11, fontWeight: 600, letterSpacing: "0.02em", marginBottom: 12, fontFamily: theme.fontFamily }}>INSIGHTS PREVIEW</div>
+              <div style={{ color: currentTheme.textMuted, fontSize: 11, fontWeight: 600, letterSpacing: "0.02em", marginBottom: 12, fontFamily: theme.fontFamily }}>INSIGHTS PREVIEW</div>
               <InsightsPreviewPanel isActive={true} isCollapsing={false} onApprove={() => {}} mirrored={false} />
             </div>
 
             {/* Sub-Workflow Panel - Left */}
             <div>
-              <div style={{ color: theme.textMuted, fontSize: 11, fontWeight: 600, letterSpacing: "0.02em", marginBottom: 12, fontFamily: theme.fontFamily }}>SUB-WORKFLOW (LEFT)</div>
+              <div style={{ color: currentTheme.textMuted, fontSize: 11, fontWeight: 600, letterSpacing: "0.02em", marginBottom: 12, fontFamily: theme.fontFamily }}>SUB-WORKFLOW (LEFT)</div>
               <SubWorkflowPanel
                 isActive={true}
                 tasks={[
@@ -896,7 +916,7 @@ export default function Home() {
 
             {/* Sub-Workflow Panel - Right */}
             <div>
-              <div style={{ color: theme.textMuted, fontSize: 11, fontWeight: 600, letterSpacing: "0.02em", marginBottom: 12, fontFamily: theme.fontFamily }}>SUB-WORKFLOW (RIGHT)</div>
+              <div style={{ color: currentTheme.textMuted, fontSize: 11, fontWeight: 600, letterSpacing: "0.02em", marginBottom: 12, fontFamily: theme.fontFamily }}>SUB-WORKFLOW (RIGHT)</div>
               <SubWorkflowPanel
                 isActive={true}
                 tasks={[
@@ -914,7 +934,7 @@ export default function Home() {
 
             {/* Completed Task Widget */}
             <div>
-              <div style={{ color: theme.textMuted, fontSize: 11, fontWeight: 600, letterSpacing: "0.02em", marginBottom: 12, fontFamily: theme.fontFamily }}>COMPLETED WIDGET</div>
+              <div style={{ color: currentTheme.textMuted, fontSize: 11, fontWeight: 600, letterSpacing: "0.02em", marginBottom: 12, fontFamily: theme.fontFamily }}>COMPLETED WIDGET</div>
               <CompletedTaskWidget
                 label="Weekly Analytics Report"
                 onClose={() => {}}
@@ -940,6 +960,18 @@ export default function Home() {
         </div>
       )}
 
+      {/* Map View */}
+      {activeCanvas === "mapview" && (
+        <div style={{ marginLeft: sidebarWidth, transition: "margin-left 300ms cubic-bezier(0.4, 0, 0.2, 1)", height: "100vh", overflow: "hidden", padding: "8px 8px 8px 4px", display: "flex" }}>
+        <div style={{ flex: 1, background: isDark ? "#141414" : "#ffffff", borderRadius: 12, border: isDark ? "1px solid #2a2a2a" : "1px solid #e5e5e5", overflow: "auto", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 12 }}>
+          <div style={{ width: 48, height: 48, borderRadius: 12, background: isDark ? "#1a1a1a" : "#f5f5f5", display: "flex", alignItems: "center", justifyContent: "center" }}>
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke={currentTheme.textDim} strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><polygon points="1 6 1 22 8 18 16 22 23 18 23 2 16 6 8 2 1 6" /><line x1="8" y1="2" x2="8" y2="18" /><line x1="16" y1="6" x2="16" y2="22" /></svg>
+          </div>
+          <span style={{ fontSize: 13, color: currentTheme.textDim, fontFamily: theme.fontFamily, fontWeight: 500 }}>Map view coming soon</span>
+        </div>
+        </div>
+      )}
+
       {/* Task Controls Sidebar - Only on main canvas */}
       {activeCanvas === "canvas" && <motion.div
         initial={{ opacity: 0, x: 20 }}
@@ -950,11 +982,11 @@ export default function Home() {
           top: 280,
           right: 20,
           width: 220,
-          background: "#ffffff",
-          border: `1px solid ${theme.borderLight}`,
+          background: appMode === "map" ? "#1a1a1a" : "#ffffff",
+          border: `1px solid ${appMode === "map" ? "#2a2a2a" : currentTheme.borderLight}`,
           padding: "16px",
           borderRadius: 12,
-          boxShadow: "0 1px 3px rgba(0,0,0,0.08)",
+          boxShadow: appMode === "map" ? "0 1px 3px rgba(0,0,0,0.3)" : "0 1px 3px rgba(0,0,0,0.08)",
           zIndex: 1000,
           display: "flex",
           flexDirection: "column",
@@ -971,9 +1003,9 @@ export default function Home() {
               onClick={() => handlers.runScenario(scenario)}
               disabled={isThisSideRunning}
               style={{
-                background: isThisSideRunning ? "#f9fafb" : "#f9fafb",
-                border: `1px solid ${theme.borderLight}`,
-                color: isThisSideRunning ? theme.textDim : theme.text,
+                background: isDark ? "#222222" : "#f9fafb",
+                border: `1px solid ${currentTheme.borderLight}`,
+                color: isThisSideRunning ? currentTheme.textDim : currentTheme.text,
                 padding: "10px 12px",
                 fontSize: 11,
                 letterSpacing: "0.02em",
@@ -986,8 +1018,8 @@ export default function Home() {
                 width: "100%",
                 borderRadius: 8,
               }}
-              onMouseEnter={(e) => { if (!isThisSideRunning) { e.currentTarget.style.background = "#f0f0f0"; e.currentTarget.style.borderColor = "#d1d5db"; }}}
-              onMouseLeave={(e) => { e.currentTarget.style.background = "#f9fafb"; e.currentTarget.style.borderColor = theme.borderLight; }}
+              onMouseEnter={(e) => { if (!isThisSideRunning) { e.currentTarget.style.background = isDark ? "#2a2a2a" : "#f0f0f0"; e.currentTarget.style.borderColor = isDark ? "#333333" : "#d1d5db"; }}}
+              onMouseLeave={(e) => { e.currentTarget.style.background = isDark ? "#222222" : "#f9fafb"; e.currentTarget.style.borderColor = currentTheme.borderLight; }}
             >
               {scenario.buttonLabel.toUpperCase()}
             </button>
@@ -999,7 +1031,7 @@ export default function Home() {
             style={{
               background: anyCompleted && !anyRunning ? "rgba(16, 185, 129, 0.08)" : "rgba(239, 68, 68, 0.08)",
               border: anyCompleted && !anyRunning ? "1px solid rgba(16, 185, 129, 0.3)" : "1px solid rgba(239, 68, 68, 0.3)",
-              color: anyCompleted && !anyRunning ? theme.success : theme.error,
+              color: anyCompleted && !anyRunning ? currentTheme.success : currentTheme.error,
               padding: "10px 12px",
               fontSize: 10,
               letterSpacing: "0.08em",
@@ -1071,6 +1103,7 @@ export default function Home() {
 
       {/* Inline Chat - available on all views except home (embedded there) */}
       {activeCanvas !== "home" && <InlineChat sidebarWidth={sidebarWidth} />}
+      <Agentation />
     </div>
     </ThemeContext.Provider>
   );

@@ -37,7 +37,7 @@ export function EmailPreviewPanel({
       </motion.div>
       <motion.div
         onWheel={(e) => e.stopPropagation()}
-        style={{ border: isRetro ? "2px solid rgba(224, 112, 32, 0.5)" : "1px solid #fef3c7", background: isRetro ? "rgba(224, 112, 32, 0.08)" : "white", padding: "16px 20px", minWidth: isRetro ? 320 : 300, maxWidth: isRetro ? 360 : 340, position: "relative", overflow: "hidden", borderRadius: theme.borderRadius, boxShadow: theme.shadow }}
+        style={{ border: isRetro ? "2px solid rgba(224, 112, 32, 0.5)" : "1px solid #fef3c7", background: isRetro ? "rgba(224, 112, 32, 0.08)" : theme.cardBg, padding: "16px 20px", minWidth: isRetro ? 320 : 300, maxWidth: isRetro ? 360 : 340, position: "relative", overflow: "hidden", borderRadius: theme.borderRadius, boxShadow: theme.shadow }}
       >
         <div style={{ marginBottom: 12 }}>
           <div style={{ fontSize: isRetro ? 9 : 11, color: isRetro ? "rgba(224, 112, 32, 0.5)" : "#a3a3a3", letterSpacing: isRetro ? "0.1em" : undefined, marginBottom: 4 }}>{isRetro ? "SUBJECT" : "Subject"}</div>
@@ -48,7 +48,7 @@ export function EmailPreviewPanel({
             style={{
               width: "100%",
               fontSize: isRetro ? 12 : 13,
-              color: isRetro ? "#f0a050" : "#171717",
+              color: isRetro ? "#f0a050" : theme.text,
               fontWeight: 600,
               background: "transparent",
               border: "none",
@@ -58,7 +58,7 @@ export function EmailPreviewPanel({
             }}
           />
         </div>
-        <div style={{ background: isRetro ? "rgba(0, 0, 0, 0.3)" : "#f5f5f5", border: `1px solid ${isRetro ? "rgba(224, 112, 32, 0.2)" : "#e5e5e5"}`, padding: 12, marginBottom: 14, borderRadius: isRetro ? 0 : 8 }}>
+        <div style={{ background: isRetro ? "rgba(0, 0, 0, 0.3)" : theme.cardBgHover, border: `1px solid ${isRetro ? "rgba(224, 112, 32, 0.2)" : theme.border}`, padding: 12, marginBottom: 14, borderRadius: isRetro ? 0 : 8 }}>
           <textarea
             value={body}
             onChange={(e) => setBody(e.target.value)}

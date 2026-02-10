@@ -43,7 +43,7 @@ export function SubWorkflowPanel({
           transition={{ duration: 0.4, ease: [0.32, 0.72, 0, 1], delay: index * 0.08 }}
           style={{ height: SUB_TASK_ROW_HEIGHT, display: "flex", alignItems: "center", willChange: "transform, opacity, filter" }}
         >
-          <motion.div style={{ border: isRetro ? `2px solid ${task.status === "completed" ? "#10b981" : "rgba(224, 112, 32, 0.5)"}` : `1px solid ${task.status === "completed" ? "#d1fae5" : "#fef3c7"}`, background: isRetro ? (task.status === "completed" ? "rgba(16, 185, 129, 0.08)" : "rgba(224, 112, 32, 0.08)") : "white", padding: "12px 16px", minWidth: isRetro ? 240 : 220, position: "relative", overflow: "hidden", borderRadius: isRetro ? 0 : 10, boxShadow: isRetro ? "none" : "0 1px 2px rgba(0,0,0,0.04)" }}>
+          <motion.div style={{ border: isRetro ? `2px solid ${task.status === "completed" ? "#10b981" : "rgba(224, 112, 32, 0.5)"}` : `1px solid ${task.status === "completed" ? "#d1fae5" : "#fef3c7"}`, background: isRetro ? (task.status === "completed" ? "rgba(16, 185, 129, 0.08)" : "rgba(224, 112, 32, 0.08)") : theme.cardBg, padding: "12px 16px", minWidth: isRetro ? 240 : 220, position: "relative", overflow: "hidden", borderRadius: isRetro ? 0 : 10, boxShadow: isRetro ? "none" : "0 1px 2px rgba(0,0,0,0.04)" }}>
             <div className="flex items-center gap-3">
               {task.status === "completed" ? (
                 <motion.div initial={{ scale: 0 }} animate={{ scale: 1 }} transition={{ type: "spring", stiffness: 500, damping: 25 }} style={{ background: isRetro ? "rgba(16, 185, 129, 0.15)" : "#dcfce7", color: isRetro ? "#10b981" : "#16a34a", fontSize: isRetro ? 14 : 11, width: isRetro ? 16 : 20, height: isRetro ? 16 : 20, display: "flex", alignItems: "center", justifyContent: "center", borderRadius: isRetro ? 0 : 5, textAlign: "center" as const, fontWeight: 600 }}>✓</motion.div>
@@ -54,9 +54,9 @@ export function SubWorkflowPanel({
                   <div style={{ width: 20, height: 20, background: "#fef3c7", borderRadius: 5, display: "flex", alignItems: "center", justifyContent: "center", gap: 1 }}>{[0, 1, 2].map(i => (<motion.div key={i} animate={{ opacity: [0.3, 1, 0.3] }} transition={{ duration: 0.8, repeat: Infinity, delay: i * 0.2 }} style={{ width: 3, height: 3, borderRadius: "50%", background: "#e07020" }} />))}</div>
                 )
               ) : (
-                <div style={{ width: isRetro ? 12 : 20, height: isRetro ? 12 : 20, border: `1px solid ${isRetro ? "rgba(224, 112, 32, 0.3)" : "#e5e5e5"}`, borderRadius: isRetro ? 0 : 5 }} />
+                <div style={{ width: isRetro ? 12 : 20, height: isRetro ? 12 : 20, border: `1px solid ${isRetro ? "rgba(224, 112, 32, 0.3)" : theme.border}`, borderRadius: isRetro ? 0 : 5 }} />
               )}
-              <span style={{ fontSize: isRetro ? 11 : 13, letterSpacing: isRetro ? "0.05em" : undefined, color: task.status === "completed" ? (isRetro ? "#10b981" : "#10b981") : (isRetro ? "#f0a050" : "#171717"), fontWeight: isRetro ? 600 : 500 }}>{task.label}</span>
+              <span style={{ fontSize: isRetro ? 11 : 13, letterSpacing: isRetro ? "0.05em" : undefined, color: task.status === "completed" ? (isRetro ? "#10b981" : "#10b981") : (isRetro ? "#f0a050" : theme.text), fontWeight: isRetro ? 600 : 500 }}>{task.label}</span>
             </div>
             {task.subtext && (<div style={{ marginTop: 6, marginLeft: isRetro ? 25 : 32, fontSize: isRetro ? 9 : 12, color: task.status === "completed" ? (isRetro ? "rgba(16, 185, 129, 0.6)" : "#6b7280") : (isRetro ? "rgba(224, 112, 32, 0.6)" : "#a3a3a3"), letterSpacing: isRetro ? "0.04em" : undefined }}>{task.subtext}</div>)}
           </motion.div>
@@ -92,7 +92,7 @@ export function SubWorkflowPanel({
           {/* Main horizontal connection from parent task */}
           <motion.path d={mirrored ? `M ${SUB_CONNECTION_WIDTH} ${TASK_CONNECTION_Y} L ${SUB_CONNECTION_WIDTH / 2} ${TASK_CONNECTION_Y}` : `M -8 ${TASK_CONNECTION_Y} L ${SUB_CONNECTION_WIDTH / 2} ${TASK_CONNECTION_Y}`} fill="none" stroke={isRetro ? "rgba(224, 112, 32, 0.4)" : "#fcd34d"} strokeWidth="1" initial={{ pathLength: 0 }} animate={{ pathLength: isCollapsing ? 0 : 1 }} transition={{ duration: 0.35, ease: [0.25, 0.1, 0.25, 1] }} />
           {/* Vertical line connecting all sub-tasks */}
-          {tasks.length > 1 && (<motion.path d={`M ${SUB_CONNECTION_WIDTH / 2} ${TASK_CONNECTION_Y} L ${SUB_CONNECTION_WIDTH / 2} ${getTaskY(tasks.length - 1)}`} fill="none" stroke={isRetro ? "rgba(224, 112, 32, 0.25)" : "#e5e5e5"} strokeWidth="1" strokeDasharray="4 4" initial={{ pathLength: 0 }} animate={{ pathLength: isCollapsing ? 0 : 1 }} transition={{ duration: 0.35, delay: 0.1 }} />)}
+          {tasks.length > 1 && (<motion.path d={`M ${SUB_CONNECTION_WIDTH / 2} ${TASK_CONNECTION_Y} L ${SUB_CONNECTION_WIDTH / 2} ${getTaskY(tasks.length - 1)}`} fill="none" stroke={isRetro ? "rgba(224, 112, 32, 0.25)" : theme.border} strokeWidth="1" strokeDasharray="4 4" initial={{ pathLength: 0 }} animate={{ pathLength: isCollapsing ? 0 : 1 }} transition={{ duration: 0.35, delay: 0.1 }} />)}
           {/* Horizontal lines to each sub-task */}
           {tasks.map((_, i) => (<motion.path key={i} d={mirrored ? `M -8 ${getTaskY(i)} L ${SUB_CONNECTION_WIDTH / 2} ${getTaskY(i)}` : `M ${SUB_CONNECTION_WIDTH / 2} ${getTaskY(i)} L ${SUB_CONNECTION_WIDTH + 8} ${getTaskY(i)}`} fill="none" stroke={isRetro ? "rgba(224, 112, 32, 0.3)" : "#fcd34d"} strokeWidth="1" initial={{ pathLength: 0 }} animate={{ pathLength: isCollapsing ? 0 : 1 }} transition={{ duration: 0.3, delay: 0.05 + i * 0.06 }} />))}
         </svg>

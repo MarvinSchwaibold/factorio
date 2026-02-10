@@ -15,6 +15,7 @@ function ToolCallPill({
 }: {
   tool: { name: string; args: Record<string, unknown>; result?: unknown };
 }) {
+  const theme = useContext(ThemeContext);
   const [expanded, setExpanded] = useState(false);
   const label = tool.name.replace(/_/g, " ");
 
@@ -28,11 +29,11 @@ function ToolCallPill({
           gap: 5,
           padding: "3px 8px",
           borderRadius: 6,
-          border: "1px solid #e5e7eb",
+          border: `1px solid ${theme.border}`,
           background: tool.result ? "#f0fdf4" : "#fefce8",
           fontSize: 11,
           fontFamily: "var(--font-geist-mono), monospace",
-          color: "#374151",
+          color: theme.text,
           cursor: "pointer",
           transition: "background 0.15s",
         }}
@@ -52,8 +53,8 @@ function ToolCallPill({
             marginTop: 4,
             padding: "6px 8px",
             borderRadius: 6,
-            background: "#f9fafb",
-            border: "1px solid #e5e7eb",
+            background: theme.cardBgHover,
+            border: `1px solid ${theme.border}`,
             fontSize: 10,
             lineHeight: 1.4,
             maxHeight: 120,
@@ -119,7 +120,7 @@ function MessageBubble({ msg }: { msg: ChatMessage }) {
                   borderBottomRightRadius: 4,
                 }
               : {
-                  background: "#f3f4f6",
+                  background: theme.cardBgHover,
                   color: theme.text,
                   borderBottomLeftRadius: 4,
                 }),
@@ -239,7 +240,7 @@ export function InlineChat({ sidebarWidth = 0, embedded = false }: { sidebarWidt
               width: "100%",
               maxHeight: 400,
               overflowY: "auto",
-              background: "#ffffff",
+              background: theme.cardBg,
               borderRadius: "16px 16px 0 0",
               boxShadow: "0 -4px 24px rgba(0, 0, 0, 0.06)",
               padding: "12px 16px",
@@ -259,10 +260,10 @@ export function InlineChat({ sidebarWidth = 0, embedded = false }: { sidebarWidt
                   gap: 4,
                   padding: "2px 8px",
                   borderRadius: 6,
-                  border: "1px solid #e5e7eb",
+                  border: `1px solid ${theme.border}`,
                   background: "transparent",
                   fontSize: 11,
-                  color: "#9ca3af",
+                  color: theme.textDim,
                   cursor: isStreaming ? "default" : "pointer",
                   opacity: isStreaming ? 0.5 : 1,
                 }}
@@ -323,7 +324,7 @@ export function InlineChat({ sidebarWidth = 0, embedded = false }: { sidebarWidt
         <div
           style={{
             width: "100%",
-            background: "#ffffff",
+            background: theme.cardBg,
             borderRadius: hasMessages ? "0 0 16px 16px" : 16,
             boxShadow: hasMessages
               ? "0 4px 24px rgba(0, 0, 0, 0.08)"
