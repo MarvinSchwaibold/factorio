@@ -1,38 +1,12 @@
-import type { MapModel, MapNode, Connector, CommerceStat, Region, ConnectorStyle } from "./types";
+import type { MapModel, MapNode, Connector, Region, MerchantStage } from "./types";
 import { getMockStore } from "../quick-agent/mock-store";
+import { getStageLayout, getAutoStage, computeRegions } from "./stage-layouts";
 
 // ── Helpers ────────────────────────────────────────────
 var _cid = 0;
 function cid(): string {
   return "cm-" + (++_cid).toString(36);
 }
-
-function clamp(val: number, min: number, max: number): number {
-  return Math.max(min, Math.min(max, val));
-}
-
-function levelFromCount(count: number, thresholds: number[]): number {
-  for (var i = 0; i < thresholds.length; i++) {
-    if (count < thresholds[i]) return i + 1;
-  }
-  return 5;
-}
-
-// ── Layout positions (tile coords) ────────────────────
-// Layout:
-//                [Marketing]        (15,11)
-//                    |
-//                    | traffic
-//                    v
-// [Queen St] <-- [Online Store] --> [Warehouse] --> [Shipping]
-//  (11,15)        (15,15)           (19,15)         (23,15)
-var BUILDING_POSITIONS: { [key: string]: [number, number] } = {
-  "online-store": [15, 15],
-  "retail":       [11, 15],
-  "warehouse":    [19, 15],
-  "marketing":    [15, 11],
-  "shipping":     [23, 15],
-};
 
 // ── Commerce data extraction ──────────────────────────
 
@@ -92,7 +66,6 @@ export function getCommerceData(): CommerceData {
   var newsletterSubscribers = 0;
   for (var ci = 0; ci < store.customers.length; ci++) {
     if (store.customers[ci].ordersCount > 1) repeatCustomers++;
-    // Count customers tagged "newsletter" as subscribers
     var tags = store.customers[ci].tags || [];
     for (var ti = 0; ti < tags.length; ti++) {
       if (tags[ti].toLowerCase() === "newsletter") {
@@ -101,7 +74,6 @@ export function getCommerceData(): CommerceData {
       }
     }
   }
-  // Fallback: if no newsletter tags, estimate from customer count
   if (newsletterSubscribers === 0) {
     newsletterSubscribers = Math.round(store.customers.length * 0.6);
   }
@@ -114,7 +86,6 @@ export function getCommerceData(): CommerceData {
     var inv = store.inventory[ii];
     if (inv.available === 0) outOfStockItems++;
     else if (inv.available < 10) lowStockItems++;
-    // Split inventory by locationId
     if (inv.locationId === "loc-retail") {
       retailInventory += inv.available;
     } else {
@@ -150,7 +121,6 @@ export function getCommerceData(): CommerceData {
     totalRevenue * 0.15,
   ];
 
-  // Orders per month (assume 90-day window)
   var ordersPerMonth = Math.round(store.orders.length / 3);
 
   return {
@@ -178,194 +148,225 @@ export function getCommerceData(): CommerceData {
   };
 }
 
-// ── Map generator ─────────────────────────────────────
+// ── Node stats builder per category ──────────────────────
 
-export function generateCommerceMap(): MapModel {
+function buildNodeStats(category: string, data: CommerceData): { stats: import("./types").CommerceStat[]; alertCount: number; activityLevel: number } {
+  switch (category) {
+    case "back-office":
+      return {
+        stats: [
+          { label: "Revenue", value: "$" + Math.round(data.totalRevenue).toLocaleString(), trend: "up" as const },
+          { label: "Customers", value: data.totalCustomers + " total", trend: "up" as const },
+          { label: "Products", value: data.activeProducts + " active", trend: "flat" as const },
+        ],
+        alertCount: 0,
+        activityLevel: 0.6,
+      };
+    case "online-store":
+      return {
+        stats: [
+          { label: "Revenue", value: "$" + Math.round(data.totalRevenue).toLocaleString(), trend: "up" as const },
+          { label: "Products", value: data.activeProducts + " listed", trend: "flat" as const },
+          { label: "Orders", value: data.totalOrders + " total", trend: "up" as const },
+          { label: "Conversion", value: "3.2%", trend: "up" as const },
+        ],
+        alertCount: data.pendingOrders,
+        activityLevel: 0.8,
+      };
+    case "checkout":
+      return {
+        stats: [
+          { label: "Orders", value: data.totalOrders + " processed", trend: "up" as const },
+          { label: "Paid", value: data.paidOrders + " orders", trend: "up" as const },
+          { label: "Pending", value: data.pendingOrders + " orders", trend: data.pendingOrders > 5 ? "down" as const : "flat" as const },
+        ],
+        alertCount: data.pendingOrders > 10 ? data.pendingOrders : 0,
+        activityLevel: 0.7,
+      };
+    case "payments":
+      return {
+        stats: [
+          { label: "Collected", value: "$" + Math.round(data.totalRevenue * 0.97).toLocaleString(), trend: "up" as const },
+          { label: "Refunded", value: data.refundedOrders + " orders", trend: data.refundedOrders > 5 ? "down" as const : "flat" as const },
+        ],
+        alertCount: 0,
+        activityLevel: 0.6,
+      };
+    case "balance":
+      return {
+        stats: [
+          { label: "Balance", value: "$" + Math.round(data.totalRevenue * 0.92).toLocaleString(), trend: "up" as const },
+          { label: "Payouts", value: Math.round(data.totalOrders / 7) + " weekly", trend: "flat" as const },
+        ],
+        alertCount: 0,
+        activityLevel: 0.4,
+      };
+    case "marketing":
+      return {
+        stats: [
+          { label: "Subscribers", value: data.newsletterSubscribers + " contacts" },
+          { label: "Campaigns", value: "3 active", trend: "up" as const },
+        ],
+        alertCount: 0,
+        activityLevel: 0.5,
+      };
+    case "retail":
+      return {
+        stats: [
+          { label: "In-store Items", value: data.retailInventory + " units" },
+          { label: "Stock Count", value: data.retailInventory > 0 ? "stocked" : "empty", trend: data.retailInventory > 20 ? "up" as const : "down" as const },
+        ],
+        alertCount: 0,
+        activityLevel: 0.5,
+      };
+    case "inventory":
+      var inventoryAlerts = data.lowStockItems + data.outOfStockItems;
+      return {
+        stats: [
+          { label: "Items Tracked", value: data.totalInventoryItems + " SKUs" },
+          { label: "Low Stock", value: data.lowStockItems + " items", trend: data.lowStockItems > 5 ? "down" as const : "flat" as const },
+          { label: "Out of Stock", value: data.outOfStockItems + " items", trend: data.outOfStockItems > 0 ? "down" as const : "flat" as const },
+        ],
+        alertCount: inventoryAlerts,
+        activityLevel: 0.4,
+      };
+    case "shipping":
+      return {
+        stats: [
+          { label: "Fulfilled", value: data.fulfilledOrders + " orders", trend: "up" as const },
+          { label: "Pending", value: data.unfulfilledOrders + " shipments", trend: data.unfulfilledOrders > 20 ? "down" as const : "flat" as const },
+        ],
+        alertCount: data.unfulfilledOrders > 20 ? data.unfulfilledOrders : 0,
+        activityLevel: 0.7,
+      };
+    case "tax":
+      return {
+        stats: [
+          { label: "Tax Collected", value: "$" + Math.round(data.totalRevenue * 0.08).toLocaleString() },
+          { label: "Filing", value: "quarterly", trend: "flat" as const },
+        ],
+        alertCount: 0,
+        activityLevel: 0.3,
+      };
+    case "billing":
+      return {
+        stats: [
+          { label: "Plan", value: "Shopify Plus" },
+          { label: "Monthly", value: "$299/mo", trend: "flat" as const },
+        ],
+        alertCount: 0,
+        activityLevel: 0.2,
+      };
+    case "capital":
+      return {
+        stats: [
+          { label: "Funding", value: "$50K line", trend: "up" as const },
+          { label: "Utilization", value: "24%", trend: "flat" as const },
+        ],
+        alertCount: 0,
+        activityLevel: 0.3,
+      };
+    default:
+      return { stats: [], alertCount: 0, activityLevel: 0.3 };
+  }
+}
+
+// ── Category labels ──────────────────────────────────────
+var CATEGORY_LABELS: { [key: string]: string } = {
+  "back-office": "Back Office",
+  "online-store": "Online Store",
+  "checkout": "Checkout",
+  "payments": "Payments",
+  "balance": "Balance",
+  "marketing": "Marketing",
+  "retail": "Queen St Retail",
+  "inventory": "Inventory",
+  "shipping": "Shipping",
+  "tax": "Tax",
+  "billing": "Billing",
+  "capital": "Capital",
+};
+
+var CATEGORY_DESCRIPTIONS: { [key: string]: string } = {
+  "back-office": "Kaz's Candles headquarters",
+  "online-store": "Kaz's Candles online storefront",
+  "checkout": "Order processing and checkout flow",
+  "payments": "Payment processing and collection",
+  "balance": "Account balance and payouts",
+  "marketing": "Customer acquisition and campaigns",
+  "retail": "Queen Street brick-and-mortar POS location",
+  "inventory": "Central fulfillment center and inventory storage",
+  "shipping": "Outbound logistics and delivery",
+  "tax": "Tax collection and filing",
+  "billing": "Shopify subscription and app billing",
+  "capital": "Business funding and capital",
+};
+
+// ── Stage-based map generator ─────────────────────────
+
+export function generateMerchantMap(stage?: MerchantStage): MapModel {
   var data = getCommerceData();
+  var effectiveStage: MerchantStage = stage != null ? stage : getAutoStage(data);
+  var layout = getStageLayout(effectiveStage);
 
   var nodes: MapNode[] = [];
   var connectors: Connector[] = [];
-  var regions: Region[] = [];
 
-  // ── Regions (3 zones) ──
+  // Build a map from category → nodeId for connector wiring
+  var categoryToId: { [key: string]: string } = {};
 
-  // Sales Channels: Online Store + Retail
-  regions.push({
-    id: cid(),
-    label: "Sales Channels",
-    fromTile: [9, 13],
-    toTile: [17, 17],
-    color: "#5eead4",      // teal
-    strokeColor: "#0d9488",
-  });
+  // Create nodes from layout positions
+  for (var ni = 0; ni < layout.nodes.length; ni++) {
+    var pos = layout.nodes[ni];
+    var nodeId = cid();
+    var nodeData = buildNodeStats(pos.category, data);
 
-  // Operations: Warehouse + Shipping
-  regions.push({
-    id: cid(),
-    label: "Operations",
-    fromTile: [17, 13],
-    toTile: [25, 17],
-    color: "#93c5fd",      // blue
-    strokeColor: "#2563eb",
-  });
+    categoryToId[pos.category] = nodeId;
 
-  // Acquisition: Marketing
-  regions.push({
-    id: cid(),
-    label: "Acquisition",
-    fromTile: [13, 9],
-    toTile: [17, 13],
-    color: "#f9a8d4",      // pink
-    strokeColor: "#db2777",
-  });
+    nodes.push({
+      id: nodeId,
+      category: pos.category,
+      label: CATEGORY_LABELS[pos.category] || pos.category,
+      description: CATEGORY_DESCRIPTIONS[pos.category] || "",
+      tileX: pos.tileX,
+      tileY: pos.tileY,
+      activityLevel: nodeData.activityLevel,
+      stats: nodeData.stats,
+      alertCount: nodeData.alertCount,
+    });
+  }
 
-  // ── Online Store (hero building, 1.15x scale) ──
-  var onlineStoreId = cid();
-  var conversionRate = "3.2%";
-  nodes.push({
-    id: onlineStoreId,
-    category: "online-store",
-    label: "Online Store",
-    description: "Kaz's Candles online storefront",
-    tileX: BUILDING_POSITIONS["online-store"][0],
-    tileY: BUILDING_POSITIONS["online-store"][1],
-    buildingLevel: levelFromCount(data.totalOrders, [30, 60, 100, 200]),
-    activityLevel: 0.8,
-    labelHeight: 28,
-    stats: [
-      { label: "Revenue", value: "$" + Math.round(data.totalRevenue).toLocaleString(), trend: "up" },
-      { label: "Products", value: data.activeProducts + " listed", trend: "flat" },
-      { label: "Orders", value: data.totalOrders + " total", trend: "up" },
-      { label: "Conversion", value: conversionRate, trend: "up" },
-    ],
-    alertCount: data.pendingOrders,
-  });
+  // Create connectors from layout connection templates
+  for (var ci = 0; ci < layout.connections.length; ci++) {
+    var conn = layout.connections[ci];
+    var srcId = categoryToId[conn.from];
+    var tgtId = categoryToId[conn.to];
+    if (srcId && tgtId) {
+      connectors.push({
+        id: cid(),
+        sourceId: srcId,
+        targetId: tgtId,
+        path: [],
+        flowRate: conn.flowRate,
+        style: conn.style,
+        label: conn.label,
+      });
+    }
+  }
 
-  // ── Retail (Queen St) ──
-  var retailId = cid();
-  nodes.push({
-    id: retailId,
-    category: "retail",
-    label: "Queen St Retail",
-    description: "Queen Street brick-and-mortar POS location",
-    tileX: BUILDING_POSITIONS["retail"][0],
-    tileY: BUILDING_POSITIONS["retail"][1],
-    buildingLevel: levelFromCount(data.retailInventory, [20, 50, 100, 200]),
-    activityLevel: 0.5,
-    labelHeight: 20,
-    stats: [
-      { label: "In-store Items", value: data.retailInventory + " units" },
-      { label: "Stock Count", value: data.retailInventory > 0 ? "stocked" : "empty", trend: data.retailInventory > 20 ? "up" : "down" },
-    ],
-    alertCount: 0,
-  });
-
-  // ── Warehouse ──
-  var warehouseId = cid();
-  var inventoryAlerts = data.lowStockItems + data.outOfStockItems;
-  nodes.push({
-    id: warehouseId,
-    category: "warehouse",
-    label: "Main Warehouse",
-    description: "Central fulfillment center and inventory storage",
-    tileX: BUILDING_POSITIONS["warehouse"][0],
-    tileY: BUILDING_POSITIONS["warehouse"][1],
-    buildingLevel: levelFromCount(data.totalInventoryItems, [20, 50, 100, 200]),
-    activityLevel: 0.4,
-    labelHeight: 20,
-    stats: [
-      { label: "Items Tracked", value: data.totalInventoryItems + " SKUs" },
-      { label: "Low Stock", value: data.lowStockItems + " items", trend: data.lowStockItems > 5 ? "down" : "flat" },
-      { label: "Out of Stock", value: data.outOfStockItems + " items", trend: data.outOfStockItems > 0 ? "down" : "flat" },
-    ],
-    alertCount: inventoryAlerts,
-  });
-
-  // ── Marketing ──
-  var marketingId = cid();
-  nodes.push({
-    id: marketingId,
-    category: "marketing",
-    label: "Marketing",
-    description: "Customer acquisition and campaigns",
-    tileX: BUILDING_POSITIONS["marketing"][0],
-    tileY: BUILDING_POSITIONS["marketing"][1],
-    buildingLevel: levelFromCount(data.newsletterSubscribers, [20, 40, 60, 100]),
-    activityLevel: 0.5,
-    labelHeight: 20,
-    stats: [
-      { label: "Subscribers", value: data.newsletterSubscribers + " contacts" },
-      { label: "Campaigns", value: "3 active", trend: "up" },
-    ],
-    alertCount: 0,
-  });
-
-  // ── Shipping ──
-  var shippingId = cid();
-  nodes.push({
-    id: shippingId,
-    category: "shipping",
-    label: "Shipping",
-    description: "Outbound logistics and delivery",
-    tileX: BUILDING_POSITIONS["shipping"][0],
-    tileY: BUILDING_POSITIONS["shipping"][1],
-    buildingLevel: levelFromCount(data.fulfilledOrders, [10, 30, 60, 100]),
-    activityLevel: 0.7,
-    labelHeight: 20,
-    stats: [
-      { label: "Fulfilled", value: data.fulfilledOrders + " orders", trend: "up" },
-      { label: "Pending", value: data.unfulfilledOrders + " shipments", trend: data.unfulfilledOrders > 20 ? "down" : "flat" },
-    ],
-    alertCount: data.unfulfilledOrders > 20 ? data.unfulfilledOrders : 0,
-  });
-
-  // ── Connectors (5 flows) ──
-
-  // Marketing → Online Store (drives traffic) — solid
-  connectors.push({
-    id: cid(), sourceId: marketingId, targetId: onlineStoreId, path: [],
-    flowRate: 0.5,
-    style: "solid",
-    label: "traffic",
-  });
-
-  // Online Store → Warehouse (orders flow to fulfillment) — solid
-  connectors.push({
-    id: cid(), sourceId: onlineStoreId, targetId: warehouseId, path: [],
-    flowRate: clamp(data.ordersPerMonth / 100, 0.2, 1),
-    style: "solid",
-    label: "~" + data.ordersPerMonth + " orders/mo",
-  });
-
-  // Warehouse → Shipping (ship orders) — solid
-  connectors.push({
-    id: cid(), sourceId: warehouseId, targetId: shippingId, path: [],
-    flowRate: clamp(data.fulfilledOrders / 150, 0.2, 1),
-    style: "solid",
-    label: "ship",
-  });
-
-  // Warehouse → Retail (restock) — dashed
-  connectors.push({
-    id: cid(), sourceId: warehouseId, targetId: retailId, path: [],
-    flowRate: 0.3,
-    style: "dashed",
-    label: "restock",
-  });
-
-  // Online Store → Retail (product/price sync) — dotted
-  connectors.push({
-    id: cid(), sourceId: onlineStoreId, targetId: retailId, path: [],
-    flowRate: 0.2,
-    style: "dotted",
-    label: "sync",
-  });
+  // Compute regions from node positions
+  var regions: Region[] = computeRegions(layout.nodes);
 
   return {
     nodes: nodes,
     connectors: connectors,
     regions: regions,
-    gridWidth: 30,
-    gridHeight: 30,
+    gridWidth: 44,
+    gridHeight: 36,
   };
+}
+
+// Backward compat — default to auto-detected stage
+export function generateCommerceMap(): MapModel {
+  return generateMerchantMap();
 }

@@ -82,6 +82,9 @@ export function MapView({ isDark, currentTheme, sidebarWidth, onDrillDown }: Map
           onZoomIn={function() { actions.setZoom(state.uiState.zoom * 1.2); }}
           onZoomOut={function() { actions.setZoom(state.uiState.zoom / 1.2); }}
           isDark={isDark}
+          currentStage={actions.currentStage}
+          autoStage={actions.autoStage}
+          onSetStage={actions.setStage}
         />
 
         <NodePalette

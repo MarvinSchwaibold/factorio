@@ -1,7 +1,8 @@
 "use client";
 
-import { MousePointer2, Hand, Plus, GitBranch, ZoomIn, ZoomOut } from "lucide-react";
-import type { InteractionMode } from "@/lib/iso-map/types";
+import { MousePointer2, Hand, Plus, GitBranch, ZoomIn, ZoomOut, ChevronLeft, ChevronRight } from "lucide-react";
+import type { InteractionMode, MerchantStage } from "@/lib/iso-map/types";
+import { getStageLabel } from "@/lib/iso-map/stage-layouts";
 
 interface MapToolbarProps {
   mode: InteractionMode;
@@ -11,6 +12,9 @@ interface MapToolbarProps {
   onZoomIn: () => void;
   onZoomOut: () => void;
   isDark: boolean;
+  currentStage: MerchantStage;
+  autoStage: MerchantStage;
+  onSetStage: (stage: MerchantStage) => void;
 }
 
 function Btn({ children, title, active, onClick, isDark, width }: {
@@ -61,7 +65,10 @@ var ZOOM_PRESETS = [
   { label: "3", value: 1.6 },
 ];
 
-export function MapToolbar({ mode, zoom, onSetMode, onZoomPreset, onZoomIn, onZoomOut, isDark }: MapToolbarProps) {
+export function MapToolbar({ mode, zoom, onSetMode, onZoomPreset, onZoomIn, onZoomOut, isDark, currentStage, autoStage, onSetStage }: MapToolbarProps) {
+  var stageLabel = getStageLabel(currentStage);
+  var isAuto = currentStage === autoStage;
+
   return (
     <div
       style={{
@@ -93,6 +100,49 @@ export function MapToolbar({ mode, zoom, onSetMode, onZoomPreset, onZoomIn, onZo
       </Btn>
       <Btn title="Connect Nodes" active={mode === "CONNECTOR"} onClick={function() { onSetMode("CONNECTOR"); }} isDark={isDark}>
         <GitBranch size={15} />
+      </Btn>
+
+      <Divider isDark={isDark} />
+
+      {/* Stage stepper */}
+      <Btn title="Previous stage" active={false} onClick={function() { if (currentStage > 0) onSetStage((currentStage - 1) as MerchantStage); }} isDark={isDark}>
+        <ChevronLeft size={14} />
+      </Btn>
+      <div
+        title={"Stage " + currentStage + (isAuto ? " (auto)" : "")}
+        style={{
+          display: "flex",
+          alignItems: "center",
+          gap: 4,
+          padding: "0 4px",
+          fontSize: 10,
+          fontWeight: 600,
+          fontFamily: "var(--font-geist-sans), system-ui, sans-serif",
+          color: isDark ? "#aaa" : "#666",
+          minWidth: 80,
+          justifyContent: "center",
+          cursor: "default",
+          flexShrink: 0,
+        }}
+      >
+        <span style={{
+          width: 16,
+          height: 16,
+          borderRadius: 4,
+          background: isDark ? "rgba(13,148,136,0.2)" : "rgba(13,148,136,0.1)",
+          color: "#0d9488",
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+          fontSize: 10,
+          fontWeight: 700,
+        }}>
+          {currentStage}
+        </span>
+        {stageLabel}
+      </div>
+      <Btn title="Next stage" active={false} onClick={function() { if (currentStage < 4) onSetStage((currentStage + 1) as MerchantStage); }} isDark={isDark}>
+        <ChevronRight size={14} />
       </Btn>
 
       <Divider isDark={isDark} />

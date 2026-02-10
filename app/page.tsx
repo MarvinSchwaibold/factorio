@@ -24,6 +24,7 @@ import { SettingsView } from "@/components/SettingsView";
 import { HomeView } from "@/components/HomeView";
 import { InlineChat } from "@/components/InlineChat";
 import { MapView } from "@/components/map/MapView";
+import { AgentsView } from "@/components/AgentsView";
 import { Agentation } from "agentation";
 
 export default function Home() {
@@ -44,7 +45,7 @@ export default function Home() {
   const deepCleanTaskCounterRef = useRef({ left: 0, right: 0 });
   const [autoPilot, setAutoPilot] = useState(false);
   const autoPilotTimerRef = useRef<{ left: NodeJS.Timeout | null; right: NodeJS.Timeout | null }>({ left: null, right: null });
-  const [activeCanvas, setActiveCanvas] = useState<"home" | "canvas" | "blueprint" | "commerce" | "insights" | "settings" | "mapview">("mapview");
+  const [activeCanvas, setActiveCanvas] = useState<"home" | "canvas" | "blueprint" | "commerce" | "insights" | "settings" | "mapview" | "agents" | "orders" | "products" | "customers" | "marketing" | "discounts" | "content" | "markets" | "finance" | "analytics">("mapview");
   const [appMode, setAppMode] = useState<AppMode>("map");
   const [sidebarExpanded, setSidebarExpanded] = useState(true);
   const sidebarWidth = sidebarExpanded ? SIDEBAR_WIDTH_EXPANDED : SIDEBAR_WIDTH_COLLAPSED;
@@ -950,15 +951,28 @@ export default function Home() {
       )}
 
       {/* Content Views */}
-      {(activeCanvas === "home" || activeCanvas === "commerce" || activeCanvas === "insights" || activeCanvas === "settings") && (
+      {(activeCanvas !== "canvas" && activeCanvas !== "blueprint" && activeCanvas !== "mapview" && activeCanvas !== "agents") && (
         <div style={{ marginLeft: sidebarWidth, transition: "margin-left 300ms cubic-bezier(0.4, 0, 0.2, 1)", height: "100vh", overflow: "hidden", padding: "8px 8px 8px 4px", display: "flex" }}>
         <div style={{ flex: 1, background: "#ffffff", borderRadius: 12, border: "1px solid #e5e5e5", overflow: "auto", display: "flex", flexDirection: "column" }}>
           {activeCanvas === "home" && <HomeView onNavigate={(view) => setActiveCanvas(view as typeof activeCanvas)} />}
+          {activeCanvas === "orders" && <CommerceView />}
           {activeCanvas === "commerce" && <CommerceView />}
+          {activeCanvas === "analytics" && <InsightsView />}
           {activeCanvas === "insights" && <InsightsView />}
           {activeCanvas === "settings" && <SettingsView />}
+          {(activeCanvas === "products" || activeCanvas === "customers" || activeCanvas === "marketing" || activeCanvas === "discounts" || activeCanvas === "content" || activeCanvas === "markets" || activeCanvas === "finance") && (
+            <div style={{ padding: 32, fontFamily: theme.fontFamily }}>
+              <h1 style={{ fontSize: 20, fontWeight: 600, color: "#111827", marginBottom: 8, textTransform: "capitalize" }}>{activeCanvas}</h1>
+              <p style={{ fontSize: 14, color: "#6b7280" }}>This section is under construction.</p>
+            </div>
+          )}
         </div>
         </div>
+      )}
+
+      {/* Agents View */}
+      {activeCanvas === "agents" && (
+        <AgentsView sidebarWidth={sidebarWidth} />
       )}
 
       {/* Map View */}

@@ -74,7 +74,7 @@ export function NodeInspector({
       {/* Header with category color bar */}
       <div style={{
         height: 3,
-        background: def.colorTop,
+        background: def.color,
       }} />
       <div style={{
         display: "flex",
@@ -88,7 +88,7 @@ export function NodeInspector({
             width: 10,
             height: 10,
             borderRadius: 3,
-            background: def.colorTop,
+            background: def.color,
           }} />
           <span style={{
             fontSize: 11,
@@ -100,19 +100,6 @@ export function NodeInspector({
           }}>
             {def.label}
           </span>
-          {node.buildingLevel && (
-            <span style={{
-              fontSize: 9,
-              fontWeight: 500,
-              color: isDark ? "#555" : "#aaa",
-              fontFamily: font,
-              background: isDark ? "#222" : "#f0f0f0",
-              padding: "1px 5px",
-              borderRadius: 3,
-            }}>
-              Lv.{node.buildingLevel}
-            </span>
-          )}
         </div>
         <button
           onClick={onClose}

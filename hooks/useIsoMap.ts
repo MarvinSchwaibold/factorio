@@ -1,13 +1,14 @@
 "use client";
 
 import { useState, useRef, useCallback } from "react";
-import type { MapModel, MapUIState, MapNode, Connector, InteractionMode, NodeCategory, MapAction } from "@/lib/iso-map/types";
+import type { MapModel, MapUIState, MapNode, Connector, InteractionMode, NodeCategory, MapAction, MerchantStage } from "@/lib/iso-map/types";
 import { findPath } from "@/lib/iso-map/pathfinder";
-import { generateCommerceMap } from "@/lib/iso-map/commerce-map-data";
+import { generateMerchantMap, getCommerceData } from "@/lib/iso-map/commerce-map-data";
+import { getAutoStage } from "@/lib/iso-map/stage-layouts";
 
 // Default grid size
-var DEFAULT_GRID_W = 30;
-var DEFAULT_GRID_H = 30;
+var DEFAULT_GRID_W = 44;
+var DEFAULT_GRID_H = 36;
 
 function createId(): string {
   return Date.now().toString(36) + Math.random().toString(36).slice(2, 8);
@@ -40,6 +41,9 @@ export interface IsoMapActions {
   getNodeAtTile: (tileX: number, tileY: number) => MapNode | null;
   isTileOccupied: (tileX: number, tileY: number) => boolean;
   refreshCommerceData: () => void;
+  setStage: (stage: MerchantStage) => void;
+  currentStage: MerchantStage;
+  autoStage: MerchantStage;
 }
 
 function recomputeConnectorPaths(
@@ -70,9 +74,12 @@ function recomputeConnectorPaths(
   return results;
 }
 
+// Compute auto-detected stage from commerce data
+var _autoStage: MerchantStage = getAutoStage(getCommerceData());
+
 // Generate initial commerce map and pre-compute connector paths
-function getInitialState(): { model: MapModel; paths: Array<{ id: string; path: Array<[number, number]> }> } {
-  var model = generateCommerceMap();
+function getInitialState(stage?: MerchantStage): { model: MapModel; paths: Array<{ id: string; path: Array<[number, number]> }> } {
+  var model = generateMerchantMap(stage);
   var paths = recomputeConnectorPaths(model.connectors, model.nodes, model.gridWidth, model.gridHeight);
   return { model: model, paths: paths };
 }
@@ -95,6 +102,8 @@ export function useIsoMap(): [IsoMapState, IsoMapActions] {
   });
 
   var [connectorPaths, setConnectorPaths] = useState<Array<{ id: string; path: Array<[number, number]> }>>(_initial.paths);
+
+  var [currentStage, setCurrentStage] = useState<MerchantStage>(_autoStage);
 
   // Refs for animation-frame access without re-renders
   var modelRef = useRef(model);
@@ -196,7 +205,14 @@ export function useIsoMap(): [IsoMapState, IsoMapActions] {
   }, []);
 
   var refreshCommerceData = useCallback(function() {
-    var fresh = getInitialState();
+    var fresh = getInitialState(currentStage);
+    setModel(fresh.model);
+    setConnectorPaths(fresh.paths);
+  }, [currentStage]);
+
+  var setStage = useCallback(function(stage: MerchantStage) {
+    setCurrentStage(stage);
+    var fresh = getInitialState(stage);
     setModel(fresh.model);
     setConnectorPaths(fresh.paths);
   }, []);
@@ -231,10 +247,12 @@ export function useIsoMap(): [IsoMapState, IsoMapActions] {
 
   var centerAtZoom = useCallback(function(newZoom: number, containerW: number, containerH: number) {
     setUiState(function(prev) {
-      // Grid center in screen space (before pan/zoom) is at x=0, y=(gw+gh)*19.2/2
-      var gridCenterY = (DEFAULT_GRID_W + DEFAULT_GRID_H) * 19.2 / 2;
-      var panX = containerW / 2;
-      var panY = containerH / 2 - gridCenterY * newZoom;
+      // Grid center in tile coords: (gridW/2, gridH/2)
+      // In screen space: tileCenter * TILE_SIZE * zoom
+      var gridCenterX = (DEFAULT_GRID_W / 2) * 100 * newZoom;
+      var gridCenterY = (DEFAULT_GRID_H / 2) * 100 * newZoom;
+      var panX = containerW / 2 - gridCenterX;
+      var panY = containerH / 2 - gridCenterY;
       return { ...prev, zoom: Math.max(0.3, Math.min(3, newZoom)), panX: panX, panY: panY };
     });
   }, []);
@@ -304,6 +322,9 @@ export function useIsoMap(): [IsoMapState, IsoMapActions] {
     getNodeAtTile: getNodeAtTile,
     isTileOccupied: isTileOccupied,
     refreshCommerceData: refreshCommerceData,
+    setStage: setStage,
+    currentStage: currentStage,
+    autoStage: _autoStage,
   };
 
   return [state, actions];

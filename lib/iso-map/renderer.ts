@@ -1,17 +1,33 @@
 import type { MapNode, MapUIState, Connector, Region, ConnectorStyle } from "./types";
-import { gridToScreen, HALF_TILE_W, HALF_TILE_H } from "./projection";
+import { gridToScreen, TILE_SIZE } from "./projection";
 import { getCategoryDef } from "./node-palette";
 
-// ── Constants ──────────────────────────────────────────
-var NODE_HEIGHT_BASE = 32;
-var LEVEL_HEIGHT_STEP = 16;
+// ── Node card dimensions ──────────────────────────────
+var CARD_W = 180;
+var CARD_H = 76;
+var CARD_R = 8;      // corner radius
+var ACCENT_W = 4;    // left accent bar width
+var ICON_R = 12;     // icon circle radius
 
-function getBuildingHeight(node: MapNode): number {
-  var level = node.buildingLevel || 1;
-  return NODE_HEIGHT_BASE + (level - 1) * LEVEL_HEIGHT_STEP;
+// ── Rounded rect helper ──────────────────────────────
+function roundedRect(
+  ctx: CanvasRenderingContext2D,
+  x: number, y: number, w: number, h: number, r: number
+): void {
+  ctx.beginPath();
+  ctx.moveTo(x + r, y);
+  ctx.lineTo(x + w - r, y);
+  ctx.quadraticCurveTo(x + w, y, x + w, y + r);
+  ctx.lineTo(x + w, y + h - r);
+  ctx.quadraticCurveTo(x + w, y + h, x + w - r, y + h);
+  ctx.lineTo(x + r, y + h);
+  ctx.quadraticCurveTo(x, y + h, x, y + h - r);
+  ctx.lineTo(x, y + r);
+  ctx.quadraticCurveTo(x, y, x + r, y);
+  ctx.closePath();
 }
 
-// ── Grid Drawing ────────────────────────────────────────────────
+// ── Grid Drawing (dot grid) ──────────────────────────────
 export function drawGrid(
   ctx: CanvasRenderingContext2D,
   gridWidth: number,
@@ -21,28 +37,29 @@ export function drawGrid(
   zoom: number,
   isDark: boolean
 ): void {
-  ctx.strokeStyle = isDark ? "rgba(255,255,255,0.06)" : "rgba(0,0,0,0.06)";
-  ctx.lineWidth = 1;
+  var dotColor = isDark ? "rgba(255,255,255,0.08)" : "rgba(0,0,0,0.08)";
+  var dotR = 1.5 * zoom;
 
-  for (var y = 0; y < gridHeight; y++) {
-    for (var x = 0; x < gridWidth; x++) {
+  // Only render dots in visible viewport
+  var startX = Math.max(0, Math.floor(-panX / (TILE_SIZE * zoom)) - 1);
+  var startY = Math.max(0, Math.floor(-panY / (TILE_SIZE * zoom)) - 1);
+  var canvasW = ctx.canvas.width;
+  var canvasH = ctx.canvas.height;
+  var endX = Math.min(gridWidth, Math.ceil((canvasW - panX) / (TILE_SIZE * zoom)) + 1);
+  var endY = Math.min(gridHeight, Math.ceil((canvasH - panY) / (TILE_SIZE * zoom)) + 1);
+
+  ctx.fillStyle = dotColor;
+  for (var y = startY; y <= endY; y++) {
+    for (var x = startX; x <= endX; x++) {
       var _pos = gridToScreen(x, y, panX, panY, zoom);
-      var cx = _pos[0];
-      var cy = _pos[1];
-      var hw = HALF_TILE_W * zoom;
-      var hh = HALF_TILE_H * zoom;
       ctx.beginPath();
-      ctx.moveTo(cx, cy);
-      ctx.lineTo(cx + hw, cy + hh);
-      ctx.lineTo(cx, cy + 2 * hh);
-      ctx.lineTo(cx - hw, cy + hh);
-      ctx.closePath();
-      ctx.stroke();
+      ctx.arc(_pos[0], _pos[1], dotR, 0, Math.PI * 2);
+      ctx.fill();
     }
   }
 }
 
-// ── Tile highlight (hover/selection) ────────────────────────────
+// ── Tile highlight (hover/selection) ────────────────────
 export function drawTileHighlight(
   ctx: CanvasRenderingContext2D,
   tileX: number,
@@ -54,16 +71,13 @@ export function drawTileHighlight(
   strokeColor: string
 ): void {
   var _pos = gridToScreen(tileX, tileY, panX, panY, zoom);
-  var cx = _pos[0];
-  var cy = _pos[1];
-  var hw = HALF_TILE_W * zoom;
-  var hh = HALF_TILE_H * zoom;
-  ctx.beginPath();
-  ctx.moveTo(cx, cy);
-  ctx.lineTo(cx + hw, cy + hh);
-  ctx.lineTo(cx, cy + 2 * hh);
-  ctx.lineTo(cx - hw, cy + hh);
-  ctx.closePath();
+  var w = CARD_W * zoom;
+  var h = CARD_H * zoom;
+  var x = _pos[0] - w / 2;
+  var y = _pos[1] - h / 2;
+  var r = CARD_R * zoom;
+
+  roundedRect(ctx, x, y, w, h, r);
   ctx.fillStyle = fillColor;
   ctx.fill();
   ctx.strokeStyle = strokeColor;
@@ -71,7 +85,7 @@ export function drawTileHighlight(
   ctx.stroke();
 }
 
-// ── Region / Zone rendering ──────────────────────────────────────
+// ── Region / Zone rendering (axis-aligned rounded rect with label badge) ──
 export function drawRegion(
   ctx: CanvasRenderingContext2D,
   region: Region,
@@ -80,638 +94,403 @@ export function drawRegion(
   zoom: number,
   isDark: boolean
 ): void {
-  var fromX = region.fromTile[0];
-  var fromY = region.fromTile[1];
-  var toX = region.toTile[0];
-  var toY = region.toTile[1];
+  var fromPt = gridToScreen(region.fromTile[0], region.fromTile[1], panX, panY, zoom);
+  var toPt = gridToScreen(region.toTile[0], region.toTile[1], panX, panY, zoom);
 
-  var topPt = gridToScreen(fromX, fromY, panX, panY, zoom);
-  var rightPt = gridToScreen(toX, fromY, panX, panY, zoom);
-  var bottomPt = gridToScreen(toX, toY, panX, panY, zoom);
-  var leftPt = gridToScreen(fromX, toY, panX, panY, zoom);
+  // Add padding around the tiles
+  var pad = TILE_SIZE * zoom * 0.5;
+  var rx = fromPt[0] - pad;
+  var ry = fromPt[1] - pad;
+  var rw = (toPt[0] - fromPt[0]) + pad * 2;
+  var rh = (toPt[1] - fromPt[1]) + pad * 2;
+  var rr = 12 * zoom;
 
-  var offY = HALF_TILE_H * zoom;
-
-  ctx.beginPath();
-  ctx.moveTo(topPt[0], topPt[1] + offY);
-  ctx.lineTo(rightPt[0], rightPt[1] + offY);
-  ctx.lineTo(bottomPt[0], bottomPt[1] + offY);
-  ctx.lineTo(leftPt[0], leftPt[1] + offY);
-  ctx.closePath();
-
-  ctx.globalAlpha = isDark ? 0.08 : 0.06;
+  // Subtle fill
+  roundedRect(ctx, rx, ry, rw, rh, rr);
+  ctx.globalAlpha = isDark ? 0.06 : 0.04;
   ctx.fillStyle = region.color;
   ctx.fill();
   ctx.globalAlpha = 1;
 
+  // Thin border
   ctx.strokeStyle = region.strokeColor;
   ctx.lineWidth = 1.5;
-  ctx.globalAlpha = isDark ? 0.25 : 0.2;
-  ctx.setLineDash([6, 4]);
+  ctx.globalAlpha = isDark ? 0.2 : 0.15;
   ctx.stroke();
-  ctx.setLineDash([]);
   ctx.globalAlpha = 1;
 
+  // Label badge at top-left corner
   if (zoom > 0.4) {
+    var badgeX = rx + 8 * zoom;
+    var badgeY = ry + 4 * zoom;
+    var fontSize = Math.max(8, 9 * zoom);
+    ctx.font = "600 " + fontSize + "px var(--font-geist-sans), system-ui, sans-serif";
+    var textWidth = ctx.measureText(region.label).width;
+    var padX = 5 * zoom;
+    var padY = 3 * zoom;
+
+    // Badge background
+    var bx = badgeX;
+    var by = badgeY;
+    var bw = textWidth + padX * 2;
+    var bh = fontSize + padY * 2;
+    var br = 3 * zoom;
+    ctx.globalAlpha = isDark ? 0.8 : 0.9;
+    ctx.fillStyle = isDark ? "#1a1a1a" : "#ffffff";
+    roundedRect(ctx, bx, by, bw, bh, br);
+    ctx.fill();
+    ctx.strokeStyle = region.strokeColor;
+    ctx.globalAlpha = 0.3;
+    ctx.lineWidth = 1;
+    ctx.stroke();
+    ctx.globalAlpha = 1;
+
+    // Badge text
     ctx.fillStyle = region.strokeColor;
-    ctx.globalAlpha = isDark ? 0.6 : 0.5;
-    ctx.font = "600 " + Math.max(9, 10 * zoom) + "px var(--font-geist-sans), system-ui, sans-serif";
-    ctx.textAlign = "center";
-    ctx.textBaseline = "bottom";
-    ctx.fillText(region.label, topPt[0], topPt[1] + offY - 4 * zoom);
+    ctx.globalAlpha = isDark ? 0.7 : 0.6;
+    ctx.textAlign = "left";
+    ctx.textBaseline = "top";
+    ctx.fillText(region.label, bx + padX, by + padY);
     ctx.globalAlpha = 1;
   }
 }
 
-// ── Generic fallback cube (also used as drawNode for backward compat) ──
-export function drawNode(
+// ── Category icon drawing (matches Lucide icons from NodePalette) ──
+function drawCategoryIcon(
+  ctx: CanvasRenderingContext2D,
+  category: string,
+  cx: number,
+  cy: number,
+  size: number,
+  color: string
+): void {
+  var s = size / 24; // scale from 24px Lucide base
+  ctx.save();
+  ctx.translate(cx - 12 * s, cy - 12 * s);
+  ctx.scale(s, s);
+  ctx.strokeStyle = color;
+  ctx.lineWidth = 2;
+  ctx.lineCap = "round";
+  ctx.lineJoin = "round";
+  ctx.fillStyle = "none";
+
+  switch (category) {
+    case "back-office": // Building2
+      ctx.beginPath();
+      ctx.moveTo(6, 22); ctx.lineTo(6, 4); ctx.lineTo(14, 2); ctx.lineTo(14, 22);
+      ctx.stroke();
+      ctx.beginPath();
+      ctx.moveTo(14, 13); ctx.lineTo(18, 9); ctx.lineTo(18, 22);
+      ctx.stroke();
+      ctx.beginPath();
+      ctx.moveTo(2, 22); ctx.lineTo(22, 22);
+      ctx.stroke();
+      ctx.beginPath();
+      ctx.moveTo(9, 6); ctx.lineTo(9, 6.01);
+      ctx.stroke();
+      ctx.beginPath();
+      ctx.moveTo(9, 10); ctx.lineTo(9, 10.01);
+      ctx.stroke();
+      ctx.beginPath();
+      ctx.moveTo(9, 14); ctx.lineTo(9, 14.01);
+      ctx.stroke();
+      ctx.beginPath();
+      ctx.moveTo(9, 18); ctx.lineTo(9, 18.01);
+      ctx.stroke();
+      break;
+    case "online-store": // Monitor
+      ctx.beginPath();
+      ctx.rect(2, 3, 20, 14);
+      ctx.stroke();
+      ctx.beginPath();
+      ctx.moveTo(8, 21); ctx.lineTo(16, 21);
+      ctx.stroke();
+      ctx.beginPath();
+      ctx.moveTo(12, 17); ctx.lineTo(12, 21);
+      ctx.stroke();
+      break;
+    case "retail": // Store
+      ctx.beginPath();
+      ctx.moveTo(4, 2); ctx.lineTo(20, 2); ctx.lineTo(22, 8); ctx.lineTo(2, 8); ctx.closePath();
+      ctx.stroke();
+      ctx.beginPath();
+      ctx.moveTo(4, 8); ctx.lineTo(4, 22); ctx.lineTo(20, 22); ctx.lineTo(20, 8);
+      ctx.stroke();
+      ctx.beginPath();
+      ctx.moveTo(2, 8); ctx.quadraticCurveTo(6, 12, 6, 8);
+      ctx.stroke();
+      ctx.beginPath();
+      ctx.moveTo(6, 8); ctx.quadraticCurveTo(10, 12, 12, 8);
+      ctx.stroke();
+      ctx.beginPath();
+      ctx.moveTo(12, 8); ctx.quadraticCurveTo(14, 12, 18, 8);
+      ctx.stroke();
+      ctx.beginPath();
+      ctx.moveTo(18, 8); ctx.quadraticCurveTo(20, 12, 22, 8);
+      ctx.stroke();
+      ctx.beginPath();
+      ctx.rect(9, 16, 6, 6);
+      ctx.stroke();
+      break;
+    case "checkout": // ShoppingCart
+      ctx.beginPath();
+      ctx.arc(9, 21, 1, 0, Math.PI * 2);
+      ctx.stroke();
+      ctx.beginPath();
+      ctx.arc(20, 21, 1, 0, Math.PI * 2);
+      ctx.stroke();
+      ctx.beginPath();
+      ctx.moveTo(1, 1); ctx.lineTo(5, 1); ctx.lineTo(7, 13); ctx.lineTo(21, 13);
+      ctx.stroke();
+      ctx.beginPath();
+      ctx.moveTo(6, 5); ctx.lineTo(21, 5); ctx.lineTo(20, 13);
+      ctx.stroke();
+      break;
+    case "payments": // Lock
+      ctx.beginPath();
+      ctx.rect(3, 11, 18, 11);
+      ctx.stroke();
+      ctx.beginPath();
+      ctx.moveTo(7, 11); ctx.lineTo(7, 7);
+      ctx.arc(12, 7, 5, Math.PI, 0);
+      ctx.lineTo(17, 11);
+      ctx.stroke();
+      break;
+    case "balance": // Landmark
+      ctx.beginPath();
+      ctx.moveTo(3, 22); ctx.lineTo(21, 22);
+      ctx.stroke();
+      ctx.beginPath();
+      ctx.moveTo(2, 9); ctx.lineTo(12, 2); ctx.lineTo(22, 9);
+      ctx.stroke();
+      ctx.beginPath();
+      ctx.moveTo(6, 9); ctx.lineTo(6, 18);
+      ctx.stroke();
+      ctx.beginPath();
+      ctx.moveTo(10, 9); ctx.lineTo(10, 18);
+      ctx.stroke();
+      ctx.beginPath();
+      ctx.moveTo(14, 9); ctx.lineTo(14, 18);
+      ctx.stroke();
+      ctx.beginPath();
+      ctx.moveTo(18, 9); ctx.lineTo(18, 18);
+      ctx.stroke();
+      ctx.beginPath();
+      ctx.moveTo(2, 18); ctx.lineTo(22, 18);
+      ctx.stroke();
+      break;
+    case "inventory": // Warehouse
+      ctx.beginPath();
+      ctx.moveTo(4, 22); ctx.lineTo(4, 10); ctx.lineTo(12, 3); ctx.lineTo(20, 10); ctx.lineTo(20, 22);
+      ctx.stroke();
+      ctx.beginPath();
+      ctx.moveTo(8, 22); ctx.lineTo(8, 16); ctx.lineTo(16, 16); ctx.lineTo(16, 22);
+      ctx.stroke();
+      ctx.beginPath();
+      ctx.moveTo(8, 13); ctx.lineTo(16, 13);
+      ctx.stroke();
+      break;
+    case "marketing": // Megaphone
+      ctx.beginPath();
+      ctx.moveTo(3, 11); ctx.lineTo(3, 15); ctx.lineTo(8, 15); ctx.lineTo(8, 11); ctx.closePath();
+      ctx.stroke();
+      ctx.beginPath();
+      ctx.moveTo(8, 11); ctx.lineTo(19, 5); ctx.lineTo(19, 21); ctx.lineTo(8, 15);
+      ctx.stroke();
+      ctx.beginPath();
+      ctx.moveTo(5, 15); ctx.lineTo(5, 19);
+      ctx.stroke();
+      ctx.beginPath();
+      ctx.moveTo(19, 11); ctx.lineTo(22, 10);
+      ctx.stroke();
+      ctx.beginPath();
+      ctx.moveTo(19, 15); ctx.lineTo(22, 16);
+      ctx.stroke();
+      break;
+    case "shipping": // Truck
+      ctx.beginPath();
+      ctx.moveTo(1, 3); ctx.lineTo(15, 3); ctx.lineTo(15, 15); ctx.lineTo(1, 15); ctx.closePath();
+      ctx.stroke();
+      ctx.beginPath();
+      ctx.moveTo(15, 8); ctx.lineTo(20, 8); ctx.lineTo(23, 11); ctx.lineTo(23, 15); ctx.lineTo(15, 15);
+      ctx.stroke();
+      ctx.beginPath();
+      ctx.arc(7, 18, 2, 0, Math.PI * 2);
+      ctx.stroke();
+      ctx.beginPath();
+      ctx.arc(19, 18, 2, 0, Math.PI * 2);
+      ctx.stroke();
+      break;
+    case "tax": // Receipt
+      ctx.beginPath();
+      ctx.moveTo(4, 2); ctx.lineTo(20, 2); ctx.lineTo(20, 22);
+      ctx.lineTo(18, 20); ctx.lineTo(16, 22); ctx.lineTo(14, 20); ctx.lineTo(12, 22);
+      ctx.lineTo(10, 20); ctx.lineTo(8, 22); ctx.lineTo(6, 20); ctx.lineTo(4, 22);
+      ctx.closePath();
+      ctx.stroke();
+      ctx.beginPath();
+      ctx.moveTo(8, 7); ctx.lineTo(16, 7);
+      ctx.stroke();
+      ctx.beginPath();
+      ctx.moveTo(8, 11); ctx.lineTo(16, 11);
+      ctx.stroke();
+      ctx.beginPath();
+      ctx.moveTo(8, 15); ctx.lineTo(12, 15);
+      ctx.stroke();
+      break;
+    case "billing": // CreditCard
+      ctx.beginPath();
+      ctx.rect(2, 4, 20, 16);
+      ctx.stroke();
+      ctx.beginPath();
+      ctx.moveTo(2, 10); ctx.lineTo(22, 10);
+      ctx.stroke();
+      break;
+    case "capital": // TrendingUp
+      ctx.beginPath();
+      ctx.moveTo(22, 7); ctx.lineTo(14, 15); ctx.lineTo(10, 11); ctx.lineTo(2, 19);
+      ctx.stroke();
+      ctx.beginPath();
+      ctx.moveTo(16, 7); ctx.lineTo(22, 7); ctx.lineTo(22, 13);
+      ctx.stroke();
+      break;
+    default: // fallback circle
+      ctx.beginPath();
+      ctx.arc(12, 12, 8, 0, Math.PI * 2);
+      ctx.stroke();
+  }
+  ctx.restore();
+}
+
+// ── Node card renderer (replaces all building functions) ──
+export function drawNodeCard(
   ctx: CanvasRenderingContext2D,
   node: MapNode,
   panX: number,
   panY: number,
   zoom: number,
   isSelected: boolean,
-  _isHovered: boolean
-): void {
-  drawBuilding(ctx, node, panX, panY, zoom, isSelected);
-}
-
-// ── Building dispatcher ─────────────────────────────────────────
-export function drawBuilding(
-  ctx: CanvasRenderingContext2D,
-  node: MapNode,
-  panX: number,
-  panY: number,
-  zoom: number,
-  isSelected: boolean
+  isDark: boolean
 ): void {
   var def = getCategoryDef(node.category);
   var _pos = gridToScreen(node.tileX, node.tileY, panX, panY, zoom);
-  var cx = _pos[0];
-  var cy = _pos[1];
-  var hw = HALF_TILE_W * zoom;
-  var hh = HALF_TILE_H * zoom;
-  var botY = cy + hh;
-  var h = getBuildingHeight(node) * zoom;
+  var w = CARD_W * zoom;
+  var h = CARD_H * zoom;
+  var x = _pos[0] - w / 2;
+  var y = _pos[1] - h / 2;
+  var r = CARD_R * zoom;
 
-  switch (node.category) {
-    case "online-store":
-      drawOnlineStore(ctx, cx, botY, hw, hh, h, zoom, def);
-      break;
-    case "retail":
-      drawRetail(ctx, cx, botY, hw, hh, h, zoom, def);
-      break;
-    case "warehouse":
-      drawWarehouse(ctx, cx, botY, hw, hh, h, zoom, def, node);
-      break;
-    case "marketing":
-      drawMarketing(ctx, cx, botY, hw, hh, h, zoom, def, node);
-      break;
-    case "shipping":
-      drawShipping(ctx, cx, botY, hw, hh, h, zoom, def, node);
-      break;
-    default:
-      drawGenericCube(ctx, cx, botY, hw, hh, h, zoom, def);
-  }
+  // Card background
+  roundedRect(ctx, x, y, w, h, r);
+  ctx.fillStyle = isDark ? "#1e1e1e" : "#ffffff";
+  ctx.fill();
 
-  // Selection outline
+  // Card border
   if (isSelected) {
-    ctx.strokeStyle = "#ffffff";
-    ctx.lineWidth = 2.5;
-    ctx.beginPath();
-    ctx.moveTo(cx, botY - h);
-    ctx.lineTo(cx + hw, botY + hh - h);
-    ctx.lineTo(cx + hw, botY + hh);
-    ctx.lineTo(cx, botY + 2 * hh);
-    ctx.lineTo(cx - hw, botY + hh);
-    ctx.lineTo(cx - hw, botY + hh - h);
-    ctx.closePath();
-    ctx.stroke();
+    ctx.strokeStyle = "#0d9488";
+    ctx.lineWidth = 2;
+  } else {
+    ctx.strokeStyle = isDark ? "rgba(255,255,255,0.1)" : "rgba(0,0,0,0.1)";
+    ctx.lineWidth = 1;
+  }
+  ctx.stroke();
+
+  // Left accent bar
+  var accentW = ACCENT_W * zoom;
+  var accentR = r;
+  ctx.beginPath();
+  ctx.moveTo(x + accentR, y);
+  ctx.lineTo(x + accentW, y);
+  ctx.lineTo(x + accentW, y + h);
+  ctx.lineTo(x + accentR, y + h);
+  ctx.quadraticCurveTo(x, y + h, x, y + h - accentR);
+  ctx.lineTo(x, y + accentR);
+  ctx.quadraticCurveTo(x, y, x + accentR, y);
+  ctx.closePath();
+  ctx.fillStyle = def.color;
+  ctx.fill();
+
+  // Icon circle (top-left inside card)
+  var iconR = ICON_R * zoom;
+  var iconCX = x + accentW + 8 * zoom + iconR;
+  var iconCY = y + h * 0.38;
+  ctx.beginPath();
+  ctx.arc(iconCX, iconCY, iconR, 0, Math.PI * 2);
+  ctx.fillStyle = def.color;
+  ctx.globalAlpha = 0.12;
+  ctx.fill();
+  ctx.globalAlpha = 1;
+
+  // Draw Lucide-style icon
+  var iconSize = iconR * 1.3;
+  drawCategoryIcon(ctx, node.category, iconCX, iconCY, iconSize, def.color);
+
+  // Label text (bold, to the right of icon)
+  var labelX = iconCX + iconR + 6 * zoom;
+  var labelY = y + h * 0.35;
+  ctx.fillStyle = isDark ? "#e5e5e5" : "#1a1a1a";
+  ctx.font = "600 " + Math.max(10, 12 * zoom) + "px var(--font-geist-sans), system-ui, sans-serif";
+  ctx.textAlign = "left";
+  ctx.textBaseline = "middle";
+
+  // Truncate label if too long — reserve space for badge
+  var badgeReserve = (node.alertCount && node.alertCount > 0) ? 28 * zoom : 0;
+  var maxLabelW = w - (labelX - x) - 8 * zoom - badgeReserve;
+  var labelText = node.label;
+  if (ctx.measureText(labelText).width > maxLabelW) {
+    while (labelText.length > 0 && ctx.measureText(labelText + "\u2026").width > maxLabelW) {
+      labelText = labelText.slice(0, -1);
+    }
+    labelText += "\u2026";
+  }
+  ctx.fillText(labelText, labelX, labelY);
+
+  // First stat value (muted text below label)
+  if (node.stats && node.stats.length > 0 && zoom > 0.4) {
+    var statY = y + h * 0.64;
+    ctx.fillStyle = isDark ? "rgba(255,255,255,0.5)" : "rgba(0,0,0,0.45)";
+    ctx.font = Math.max(8, 10 * zoom) + "px var(--font-geist-sans), system-ui, sans-serif";
+    ctx.textAlign = "left";
+    ctx.textBaseline = "middle";
+    var statText = node.stats[0].value;
+    var maxStatW = w - (labelX - x) - 8 * zoom;
+    if (ctx.measureText(statText).width > maxStatW) {
+      while (statText.length > 0 && ctx.measureText(statText + "\u2026").width > maxStatW) {
+        statText = statText.slice(0, -1);
+      }
+      statText += "\u2026";
+    }
+    ctx.fillText(statText, labelX, statY);
   }
 
-  // Alert badge
+  // Alert badge (pill shape at top-right with proper padding)
   if (node.alertCount && node.alertCount > 0) {
-    var badgeR = 6 * zoom;
-    var badgeX = cx + hw * 0.6;
-    var badgeY = botY - h - badgeR;
-    ctx.beginPath();
-    ctx.arc(badgeX, badgeY, badgeR, 0, Math.PI * 2);
+    var badgeText = node.alertCount > 99 ? "99+" : node.alertCount.toString();
+    var badgeFontSize = Math.max(8, 9 * zoom);
+    ctx.font = "600 " + badgeFontSize + "px var(--font-geist-sans), system-ui, sans-serif";
+    var badgeTextW = ctx.measureText(badgeText).width;
+    var badgePadX = 5 * zoom;
+    var badgePadY = 3 * zoom;
+    var badgeH = badgeFontSize + badgePadY * 2;
+    var badgeW = Math.max(badgeH, badgeTextW + badgePadX * 2); // pill: min width = height
+    var badgeRR = badgeH / 2;
+    var badgeX = x + w - badgeW - 5 * zoom;
+    var badgeY = y + 5 * zoom;
+
+    // Badge background
+    roundedRect(ctx, badgeX, badgeY, badgeW, badgeH, badgeRR);
     ctx.fillStyle = "#ef4444";
     ctx.fill();
-    ctx.strokeStyle = "#7f1d1d";
-    ctx.lineWidth = 1;
-    ctx.stroke();
-    if (zoom > 0.6) {
-      ctx.fillStyle = "#ffffff";
-      ctx.font = Math.max(7, 8 * zoom) + "px var(--font-geist-sans), system-ui, sans-serif";
-      ctx.textAlign = "center";
-      ctx.textBaseline = "middle";
-      var badgeText = node.alertCount > 99 ? "99+" : node.alertCount.toString();
-      ctx.fillText(badgeText, badgeX, badgeY);
-    }
-  }
 
-  // ── Floating label stem (isoflow-inspired) ──
-  var stemHeight = (node.labelHeight || 24) * zoom;
-  var stemTopY = botY - h - stemHeight;
-  var stemBottomY = botY - h;
-
-  ctx.beginPath();
-  ctx.setLineDash([2, 3]);
-  ctx.strokeStyle = isSelected ? "rgba(255,255,255,0.5)" : "rgba(150,150,150,0.35)";
-  ctx.lineWidth = 1;
-  ctx.moveTo(cx, stemBottomY);
-  ctx.lineTo(cx, stemTopY);
-  ctx.stroke();
-  ctx.setLineDash([]);
-
-  ctx.beginPath();
-  ctx.arc(cx, stemBottomY, 2 * zoom, 0, Math.PI * 2);
-  ctx.fillStyle = isSelected ? "#ffffff" : def.colorTop;
-  ctx.fill();
-
-  ctx.fillStyle = isSelected ? "#ffffff" : def.colorTop;
-  ctx.font = "600 " + Math.max(10, 11 * zoom) + "px var(--font-geist-sans), system-ui, sans-serif";
-  ctx.textAlign = "center";
-  ctx.textBaseline = "bottom";
-  ctx.fillText(node.label, cx, stemTopY - 2 * zoom);
-
-  if (zoom > 1.0 && node.stats && node.stats.length > 0) {
-    ctx.fillStyle = "rgba(255,255,255,0.65)";
-    ctx.font = Math.max(8, 9 * zoom) + "px var(--font-geist-sans), system-ui, sans-serif";
+    // Badge text
+    ctx.fillStyle = "#ffffff";
     ctx.textAlign = "center";
-    ctx.textBaseline = "top";
-    ctx.fillText(node.stats[0].value, cx, stemTopY - 1 * zoom);
+    ctx.textBaseline = "middle";
+    ctx.fillText(badgeText, badgeX + badgeW / 2, badgeY + badgeH / 2);
   }
 }
 
-// ── Generic cube ────────────────────────────────────────────────
-function drawGenericCube(
-  ctx: CanvasRenderingContext2D,
-  cx: number, botY: number, hw: number, hh: number, h: number,
-  _zoom: number,
-  def: { colorTop: string; colorLeft: string; colorRight: string; colorStroke: string }
-): void {
-  // Top face
-  ctx.beginPath();
-  ctx.moveTo(cx, botY - h);
-  ctx.lineTo(cx + hw, botY + hh - h);
-  ctx.lineTo(cx, botY + 2 * hh - h);
-  ctx.lineTo(cx - hw, botY + hh - h);
-  ctx.closePath();
-  ctx.fillStyle = def.colorTop;
-  ctx.fill();
-  ctx.strokeStyle = def.colorStroke;
-  ctx.lineWidth = 1;
-  ctx.stroke();
-
-  // Left face
-  ctx.beginPath();
-  ctx.moveTo(cx - hw, botY + hh - h);
-  ctx.lineTo(cx, botY + 2 * hh - h);
-  ctx.lineTo(cx, botY + 2 * hh);
-  ctx.lineTo(cx - hw, botY + hh);
-  ctx.closePath();
-  ctx.fillStyle = def.colorLeft;
-  ctx.fill();
-  ctx.strokeStyle = def.colorStroke;
-  ctx.lineWidth = 1;
-  ctx.stroke();
-
-  // Right face
-  ctx.beginPath();
-  ctx.moveTo(cx + hw, botY + hh - h);
-  ctx.lineTo(cx, botY + 2 * hh - h);
-  ctx.lineTo(cx, botY + 2 * hh);
-  ctx.lineTo(cx + hw, botY + hh);
-  ctx.closePath();
-  ctx.fillStyle = def.colorRight;
-  ctx.fill();
-  ctx.strokeStyle = def.colorStroke;
-  ctx.lineWidth = 1;
-  ctx.stroke();
-}
-
-// ── Online Store: Tall building with peaked gable roof (hero, 1.15x) ──
-// Distinguished by: tallest building, peaked roof, large storefront window
-function drawOnlineStore(
-  ctx: CanvasRenderingContext2D,
-  cx: number, botY: number, hw: number, hh: number, h: number,
-  zoom: number,
-  def: { colorTop: string; colorLeft: string; colorRight: string; colorStroke: string }
-): void {
-  var s = 1.15; // hero scale
-  var sHw = hw * s;
-  var sHh = hh * s;
-  var sH = h * s;
-  var roofPeak = sH * 0.3;
-
-  // Left wall
-  ctx.beginPath();
-  ctx.moveTo(cx - sHw, botY + sHh - sH);
-  ctx.lineTo(cx, botY + 2 * sHh - sH);
-  ctx.lineTo(cx, botY + 2 * hh);
-  ctx.lineTo(cx - hw, botY + hh);
-  ctx.closePath();
-  ctx.fillStyle = def.colorLeft;
-  ctx.fill();
-  ctx.strokeStyle = def.colorStroke;
-  ctx.lineWidth = 1;
-  ctx.stroke();
-
-  // Right wall
-  ctx.beginPath();
-  ctx.moveTo(cx + sHw, botY + sHh - sH);
-  ctx.lineTo(cx, botY + 2 * sHh - sH);
-  ctx.lineTo(cx, botY + 2 * hh);
-  ctx.lineTo(cx + hw, botY + hh);
-  ctx.closePath();
-  ctx.fillStyle = def.colorRight;
-  ctx.fill();
-  ctx.strokeStyle = def.colorStroke;
-  ctx.lineWidth = 1;
-  ctx.stroke();
-
-  // Peaked roof — left slope
-  ctx.beginPath();
-  ctx.moveTo(cx, botY - sH - roofPeak);
-  ctx.lineTo(cx - sHw, botY + sHh - sH);
-  ctx.lineTo(cx, botY + 2 * sHh - sH);
-  ctx.closePath();
-  ctx.fillStyle = def.colorTop;
-  ctx.fill();
-  ctx.strokeStyle = def.colorStroke;
-  ctx.lineWidth = 1;
-  ctx.stroke();
-
-  // Peaked roof — right slope (brighter)
-  ctx.beginPath();
-  ctx.moveTo(cx, botY - sH - roofPeak);
-  ctx.lineTo(cx + sHw, botY + sHh - sH);
-  ctx.lineTo(cx, botY + 2 * sHh - sH);
-  ctx.closePath();
-  ctx.fillStyle = adjustBrightness(def.colorTop, 1.15);
-  ctx.fill();
-  ctx.strokeStyle = def.colorStroke;
-  ctx.lineWidth = 1;
-  ctx.stroke();
-
-  // Storefront window on right wall (large, inset dark pane)
-  if (zoom > 0.4) {
-    var winMargin = sHw * 0.12;
-    var winTopY = botY + sHh - sH + sH * 0.2;
-    var winBotY = botY + sHh - sH * 0.15;
-    ctx.beginPath();
-    ctx.moveTo(cx + sHw - winMargin, winTopY);
-    ctx.lineTo(cx + winMargin, winTopY + sHh - winMargin);
-    ctx.lineTo(cx + winMargin, winBotY + sHh - winMargin);
-    ctx.lineTo(cx + sHw - winMargin, winBotY);
-    ctx.closePath();
-    ctx.fillStyle = "#1a1a2e";
-    ctx.fill();
-    ctx.strokeStyle = def.colorStroke;
-    ctx.lineWidth = 1;
-    ctx.stroke();
-  }
-}
-
-// ── Retail: Shorter building with flat roof + awning overhang ────
-// Distinguished by: shorter than online store, flat roof, awning extends right
-function drawRetail(
-  ctx: CanvasRenderingContext2D,
-  cx: number, botY: number, hw: number, hh: number, h: number,
-  zoom: number,
-  def: { colorTop: string; colorLeft: string; colorRight: string; colorStroke: string }
-): void {
-  var shortH = h * 0.7;
-  var awningDrop = shortH * 0.12;
-  var awningExt = hw * 0.45;
-
-  // Base building (generic cube, shorter)
-  drawGenericCube(ctx, cx, botY, hw, hh, shortH, zoom, def);
-
-  // Awning: extends from right wall top edge outward
-  // It's a flat slab that overhangs — the signature retail element
-  var awY = botY + hh - shortH; // top of right wall
-
-  // Awning top surface (isometric parallelogram extending right)
-  ctx.beginPath();
-  ctx.moveTo(cx + hw, awY);
-  ctx.lineTo(cx + hw + awningExt, awY + hh * 0.25);
-  ctx.lineTo(cx + awningExt, awY + hh + hh * 0.25);
-  ctx.lineTo(cx, awY + hh);
-  ctx.closePath();
-  ctx.fillStyle = def.colorTop;
-  ctx.fill();
-  ctx.strokeStyle = def.colorStroke;
-  ctx.lineWidth = 1;
-  ctx.stroke();
-
-  // Awning front face (thin drop edge)
-  ctx.beginPath();
-  ctx.moveTo(cx + hw + awningExt, awY + hh * 0.25);
-  ctx.lineTo(cx + awningExt, awY + hh + hh * 0.25);
-  ctx.lineTo(cx + awningExt, awY + hh + hh * 0.25 + awningDrop);
-  ctx.lineTo(cx + hw + awningExt, awY + hh * 0.25 + awningDrop);
-  ctx.closePath();
-  ctx.fillStyle = adjustBrightness(def.colorTop, 0.8);
-  ctx.fill();
-  ctx.strokeStyle = def.colorStroke;
-  ctx.lineWidth = 1;
-  ctx.stroke();
-
-  // Awning underside (shadow)
-  ctx.beginPath();
-  ctx.moveTo(cx, awY + hh);
-  ctx.lineTo(cx + awningExt, awY + hh + hh * 0.25);
-  ctx.lineTo(cx + awningExt, awY + hh + hh * 0.25 + awningDrop);
-  ctx.lineTo(cx, awY + hh + awningDrop);
-  ctx.closePath();
-  ctx.fillStyle = adjustBrightness(def.colorLeft, 0.65);
-  ctx.fill();
-  ctx.strokeStyle = def.colorStroke;
-  ctx.lineWidth = 1;
-  ctx.stroke();
-
-  // Door on front face
-  if (zoom > 0.5) {
-    var doorW = hw * 0.22;
-    var doorH = shortH * 0.45;
-    ctx.beginPath();
-    ctx.moveTo(cx - doorW, botY + 2 * hh - doorH);
-    ctx.lineTo(cx + doorW, botY + 2 * hh - doorH + doorW * 0.3);
-    ctx.lineTo(cx + doorW, botY + 2 * hh);
-    ctx.lineTo(cx - doorW, botY + 2 * hh);
-    ctx.closePath();
-    ctx.fillStyle = def.colorStroke;
-    ctx.fill();
-  }
-}
-
-// ── Warehouse: Wide + short cube (proportions = identity) ────────
-// Distinguished by: widest building, shortest height, segment lines on top
-function drawWarehouse(
-  ctx: CanvasRenderingContext2D,
-  cx: number, botY: number, hw: number, hh: number, h: number,
-  zoom: number,
-  def: { colorTop: string; colorLeft: string; colorRight: string; colorStroke: string },
-  node: MapNode
-): void {
-  var level = node.buildingLevel || 1;
-  var wideHw = hw * 1.25;
-  var wideHh = hh * 1.25;
-  var shortH = h * 0.45;
-
-  // Left wall (wide)
-  ctx.beginPath();
-  ctx.moveTo(cx - wideHw, botY + wideHh - shortH);
-  ctx.lineTo(cx, botY + 2 * wideHh - shortH);
-  ctx.lineTo(cx, botY + 2 * hh);
-  ctx.lineTo(cx - hw, botY + hh);
-  ctx.closePath();
-  ctx.fillStyle = def.colorLeft;
-  ctx.fill();
-  ctx.strokeStyle = def.colorStroke;
-  ctx.lineWidth = 1;
-  ctx.stroke();
-
-  // Right wall (wide)
-  ctx.beginPath();
-  ctx.moveTo(cx + wideHw, botY + wideHh - shortH);
-  ctx.lineTo(cx, botY + 2 * wideHh - shortH);
-  ctx.lineTo(cx, botY + 2 * hh);
-  ctx.lineTo(cx + hw, botY + hh);
-  ctx.closePath();
-  ctx.fillStyle = def.colorRight;
-  ctx.fill();
-  ctx.strokeStyle = def.colorStroke;
-  ctx.lineWidth = 1;
-  ctx.stroke();
-
-  // Top face (wide diamond)
-  ctx.beginPath();
-  ctx.moveTo(cx, botY - shortH + hh - wideHh);
-  ctx.lineTo(cx + wideHw, botY + wideHh - shortH);
-  ctx.lineTo(cx, botY + 2 * wideHh - shortH);
-  ctx.lineTo(cx - wideHw, botY + wideHh - shortH);
-  ctx.closePath();
-  ctx.fillStyle = def.colorTop;
-  ctx.fill();
-  ctx.strokeStyle = def.colorStroke;
-  ctx.lineWidth = 1;
-  ctx.stroke();
-
-  // Segment dividers on top face (storage sections)
-  if (zoom > 0.4) {
-    var segments = Math.min(level + 1, 5);
-    ctx.strokeStyle = def.colorStroke;
-    ctx.lineWidth = 1;
-    ctx.globalAlpha = 0.4;
-    for (var seg = 1; seg < segments; seg++) {
-      var frac = seg / segments;
-      // diagonal lines across the wide top diamond
-      var lx = cx - wideHw + wideHw * 2 * frac;
-      var ly = botY + wideHh - shortH - wideHh + wideHh * frac;
-      ctx.beginPath();
-      ctx.moveTo(lx - wideHw * (1 - frac), ly + wideHh * (1 - frac));
-      ctx.lineTo(lx, ly);
-      ctx.stroke();
-    }
-    ctx.globalAlpha = 1;
-  }
-
-  // Bay doors on right wall
-  if (zoom > 0.5) {
-    var bayCount = Math.min(level, 3);
-    ctx.globalAlpha = 0.5;
-    for (var b = 0; b < bayCount; b++) {
-      var bFrac = (b + 0.5) / bayCount;
-      var bx = cx + wideHw * (1 - bFrac * 0.85);
-      var by = botY + wideHh * (1 - bFrac * 0.85) + wideHh * 0.1;
-      var bw = wideHw * 0.15;
-      var bh = shortH * 0.6;
-      ctx.beginPath();
-      ctx.moveTo(bx, by - bh);
-      ctx.lineTo(bx - bw, by - bh + wideHh * 0.1);
-      ctx.lineTo(bx - bw, by + wideHh * 0.1);
-      ctx.lineTo(bx, by);
-      ctx.closePath();
-      ctx.fillStyle = def.colorStroke;
-      ctx.fill();
-    }
-    ctx.globalAlpha = 1;
-  }
-
-  // Red warning stripe for low stock
-  if (node.alertCount && node.alertCount > 0 && zoom > 0.6) {
-    ctx.beginPath();
-    ctx.moveTo(cx + hw, botY + hh - 4 * zoom);
-    ctx.lineTo(cx, botY + 2 * hh - 4 * zoom);
-    ctx.lineTo(cx, botY + 2 * hh);
-    ctx.lineTo(cx + hw, botY + hh);
-    ctx.closePath();
-    ctx.fillStyle = "rgba(239,68,68,0.3)";
-    ctx.fill();
-  }
-}
-
-// ── Marketing: Broadcast tower with signal arcs ──────────────────
-// Distinguished by: narrow tapered tower, signal arcs at top
-function drawMarketing(
-  ctx: CanvasRenderingContext2D,
-  cx: number, botY: number, hw: number, hh: number, h: number,
-  zoom: number,
-  def: { colorTop: string; colorLeft: string; colorRight: string; colorStroke: string },
-  node: MapNode
-): void {
-  var level = node.buildingLevel || 1;
-  var towerW = hw * 0.4;
-  var towerH = hh * 0.4;
-
-  // Tower left face (tapered)
-  ctx.beginPath();
-  ctx.moveTo(cx - towerW, botY + towerH - h);
-  ctx.lineTo(cx, botY + 2 * towerH - h);
-  ctx.lineTo(cx, botY + 2 * hh);
-  ctx.lineTo(cx - hw * 0.3, botY + hh + hh * 0.3);
-  ctx.closePath();
-  ctx.fillStyle = def.colorLeft;
-  ctx.fill();
-  ctx.strokeStyle = def.colorStroke;
-  ctx.lineWidth = 1;
-  ctx.stroke();
-
-  // Tower right face (tapered)
-  ctx.beginPath();
-  ctx.moveTo(cx + towerW, botY + towerH - h);
-  ctx.lineTo(cx, botY + 2 * towerH - h);
-  ctx.lineTo(cx, botY + 2 * hh);
-  ctx.lineTo(cx + hw * 0.3, botY + hh + hh * 0.3);
-  ctx.closePath();
-  ctx.fillStyle = def.colorRight;
-  ctx.fill();
-  ctx.strokeStyle = def.colorStroke;
-  ctx.lineWidth = 1;
-  ctx.stroke();
-
-  // Tower top
-  ctx.beginPath();
-  ctx.moveTo(cx, botY - h);
-  ctx.lineTo(cx + towerW, botY + towerH - h);
-  ctx.lineTo(cx, botY + 2 * towerH - h);
-  ctx.lineTo(cx - towerW, botY + towerH - h);
-  ctx.closePath();
-  ctx.fillStyle = def.colorTop;
-  ctx.fill();
-  ctx.strokeStyle = def.colorStroke;
-  ctx.lineWidth = 1;
-  ctx.stroke();
-
-  // Signal arcs emanating from top
-  if (zoom > 0.4) {
-    var arcCount = Math.min(level + 1, 4);
-    ctx.strokeStyle = def.colorTop;
-    ctx.lineWidth = 1.5 * zoom;
-    for (var a = 0; a < arcCount; a++) {
-      var radius = (10 + a * 8) * zoom;
-      ctx.globalAlpha = 0.5 - a * 0.1;
-      ctx.beginPath();
-      ctx.arc(cx, botY - h, radius, -Math.PI * 0.8, -Math.PI * 0.2);
-      ctx.stroke();
-    }
-    ctx.globalAlpha = 1;
-  }
-}
-
-// ── Shipping: Standard cube + chimney smokestack ─────────────────
-// Distinguished by: chimney on top, same height as retail
-function drawShipping(
-  ctx: CanvasRenderingContext2D,
-  cx: number, botY: number, hw: number, hh: number, h: number,
-  zoom: number,
-  def: { colorTop: string; colorLeft: string; colorRight: string; colorStroke: string },
-  node: MapNode
-): void {
-  var level = node.buildingLevel || 1;
-
-  // Main building body
-  drawGenericCube(ctx, cx, botY, hw, hh, h, zoom, def);
-
-  // Chimney (on the back-left corner)
-  var chimneyH = (14 + level * 8) * zoom;
-  var chimneyW = hw * 0.2;
-  var chimneyX = cx - hw * 0.5;
-  var chimneyBaseY = botY + hh - h;
-
-  // Chimney left face
-  ctx.beginPath();
-  ctx.moveTo(chimneyX - chimneyW, chimneyBaseY - chimneyH);
-  ctx.lineTo(chimneyX, chimneyBaseY - chimneyH + chimneyW * 0.5);
-  ctx.lineTo(chimneyX, chimneyBaseY);
-  ctx.lineTo(chimneyX - chimneyW, chimneyBaseY);
-  ctx.closePath();
-  ctx.fillStyle = def.colorLeft;
-  ctx.fill();
-  ctx.strokeStyle = def.colorStroke;
-  ctx.lineWidth = 1;
-  ctx.stroke();
-
-  // Chimney right face
-  ctx.beginPath();
-  ctx.moveTo(chimneyX, chimneyBaseY - chimneyH + chimneyW * 0.5);
-  ctx.lineTo(chimneyX + chimneyW, chimneyBaseY - chimneyH);
-  ctx.lineTo(chimneyX + chimneyW, chimneyBaseY);
-  ctx.lineTo(chimneyX, chimneyBaseY);
-  ctx.closePath();
-  ctx.fillStyle = def.colorRight;
-  ctx.fill();
-  ctx.strokeStyle = def.colorStroke;
-  ctx.lineWidth = 1;
-  ctx.stroke();
-
-  // Chimney top
-  ctx.beginPath();
-  ctx.moveTo(chimneyX, chimneyBaseY - chimneyH - chimneyW * 0.3);
-  ctx.lineTo(chimneyX + chimneyW, chimneyBaseY - chimneyH);
-  ctx.lineTo(chimneyX, chimneyBaseY - chimneyH + chimneyW * 0.5);
-  ctx.lineTo(chimneyX - chimneyW, chimneyBaseY - chimneyH);
-  ctx.closePath();
-  ctx.fillStyle = def.colorTop;
-  ctx.fill();
-  ctx.strokeStyle = def.colorStroke;
-  ctx.lineWidth = 1;
-  ctx.stroke();
-
-  // Loading bay door on right face
-  if (zoom > 0.5) {
-    var bayInset = 3 * zoom;
-    var bayTop = botY + hh - h + h * 0.2;
-    var bayBot = botY + hh - h * 0.1;
-    ctx.beginPath();
-    ctx.moveTo(cx + hw - bayInset, bayTop);
-    ctx.lineTo(cx + bayInset, bayTop + hh - bayInset * 0.5);
-    ctx.lineTo(cx + bayInset, bayBot + hh - bayInset * 0.5);
-    ctx.lineTo(cx + hw - bayInset, bayBot);
-    ctx.closePath();
-    ctx.fillStyle = def.colorStroke;
-    ctx.globalAlpha = 0.5;
-    ctx.fill();
-    ctx.globalAlpha = 1;
-  }
-}
-
-// ── Helper: adjust hex brightness ───────────────────────────────
-function adjustBrightness(hex: string, factor: number): string {
-  var r = parseInt(hex.slice(1, 3), 16);
-  var g = parseInt(hex.slice(3, 5), 16);
-  var b = parseInt(hex.slice(5, 7), 16);
-  r = Math.min(255, Math.round(r * factor));
-  g = Math.min(255, Math.round(g * factor));
-  b = Math.min(255, Math.round(b * factor));
-  return "#" + ((1 << 24) + (r << 16) + (g << 8) + b).toString(16).slice(1);
-}
-
-// ── Connector path (with style support) ─────────────────────────
+// ── Connector path (with dual-stroke glow + direction arrows) ────
 export function drawConnectorPath(
   ctx: CanvasRenderingContext2D,
   path: Array<[number, number]>,
@@ -725,7 +504,33 @@ export function drawConnectorPath(
 ): void {
   if (path.length < 2) return;
 
+  var screenPts: Array<[number, number]> = [];
+  for (var i = 0; i < path.length; i++) {
+    var _sc = gridToScreen(path[i][0], path[i][1], panX, panY, zoom);
+    screenPts.push([_sc[0], _sc[1]]);
+  }
+
   var connStyle = style || "solid";
+
+  // ── Dual-stroke glow (white outline underneath) ──
+  ctx.save();
+  ctx.strokeStyle = "rgba(255,255,255,0.15)";
+  ctx.lineWidth = (lineWidth * zoom) * 2.5;
+  ctx.lineCap = "round";
+  ctx.lineJoin = "round";
+  ctx.setLineDash([]);
+  ctx.beginPath();
+  for (var g = 0; g < screenPts.length; g++) {
+    if (g === 0) {
+      ctx.moveTo(screenPts[g][0], screenPts[g][1]);
+    } else {
+      ctx.lineTo(screenPts[g][0], screenPts[g][1]);
+    }
+  }
+  ctx.stroke();
+  ctx.restore();
+
+  // ── Main stroke ──
   if (connStyle === "dashed") {
     ctx.setLineDash([8 * zoom, 4 * zoom]);
   } else if (connStyle === "dotted") {
@@ -740,35 +545,32 @@ export function drawConnectorPath(
   ctx.lineJoin = "round";
   ctx.beginPath();
 
-  var screenPts: Array<[number, number]> = [];
-  for (var i = 0; i < path.length; i++) {
-    var _sc = gridToScreen(path[i][0], path[i][1], panX, panY, zoom);
-    var sx = _sc[0];
-    var sy = _sc[1] + HALF_TILE_H * zoom;
-    screenPts.push([sx, sy]);
-    if (i === 0) {
-      ctx.moveTo(sx, sy);
+  for (var j = 0; j < screenPts.length; j++) {
+    if (j === 0) {
+      ctx.moveTo(screenPts[j][0], screenPts[j][1]);
     } else {
-      ctx.lineTo(sx, sy);
+      ctx.lineTo(screenPts[j][0], screenPts[j][1]);
     }
   }
   ctx.stroke();
   ctx.setLineDash([]);
 
-  // Draw arrowhead at end
-  if (path.length >= 2) {
+  // ── Direction arrow (filled triangle at target end) ──
+  if (screenPts.length >= 2) {
     var lx = screenPts[screenPts.length - 1][0];
     var ly = screenPts[screenPts.length - 1][1];
     var px = screenPts[screenPts.length - 2][0];
     var py = screenPts[screenPts.length - 2][1];
     var angle = Math.atan2(ly - py, lx - px);
     var arrowLen = 8 * zoom;
+
     ctx.beginPath();
     ctx.moveTo(lx, ly);
     ctx.lineTo(lx - arrowLen * Math.cos(angle - 0.4), ly - arrowLen * Math.sin(angle - 0.4));
-    ctx.moveTo(lx, ly);
     ctx.lineTo(lx - arrowLen * Math.cos(angle + 0.4), ly - arrowLen * Math.sin(angle + 0.4));
-    ctx.stroke();
+    ctx.closePath();
+    ctx.fillStyle = color;
+    ctx.fill();
   }
 
   // Draw label at midpoint
@@ -794,7 +596,7 @@ export function drawConnectorPath(
   }
 }
 
-// ── Full scene render ───────────────────────────────────────────
+// ── Full scene render ───────────────────────────────────
 export function renderScene(
   ctx: CanvasRenderingContext2D,
   width: number,
@@ -847,7 +649,7 @@ export function renderScene(
         for (var si = 0; si < nodes.length; si++) {
           if (nodes[si].id === connMeta.sourceId) {
             var srcDef = getCategoryDef(nodes[si].category);
-            connColor = srcDef.colorTop;
+            connColor = srcDef.color;
             break;
           }
         }
@@ -861,19 +663,15 @@ export function renderScene(
     ctx.globalAlpha = 1;
   }
 
-  // Depth-sort nodes: painter's algorithm
-  var sorted = nodes.slice().sort(function(a, b) {
-    return (a.tileX + a.tileY) - (b.tileX + b.tileY);
-  });
-
-  for (var ni = 0; ni < sorted.length; ni++) {
-    var node = sorted[ni];
+  // Draw node cards (no depth sorting needed in flat 2D)
+  for (var ni = 0; ni < nodes.length; ni++) {
+    var node = nodes[ni];
     var isSelected = uiState.selectedNodeId === node.id;
-    drawBuilding(ctx, node, panX, panY, zoom, isSelected);
+    drawNodeCard(ctx, node, panX, panY, zoom, isSelected, isDark);
   }
 }
 
-// ── Hover canvas overlay ────────────────────────────────────────
+// ── Hover canvas overlay ────────────────────────────────
 export function renderHoverOverlay(
   ctx: CanvasRenderingContext2D,
   width: number,
@@ -922,7 +720,7 @@ export function renderHoverOverlay(
   }
 }
 
-// ── Animation frame (flow particles + building effects) ─────────
+// ── Animation frame (flow particles + card border pulse) ─────────
 export function renderAnimationFrame(
   ctx: CanvasRenderingContext2D,
   width: number,
@@ -958,7 +756,7 @@ export function renderAnimationFrame(
         for (var ni = 0; ni < nodes.length; ni++) {
           if (nodes[ni].id === connectors[si].sourceId) {
             var srcDef = getCategoryDef(nodes[ni].category);
-            connColor = srcDef.colorTop;
+            connColor = srcDef.color;
             break;
           }
         }
@@ -970,7 +768,7 @@ export function renderAnimationFrame(
     var totalLen = 0;
     for (var pi = 0; pi < cp.path.length; pi++) {
       var pt = gridToScreen(cp.path[pi][0], cp.path[pi][1], panX, panY, zoom);
-      screenPoints.push([pt[0], pt[1] + HALF_TILE_H * zoom]);
+      screenPoints.push([pt[0], pt[1]]);
       if (pi > 0) {
         var dx = screenPoints[pi][0] - screenPoints[pi - 1][0];
         var dy = screenPoints[pi][1] - screenPoints[pi - 1][1];
@@ -1012,83 +810,37 @@ export function renderAnimationFrame(
     }
   }
 
-  // ── Building activity effects ──
+  // ── Card border pulse for active nodes ──
   for (var bi = 0; bi < nodes.length; bi++) {
     var bNode = nodes[bi];
     var activity = bNode.activityLevel || 0;
-    if (activity < 0.3) continue;
+    if (activity < 0.5) continue;
 
     var bPos = gridToScreen(bNode.tileX, bNode.tileY, panX, panY, zoom);
-    var bCx = bPos[0];
-    var bBotY = bPos[1] + HALF_TILE_H * zoom;
-    var bH = getBuildingHeight(bNode) * zoom;
+    var w = CARD_W * zoom;
+    var h = CARD_H * zoom;
+    var bx = bPos[0] - w / 2;
+    var by = bPos[1] - h / 2;
+    var br = CARD_R * zoom;
+    var bDef = getCategoryDef(bNode.category);
 
-    // Pulsing glow at base
-    if (activity > 0.5) {
-      var glowIntensity = 0.1 + 0.08 * Math.sin(time * 0.003 + bi);
-      var bDef = getCategoryDef(bNode.category);
-      ctx.beginPath();
-      ctx.ellipse(bCx, bBotY + HALF_TILE_H * zoom * 1.5, HALF_TILE_W * zoom * 0.8, HALF_TILE_H * zoom * 0.5, 0, 0, Math.PI * 2);
-      ctx.fillStyle = bDef.colorTop;
-      ctx.globalAlpha = glowIntensity;
-      ctx.fill();
-      ctx.globalAlpha = 1;
-    }
+    var pulseAlpha = 0.08 + 0.06 * Math.sin(time * 0.003 + bi);
+    roundedRect(ctx, bx - 2, by - 2, w + 4, h + 4, br + 2);
+    ctx.strokeStyle = bDef.color;
+    ctx.lineWidth = 1.5;
+    ctx.globalAlpha = pulseAlpha;
+    ctx.stroke();
+    ctx.globalAlpha = 1;
 
-    // Shipping smoke particles (was "fulfillment")
-    if (bNode.category === "shipping" && zoom > 0.4) {
-      var smokeCount = 3;
-      for (var sm = 0; sm < smokeCount; sm++) {
-        var smokePhase = ((time * 0.001 + sm * 1.5) % 3);
-        var smokeY = bBotY - bH - smokePhase * 15 * zoom;
-        var smokeR = (2 + smokePhase * 2) * zoom;
-        var smokeAlpha = Math.max(0, 0.3 - smokePhase * 0.1);
-        ctx.beginPath();
-        ctx.arc(bCx - HALF_TILE_W * zoom * 0.5, smokeY, smokeR, 0, Math.PI * 2);
-        ctx.fillStyle = "rgba(200,200,200," + smokeAlpha + ")";
-        ctx.fill();
-      }
-    }
-
-    // Marketing signal waves
-    if (bNode.category === "marketing" && zoom > 0.4) {
-      var waveCount = 2;
-      var mDef = getCategoryDef(bNode.category);
-      for (var w = 0; w < waveCount; w++) {
-        var wavePhase = ((time * 0.002 + w * 1.5) % 3);
-        var waveRadius = (8 + wavePhase * 12) * zoom;
-        var waveAlpha = Math.max(0, 0.4 - wavePhase * 0.13);
-        ctx.beginPath();
-        ctx.arc(bCx, bBotY - bH, waveRadius, -Math.PI * 0.8, -Math.PI * 0.2);
-        ctx.strokeStyle = mDef.colorTop;
-        ctx.lineWidth = 1.5 * zoom;
-        ctx.globalAlpha = waveAlpha;
-        ctx.stroke();
-        ctx.globalAlpha = 1;
-      }
-    }
-
-    // Online Store screen glow
-    if (bNode.category === "online-store" && zoom > 0.4) {
-      var glowPhase = 0.15 + 0.1 * Math.sin(time * 0.002 + 0.5);
-      var osDef = getCategoryDef(bNode.category);
-      ctx.beginPath();
-      ctx.ellipse(bCx + HALF_TILE_W * zoom * 0.3, bBotY - bH * 0.5, HALF_TILE_W * zoom * 0.5, bH * 0.3, 0, 0, Math.PI * 2);
-      ctx.fillStyle = osDef.colorTop;
-      ctx.globalAlpha = glowPhase;
-      ctx.fill();
-      ctx.globalAlpha = 1;
-    }
-
-    // Alert pulse for buildings with issues
+    // Alert pulse for nodes with issues
     if (bNode.alertCount && bNode.alertCount > 0) {
-      var pulsePhase = Math.sin(time * 0.004) * 0.5 + 0.5;
-      var badgeR = (6 + pulsePhase * 2) * zoom;
-      var badgeX = bCx + HALF_TILE_W * zoom * 0.6;
-      var badgeY = bBotY - bH - 6 * zoom;
+      var alertPulse = Math.sin(time * 0.004) * 0.5 + 0.5;
+      var alertR = (7 + alertPulse * 3) * zoom;
+      var alertX = bx + w - 7 * zoom - 4 * zoom;
+      var alertY = by + 7 * zoom + 4 * zoom;
       ctx.beginPath();
-      ctx.arc(badgeX, badgeY, badgeR, 0, Math.PI * 2);
-      ctx.fillStyle = "rgba(239,68,68," + (0.2 + pulsePhase * 0.15) + ")";
+      ctx.arc(alertX, alertY, alertR, 0, Math.PI * 2);
+      ctx.fillStyle = "rgba(239,68,68," + (0.15 + alertPulse * 0.1) + ")";
       ctx.fill();
     }
   }

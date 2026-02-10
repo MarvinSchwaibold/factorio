@@ -1,19 +1,53 @@
 // Node categories for merchant infrastructure topology
 export type NodeCategory =
+  | "back-office"
   | "online-store"
   | "retail"
-  | "warehouse"
+  | "checkout"
+  | "payments"
+  | "balance"
+  | "inventory"
+  | "shipping"
   | "marketing"
-  | "shipping";
+  | "tax"
+  | "billing"
+  | "capital";
 
-// Commerce stat for building inspector
+// Merchant business stage (progressive complexity)
+export type MerchantStage = 0 | 1 | 2 | 3 | 4;
+
+// Stage layout position template
+export interface StageNodePosition {
+  category: NodeCategory;
+  tileX: number;
+  tileY: number;
+}
+
+// Connection template for stage-based map generation
+export interface ConnectionTemplate {
+  from: NodeCategory;
+  to: NodeCategory;
+  label: string;
+  style: ConnectorStyle;
+  flowRate: number;
+}
+
+// Stage layout definition
+export interface StageLayout {
+  stage: MerchantStage;
+  label: string;
+  nodes: StageNodePosition[];
+  connections: ConnectionTemplate[];
+}
+
+// Commerce stat for node inspector
 export interface CommerceStat {
   label: string;
   value: string;
   trend?: "up" | "down" | "flat";
 }
 
-// A node placed on the isometric grid
+// A node placed on the 2D grid
 export interface MapNode {
   id: string;
   category: NodeCategory;
@@ -21,14 +55,12 @@ export interface MapNode {
   description: string;
   tileX: number;
   tileY: number;
-  buildingLevel?: number;   // 1-5, determines height
   activityLevel?: number;   // 0-1, animation intensity
   stats?: CommerceStat[];
   alertCount?: number;
-  labelHeight?: number;     // stem height in px (default 24)
 }
 
-// Connector line style (isoflow-inspired)
+// Connector line style
 export type ConnectorStyle = "solid" | "dashed" | "dotted";
 
 // A connector between two nodes
@@ -43,7 +75,7 @@ export interface Connector {
   label?: string;          // annotation text along the connector
 }
 
-// An isometric region / zone that groups related buildings
+// A region / zone that groups related nodes
 export interface Region {
   id: string;
   label: string;
@@ -88,15 +120,13 @@ export interface MapScene {
   connectorPaths: Map<string, Array<[number, number]>>;
 }
 
-// Visual definition for a node category
+// Visual definition for a node category (flat 2D: 2-color scheme)
 export interface NodeCategoryDef {
   category: NodeCategory;
   label: string;
-  icon: string; // Lucide icon name
-  colorTop: string;
-  colorLeft: string;
-  colorRight: string;
-  colorStroke: string;
+  icon: string; // single letter for icon circle
+  color: string;      // primary accent (border, icon bg)
+  colorMuted: string; // lighter tint for card background accent
 }
 
 // Actions dispatched to the model

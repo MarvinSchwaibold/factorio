@@ -3,6 +3,7 @@ const nextConfig = {
   devIndicators: false,
   output: 'export',
   trailingSlash: true,
+  turbopack: {},
 };
 
 export default nextConfig;

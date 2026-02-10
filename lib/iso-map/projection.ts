@@ -1,13 +1,10 @@
-// Isometric projection math
-// Tile size: 64px wide x 38.4px tall (standard ~2:1.2 ratio for isometric)
-export const TILE_WIDTH = 64;
-export const TILE_HEIGHT = 38.4;
-export const HALF_TILE_W = TILE_WIDTH / 2;  // 32
-export const HALF_TILE_H = TILE_HEIGHT / 2; // 19.2
+// Flat 2D projection math
+// Each grid cell is TILE_SIZE px apart in both axes
+export var TILE_SIZE = 100;
 
 /**
  * Convert grid coordinates to screen (canvas pixel) coordinates.
- * Returns the center-top of the diamond tile.
+ * Returns the top-left corner of the tile cell.
  */
 export function gridToScreen(
   tileX: number,
@@ -16,9 +13,9 @@ export function gridToScreen(
   panY: number,
   zoom: number
 ): [number, number] {
-  const sx = (tileX - tileY) * HALF_TILE_W;
-  const sy = (tileX + tileY) * HALF_TILE_H;
-  return [sx * zoom + panX, sy * zoom + panY];
+  var sx = tileX * TILE_SIZE * zoom + panX;
+  var sy = tileY * TILE_SIZE * zoom + panY;
+  return [sx, sy];
 }
 
 /**
@@ -32,33 +29,9 @@ export function screenToGrid(
   panY: number,
   zoom: number
 ): [number, number] {
-  const sx = (screenX - panX) / zoom;
-  const sy = (screenY - panY) / zoom;
-  const tileX = (sx / HALF_TILE_W + sy / HALF_TILE_H) / 2;
-  const tileY = (sy / HALF_TILE_H - sx / HALF_TILE_W) / 2;
+  var tileX = (screenX - panX) / (zoom * TILE_SIZE);
+  var tileY = (screenY - panY) / (zoom * TILE_SIZE);
   return [tileX, tileY];
-}
-
-/**
- * Get the 4 corners of a diamond tile for canvas path drawing.
- * Returns [top, right, bottom, left] points.
- */
-export function getDiamondCorners(
-  tileX: number,
-  tileY: number,
-  panX: number,
-  panY: number,
-  zoom: number
-): Array<[number, number]> {
-  const [cx, cy] = gridToScreen(tileX, tileY, panX, panY, zoom);
-  const hw = HALF_TILE_W * zoom;
-  const hh = HALF_TILE_H * zoom;
-  return [
-    [cx, cy],           // top
-    [cx + hw, cy + hh], // right
-    [cx, cy + 2 * hh],  // bottom
-    [cx - hw, cy + hh], // left
-  ];
 }
 
 /**
@@ -66,27 +39,4 @@ export function getDiamondCorners(
  */
 export function snapToGrid(tileX: number, tileY: number): [number, number] {
   return [Math.round(tileX), Math.round(tileY)];
-}
-
-/**
- * Check if a screen point is inside a diamond tile.
- */
-export function isPointInTile(
-  screenX: number,
-  screenY: number,
-  tileX: number,
-  tileY: number,
-  panX: number,
-  panY: number,
-  zoom: number
-): boolean {
-  const corners = getDiamondCorners(tileX, tileY, panX, panY, zoom);
-  const [cx, cy] = gridToScreen(tileX, tileY, panX, panY, zoom);
-  const centerY = cy + HALF_TILE_H * zoom;
-  const hw = HALF_TILE_W * zoom;
-  const hh = HALF_TILE_H * zoom;
-  // Diamond hit test: |dx/hw| + |dy/hh| <= 1
-  const dx = Math.abs(screenX - cx);
-  const dy = Math.abs(screenY - centerY);
-  return (dx / hw + dy / hh) <= 1;
 }

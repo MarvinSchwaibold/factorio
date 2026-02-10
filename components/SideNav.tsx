@@ -1,7 +1,7 @@
 "use client";
 
 import { useContext, useRef, useCallback, useEffect, useLayoutEffect, useState } from "react";
-import { Home, Package, Lightbulb, Settings, PanelLeftClose, Map, LayoutDashboard, Workflow } from "lucide-react";
+import { Home, Package, Settings, PanelLeftClose, Map, LayoutDashboard, Workflow, ShoppingBag, Tag, Users, Megaphone, Percent, Image, Globe, Landmark, BarChart3, ChevronRight, Bot } from "lucide-react";
 import { Tabs } from "@base-ui/react/tabs";
 import { ThemeContext } from "@/lib/theme";
 
@@ -9,6 +9,7 @@ interface NavItem {
   icon: React.ReactNode;
   label: string;
   viewKey: string;
+  badge?: string;
 }
 
 export const SIDEBAR_WIDTH_COLLAPSED = 56;
@@ -419,13 +420,21 @@ export function SideNav({ activeView, onViewChange, isExpanded, onToggleExpand, 
 
   const mapItems: NavItem[] = [
     { icon: <Map size={18} />, label: "Map", viewKey: "mapview" },
+    { icon: <Bot size={18} />, label: "Agents", viewKey: "agents" },
     { icon: <Workflow size={18} />, label: "Flow", viewKey: "canvas" },
   ];
 
   const adminItems: NavItem[] = [
     { icon: <Home size={18} />, label: "Home", viewKey: "home" },
-    { icon: <Package size={18} />, label: "Commerce", viewKey: "commerce" },
-    { icon: <Lightbulb size={18} />, label: "Insights", viewKey: "insights" },
+    { icon: <ShoppingBag size={18} />, label: "Orders", viewKey: "orders", badge: "12" },
+    { icon: <Tag size={18} />, label: "Products", viewKey: "products" },
+    { icon: <Users size={18} />, label: "Customers", viewKey: "customers" },
+    { icon: <Megaphone size={18} />, label: "Marketing", viewKey: "marketing" },
+    { icon: <Percent size={18} />, label: "Discounts", viewKey: "discounts" },
+    { icon: <Image size={18} />, label: "Content", viewKey: "content" },
+    { icon: <Globe size={18} />, label: "Markets", viewKey: "markets" },
+    { icon: <Landmark size={18} />, label: "Finance", viewKey: "finance" },
+    { icon: <BarChart3 size={18} />, label: "Analytics", viewKey: "analytics" },
   ];
 
   const settingsItem: NavItem = { icon: <Settings size={18} />, label: "Settings", viewKey: "settings" };
@@ -454,20 +463,37 @@ export function SideNav({ activeView, onViewChange, isExpanded, onToggleExpand, 
         display: "flex",
         flexDirection: isExpanded ? "row" as const : "column" as const,
         alignItems: "center",
-        gap: isExpanded ? 10 : 4,
+        textAlign: "left" as const,
+        gap: isExpanded ? 6 : 4,
         width: isExpanded ? "calc(100% - 16px)" : "calc(100% - 12px)",
         boxSizing: "border-box" as const,
         transition: "none",
       })}
       className="sidenav-tab"
     >
-      <div style={{ flexShrink: 0, display: "flex", alignItems: "center", justifyContent: "center", width: isExpanded ? 20 : "auto" }}>
+      <div style={{ flexShrink: 0, display: "flex", alignItems: "center", justifyContent: "center", width: isExpanded ? 18 : "auto" }}>
         {item.icon}
       </div>
       {isExpanded && (
-        <span style={{ fontSize: 13, fontWeight: 500, whiteSpace: "nowrap", overflow: "hidden" }}>
+        <>
+        <span style={{ fontSize: 13, fontWeight: 500, whiteSpace: "nowrap", overflow: "hidden", flex: 1 }}>
           {item.label}
         </span>
+        {item.badge && (
+          <span style={{
+            fontSize: 11,
+            fontWeight: 600,
+            color: isMap ? "#a0a0a0" : "#6b7280",
+            background: isMap ? "#2a2a2a" : "#e5e7eb",
+            borderRadius: 10,
+            padding: "1px 8px",
+            lineHeight: "18px",
+            flexShrink: 0,
+          }}>
+            {item.badge}
+          </span>
+        )}
+        </>
       )}
     </Tabs.Tab>
   );
@@ -615,6 +641,34 @@ export function SideNav({ activeView, onViewChange, isExpanded, onToggleExpand, 
         {/* Nav items per mode */}
         {isMap && mapItems.map((item) => renderTab(item))}
         {!isMap && adminItems.map((item) => renderTab(item))}
+
+        {/* Sales channels link - admin mode only */}
+        {!isMap && isExpanded && (
+          <button
+            style={{
+              background: "transparent",
+              border: "none",
+              color: tabText,
+              padding: "8px 14px",
+              marginLeft: 8,
+              marginRight: 8,
+              marginTop: 4,
+              fontSize: 13,
+              fontWeight: 500,
+              fontFamily: theme.fontFamily,
+              cursor: "pointer",
+              display: "flex",
+              alignItems: "center",
+              gap: 4,
+              width: "calc(100% - 16px)",
+              boxSizing: "border-box" as const,
+              borderRadius: 8,
+            }}
+            className="sidenav-tab"
+          >
+            Sales channels <ChevronRight size={14} style={{ opacity: 0.5 }} />
+          </button>
+        )}
 
         {/* Spacer */}
         <div style={{ flex: 1 }} />

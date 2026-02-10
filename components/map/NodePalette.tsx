@@ -3,6 +3,7 @@
 import { useState } from "react";
 import {
   Monitor, Store, Warehouse, Megaphone, Truck,
+  Building2, ShoppingCart, Lock, Landmark, Receipt, CreditCard, TrendingUp,
   ChevronDown, ChevronRight,
 } from "lucide-react";
 import { NODE_CATEGORIES } from "@/lib/iso-map/node-palette";
@@ -17,11 +18,18 @@ interface NodePaletteProps {
 // Map infrastructure category to Lucide icon component
 function getCategoryIcon(cat: NodeCategory, size: number) {
   switch (cat) {
+    case "back-office": return <Building2 size={size} />;
     case "online-store": return <Monitor size={size} />;
     case "retail": return <Store size={size} />;
-    case "warehouse": return <Warehouse size={size} />;
+    case "checkout": return <ShoppingCart size={size} />;
+    case "payments": return <Lock size={size} />;
+    case "balance": return <Landmark size={size} />;
+    case "inventory": return <Warehouse size={size} />;
     case "marketing": return <Megaphone size={size} />;
     case "shipping": return <Truck size={size} />;
+    case "tax": return <Receipt size={size} />;
+    case "billing": return <CreditCard size={size} />;
+    case "capital": return <TrendingUp size={size} />;
     default: return <Monitor size={size} />;
   }
 }
@@ -36,6 +44,7 @@ export function NodePalette({ activeCategory, onSelectCategory, isDark }: NodePa
         top: 12,
         left: 12,
         width: collapsed ? 40 : 160,
+        maxHeight: "calc(100vh - 80px)",
         borderRadius: 10,
         background: isDark ? "rgba(26,26,26,0.95)" : "rgba(255,255,255,0.95)",
         border: isDark ? "1px solid #2a2a2a" : "1px solid #e5e5e5",
@@ -44,6 +53,8 @@ export function NodePalette({ activeCategory, onSelectCategory, isDark }: NodePa
         overflow: "hidden",
         transition: "width 200ms ease",
         zIndex: 10,
+        display: "flex",
+        flexDirection: "column",
       }}
     >
       {/* Header */}
@@ -64,6 +75,7 @@ export function NodePalette({ activeCategory, onSelectCategory, isDark }: NodePa
           fontFamily: "var(--font-geist-sans), system-ui, sans-serif",
           textTransform: "uppercase",
           letterSpacing: "0.05em",
+          flexShrink: 0,
         }}
       >
         {collapsed ? <ChevronRight size={12} /> : <ChevronDown size={12} />}
@@ -72,7 +84,7 @@ export function NodePalette({ activeCategory, onSelectCategory, isDark }: NodePa
 
       {/* Category list */}
       {!collapsed && (
-        <div style={{ padding: "0 6px 6px" }}>
+        <div style={{ padding: "0 6px 6px", overflowY: "auto", flex: 1 }}>
           {NODE_CATEGORIES.map(function(def) {
             var isActive = activeCategory === def.category;
             return (
@@ -84,7 +96,7 @@ export function NodePalette({ activeCategory, onSelectCategory, isDark }: NodePa
                   alignItems: "center",
                   gap: 8,
                   width: "100%",
-                  padding: "6px 8px",
+                  padding: "5px 8px",
                   borderRadius: 6,
                   border: "none",
                   background: isActive
@@ -92,7 +104,7 @@ export function NodePalette({ activeCategory, onSelectCategory, isDark }: NodePa
                     : "transparent",
                   color: isActive ? "#0d9488" : (isDark ? "#ccc" : "#444"),
                   cursor: "pointer",
-                  fontSize: 12,
+                  fontSize: 11,
                   fontFamily: "var(--font-geist-sans), system-ui, sans-serif",
                   fontWeight: isActive ? 600 : 400,
                   transition: "all 150ms",
@@ -103,16 +115,16 @@ export function NodePalette({ activeCategory, onSelectCategory, isDark }: NodePa
                   display: "flex",
                   alignItems: "center",
                   justifyContent: "center",
-                  width: 24,
-                  height: 24,
-                  borderRadius: 5,
+                  width: 22,
+                  height: 22,
+                  borderRadius: 4,
                   background: isActive
-                    ? def.colorTop
+                    ? def.color
                     : (isDark ? "#252525" : "#f0f0f0"),
-                  color: isActive ? def.colorStroke : (isDark ? "#888" : "#666"),
+                  color: isActive ? "#fff" : (isDark ? "#888" : "#666"),
                   flexShrink: 0,
                 }}>
-                  {getCategoryIcon(def.category, 13)}
+                  {getCategoryIcon(def.category, 12)}
                 </span>
                 {def.label}
               </button>

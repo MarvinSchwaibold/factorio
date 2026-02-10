@@ -1,5 +1,9 @@
 export type {
   NodeCategory,
+  MerchantStage,
+  StageNodePosition,
+  ConnectionTemplate,
+  StageLayout,
   MapNode,
   Connector,
   ConnectorStyle,
@@ -14,15 +18,10 @@ export type {
 } from "./types";
 
 export {
-  TILE_WIDTH,
-  TILE_HEIGHT,
-  HALF_TILE_W,
-  HALF_TILE_H,
+  TILE_SIZE,
   gridToScreen,
   screenToGrid,
-  getDiamondCorners,
   snapToGrid,
-  isPointInTile,
 } from "./projection";
 
 export { findPath } from "./pathfinder";
@@ -31,8 +30,7 @@ export {
   drawGrid,
   drawTileHighlight,
   drawRegion,
-  drawNode,
-  drawBuilding,
+  drawNodeCard,
   drawConnectorPath,
   renderScene,
   renderHoverOverlay,
@@ -41,5 +39,7 @@ export {
 
 export { NODE_CATEGORIES, getCategoryDef } from "./node-palette";
 
-export { generateCommerceMap, getCommerceData } from "./commerce-map-data";
+export { generateCommerceMap, generateMerchantMap, getCommerceData } from "./commerce-map-data";
 export type { CommerceData } from "./commerce-map-data";
+
+export { getStageLayout, getStageLabel, getAutoStage, computeRegions } from "./stage-layouts";
