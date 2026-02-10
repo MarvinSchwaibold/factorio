@@ -1,9 +1,9 @@
 "use client";
 
 import { useState, useRef, useCallback } from "react";
-import type { MapModel, MapUIState, MapNode, Connector, InteractionMode, NodeCategory, MapAction, MerchantStage } from "@/lib/iso-map/types";
+import type { MapModel, MapUIState, MapNode, Connector, Region, InteractionMode, NodeCategory, MapAction, MerchantStage } from "@/lib/iso-map/types";
 import { findPath } from "@/lib/iso-map/pathfinder";
-import { generateMerchantMap, getCommerceData } from "@/lib/iso-map/commerce-map-data";
+import { generateMerchantMap, generateHubMap, getCommerceData } from "@/lib/iso-map/commerce-map-data";
 import { getAutoStage } from "@/lib/iso-map/stage-layouts";
 
 // Default grid size
@@ -44,6 +44,15 @@ export interface IsoMapActions {
   setStage: (stage: MerchantStage) => void;
   currentStage: MerchantStage;
   autoStage: MerchantStage;
+  addRegion: (region: Region) => void;
+  removeRegion: (regionId: string) => void;
+  updateRegion: (regionId: string, updates: Partial<Pick<Region, "label">>) => void;
+  moveRegion: (regionId: string, deltaX: number, deltaY: number) => void;
+  setSectionDrawStart: (tile: [number, number] | null) => void;
+  setSectionDrawEnd: (tile: [number, number] | null) => void;
+  setEditingRegionId: (id: string | null) => void;
+  setSelectedRegionId: (id: string | null) => void;
+  getRegionAtTile: (tileX: number, tileY: number) => Region | null;
 }
 
 function recomputeConnectorPaths(
@@ -77,17 +86,22 @@ function recomputeConnectorPaths(
 // Compute auto-detected stage from commerce data
 var _autoStage: MerchantStage = getAutoStage(getCommerceData());
 
+export type LayoutMode = "lanes" | "hub";
+
 // Generate initial commerce map and pre-compute connector paths
-function getInitialState(stage?: MerchantStage): { model: MapModel; paths: Array<{ id: string; path: Array<[number, number]> }> } {
-  var model = generateMerchantMap(stage);
+function getInitialState(stage?: MerchantStage, layout?: LayoutMode): { model: MapModel; paths: Array<{ id: string; path: Array<[number, number]> }> } {
+  var model = layout === "hub" ? generateHubMap(stage) : generateMerchantMap(stage);
   var paths = recomputeConnectorPaths(model.connectors, model.nodes, model.gridWidth, model.gridHeight);
   return { model: model, paths: paths };
 }
 
 var _initial = getInitialState();
+var _initialHub = getInitialState(undefined, "hub");
 
-export function useIsoMap(): [IsoMapState, IsoMapActions] {
-  var [model, setModel] = useState<MapModel>(_initial.model);
+export function useIsoMap(layoutMode?: LayoutMode): [IsoMapState, IsoMapActions] {
+  var isHub = layoutMode === "hub";
+  var initial = isHub ? _initialHub : _initial;
+  var [model, setModel] = useState<MapModel>(initial.model);
 
   var [uiState, setUiState] = useState<MapUIState>({
     mode: "CURSOR",
@@ -99,9 +113,13 @@ export function useIsoMap(): [IsoMapState, IsoMapActions] {
     placingCategory: null,
     connectorSourceId: null,
     dragStart: null,
+    sectionDrawStart: null,
+    sectionDrawEnd: null,
+    editingRegionId: null,
+    selectedRegionId: null,
   });
 
-  var [connectorPaths, setConnectorPaths] = useState<Array<{ id: string; path: Array<[number, number]> }>>(_initial.paths);
+  var [connectorPaths, setConnectorPaths] = useState<Array<{ id: string; path: Array<[number, number]> }>>(initial.paths);
 
   var [currentStage, setCurrentStage] = useState<MerchantStage>(_autoStage);
 
@@ -133,6 +151,11 @@ export function useIsoMap(): [IsoMapState, IsoMapActions] {
   }, [recompute]);
 
   var removeNode = useCallback(function(nodeId: string) {
+    // Prevent deleting the admin hub node
+    var current = modelRef.current.nodes;
+    for (var ri = 0; ri < current.length; ri++) {
+      if (current[ri].id === nodeId && current[ri].category === "back-office") return;
+    }
     setModel(function(prev) {
       var newNodes = prev.nodes.filter(function(n) { return n.id !== nodeId; });
       var newConnectors = prev.connectors.filter(function(c) {
@@ -205,21 +228,124 @@ export function useIsoMap(): [IsoMapState, IsoMapActions] {
   }, []);
 
   var refreshCommerceData = useCallback(function() {
-    var fresh = getInitialState(currentStage);
+    var fresh = getInitialState(currentStage, layoutMode);
     setModel(fresh.model);
     setConnectorPaths(fresh.paths);
-  }, [currentStage]);
+  }, [currentStage, layoutMode]);
 
   var setStage = useCallback(function(stage: MerchantStage) {
     setCurrentStage(stage);
-    var fresh = getInitialState(stage);
+    var fresh = getInitialState(stage, layoutMode);
+    // Preserve user-created regions across stage changes
+    var prevRegions = modelRef.current.regions;
+    var userRegions: Region[] = [];
+    for (var ri = 0; ri < prevRegions.length; ri++) {
+      if (prevRegions[ri].isUserCreated) userRegions.push(prevRegions[ri]);
+    }
+    fresh.model.regions = fresh.model.regions.concat(userRegions);
     setModel(fresh.model);
     setConnectorPaths(fresh.paths);
+  }, [layoutMode]);
+
+  var addRegion = useCallback(function(region: Region) {
+    setModel(function(prev) {
+      return { ...prev, regions: prev.regions.concat([region]) };
+    });
+  }, []);
+
+  var removeRegion = useCallback(function(regionId: string) {
+    setModel(function(prev) {
+      return { ...prev, regions: prev.regions.filter(function(r) { return r.id !== regionId; }) };
+    });
+    setUiState(function(prev) {
+      var updates: Partial<MapUIState> = {};
+      if (prev.selectedRegionId === regionId) updates.selectedRegionId = null;
+      if (prev.editingRegionId === regionId) updates.editingRegionId = null;
+      if (Object.keys(updates).length > 0) return { ...prev, ...updates };
+      return prev;
+    });
+  }, []);
+
+  var updateRegion = useCallback(function(regionId: string, updates: Partial<Pick<Region, "label">>) {
+    setModel(function(prev) {
+      return {
+        ...prev,
+        regions: prev.regions.map(function(r) {
+          if (r.id === regionId) return { ...r, ...updates };
+          return r;
+        }),
+      };
+    });
+  }, []);
+
+  var moveRegion = useCallback(function(regionId: string, deltaX: number, deltaY: number) {
+    setModel(function(prev) {
+      // Find the region being moved
+      var region: Region | null = null;
+      for (var ri = 0; ri < prev.regions.length; ri++) {
+        if (prev.regions[ri].id === regionId) { region = prev.regions[ri]; break; }
+      }
+      if (!region) return prev;
+
+      // Move nodes that are inside the region's current bounds
+      var newNodes = prev.nodes.map(function(n) {
+        if (n.tileX >= region!.fromTile[0] && n.tileX <= region!.toTile[0] &&
+            n.tileY >= region!.fromTile[1] && n.tileY <= region!.toTile[1]) {
+          return { ...n, tileX: n.tileX + deltaX, tileY: n.tileY + deltaY };
+        }
+        return n;
+      });
+
+      // Move the region
+      var newRegions = prev.regions.map(function(r) {
+        if (r.id === regionId) {
+          return {
+            ...r,
+            fromTile: [r.fromTile[0] + deltaX, r.fromTile[1] + deltaY] as [number, number],
+            toTile: [r.toTile[0] + deltaX, r.toTile[1] + deltaY] as [number, number],
+          };
+        }
+        return r;
+      });
+
+      var next = { ...prev, nodes: newNodes, regions: newRegions };
+      recompute(next.nodes, next.connectors);
+      return next;
+    });
+  }, [recompute]);
+
+  var getRegionAtTile = useCallback(function(tileX: number, tileY: number): Region | null {
+    var regions = modelRef.current.regions;
+    // Iterate backwards so top-most (last drawn) region is selected first
+    for (var ri = regions.length - 1; ri >= 0; ri--) {
+      var r = regions[ri];
+      if (tileX >= r.fromTile[0] && tileX <= r.toTile[0] &&
+          tileY >= r.fromTile[1] && tileY <= r.toTile[1]) {
+        return r;
+      }
+    }
+    return null;
+  }, []);
+
+  var setSectionDrawStart = useCallback(function(tile: [number, number] | null) {
+    setUiState(function(prev) { return { ...prev, sectionDrawStart: tile }; });
+  }, []);
+
+  var setSectionDrawEnd = useCallback(function(tile: [number, number] | null) {
+    setUiState(function(prev) { return { ...prev, sectionDrawEnd: tile }; });
+  }, []);
+
+  var setEditingRegionId = useCallback(function(id: string | null) {
+    setUiState(function(prev) { return { ...prev, editingRegionId: id }; });
+  }, []);
+
+  var setSelectedRegionId = useCallback(function(id: string | null) {
+    setUiState(function(prev) { return { ...prev, selectedRegionId: id }; });
   }, []);
 
   var setMode = useCallback(function(mode: InteractionMode) {
     setUiState(function(prev) {
-      return { ...prev, mode: mode, connectorSourceId: null };
+      return { ...prev, mode: mode, connectorSourceId: null, sectionDrawStart: null, sectionDrawEnd: null };
     });
   }, []);
 
@@ -283,17 +409,41 @@ export function useIsoMap(): [IsoMapState, IsoMapActions] {
     setUiState(function(prev) { return { ...prev, dragStart: ds }; });
   }, []);
 
+  // Generous hit-test: checks if clicked tile is within a node card's visual bounds
+  // Card widths: core=180px(1.8 tiles), channel=160px(1.6), app=150px(1.5)
+  // Card heights: core=76px(0.76 tiles), channel=68px(0.68), app=64px(0.64)
   var getNodeAtTile = useCallback(function(tileX: number, tileY: number): MapNode | null {
     var nodes = modelRef.current.nodes;
+    var closest: MapNode | null = null;
+    var closestDist = Infinity;
     for (var i = 0; i < nodes.length; i++) {
-      if (nodes[i].tileX === tileX && nodes[i].tileY === tileY) return nodes[i];
+      var n = nodes[i];
+      // Half-widths in tile units for each node type
+      var halfW = 0.9; // 180/100/2 = 0.9 for core (largest)
+      var halfH = 0.5; // generous in Y
+      if (n.nodeType === "channel") { halfW = 0.8; }
+      else if (n.nodeType === "app") { halfW = 0.75; }
+      var dx = Math.abs(tileX - n.tileX);
+      var dy = Math.abs(tileY - n.tileY);
+      if (dx <= halfW && dy <= halfH) {
+        var dist = dx + dy;
+        if (dist < closestDist) {
+          closestDist = dist;
+          closest = n;
+        }
+      }
     }
-    return null;
+    return closest;
   }, []);
 
+  // Exact tile check for placement collision
   var isTileOccupied = useCallback(function(tileX: number, tileY: number): boolean {
-    return getNodeAtTile(tileX, tileY) !== null;
-  }, [getNodeAtTile]);
+    var nodes = modelRef.current.nodes;
+    for (var i = 0; i < nodes.length; i++) {
+      if (nodes[i].tileX === tileX && nodes[i].tileY === tileY) return true;
+    }
+    return false;
+  }, []);
 
   var state: IsoMapState = {
     model: model,
@@ -325,6 +475,15 @@ export function useIsoMap(): [IsoMapState, IsoMapActions] {
     setStage: setStage,
     currentStage: currentStage,
     autoStage: _autoStage,
+    addRegion: addRegion,
+    removeRegion: removeRegion,
+    updateRegion: updateRegion,
+    moveRegion: moveRegion,
+    setSectionDrawStart: setSectionDrawStart,
+    setSectionDrawEnd: setSectionDrawEnd,
+    setEditingRegionId: setEditingRegionId,
+    setSelectedRegionId: setSelectedRegionId,
+    getRegionAtTile: getRegionAtTile,
   };
 
   return [state, actions];

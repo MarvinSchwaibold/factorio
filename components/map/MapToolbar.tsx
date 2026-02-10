@@ -1,6 +1,6 @@
 "use client";
 
-import { MousePointer2, Hand, Plus, GitBranch, ZoomIn, ZoomOut, ChevronLeft, ChevronRight } from "lucide-react";
+import { MousePointer2, Hand, Plus, GitBranch, Square, ZoomIn, ZoomOut, ChevronLeft, ChevronRight } from "lucide-react";
 import type { InteractionMode, MerchantStage } from "@/lib/iso-map/types";
 import { getStageLabel } from "@/lib/iso-map/stage-layouts";
 
@@ -100,6 +100,9 @@ export function MapToolbar({ mode, zoom, onSetMode, onZoomPreset, onZoomIn, onZo
       </Btn>
       <Btn title="Connect Nodes" active={mode === "CONNECTOR"} onClick={function() { onSetMode("CONNECTOR"); }} isDark={isDark}>
         <GitBranch size={15} />
+      </Btn>
+      <Btn title="Create Section" active={mode === "CREATE_SECTION"} onClick={function() { onSetMode("CREATE_SECTION"); }} isDark={isDark}>
+        <Square size={15} />
       </Btn>
 
       <Divider isDark={isDark} />

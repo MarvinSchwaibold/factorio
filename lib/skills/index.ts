@@ -9,9 +9,33 @@ export interface Agent {
   id: string;
   name: string;
   description: string;
+  markdown: string;
   status: "Active" | "Inactive";
   skills: Skill[];
 }
+
+var sidekickOverview = `# Sidekick
+
+Sidekick is an AI assistant built into the Shopify Admin. It understands your store's data and can answer questions, surface insights, and take actions on your behalf.
+
+## How it works
+
+Sidekick uses a **tool-use loop** — when you ask a question, it decides which tools to call (order lookups, product searches, analytics queries, etc.), executes them against the Shopify Admin API, and synthesizes the results into a natural-language response.
+
+Each tool call is scoped to your store's data. Sidekick never accesses data outside your store or makes changes without confirmation.
+
+## When to use it
+
+- **Quick lookups** — "What's the status of order #1042?" instead of navigating to the orders page
+- **Aggregations** — "How many orders did we get last week?" without building a report
+- **Comparisons** — "How is product X performing vs product Y?"
+- **Triage** — "Are there any orders that need attention?" to surface unfulfilled or flagged items
+
+## Limitations
+
+- Read-only by default — Sidekick can look up data but won't modify orders, products, or settings unless you explicitly enable write actions
+- Scoped to Admin API — it can't access third-party apps, custom storefronts, or external services
+- Context window — very long conversations may lose earlier context; start a new chat for unrelated questions`;
 
 var storeOpsMarkdown = `# Store Operations
 
@@ -71,6 +95,7 @@ export var agents: Agent[] = [
     id: "sidekick",
     name: "Sidekick",
     description: "Your AI assistant for store operations",
+    markdown: sidekickOverview,
     status: "Active",
     skills: [skills["sidekick-store-ops"]],
   },

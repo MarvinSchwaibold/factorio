@@ -2,12 +2,14 @@
 
 import { useState } from "react";
 import {
-  Monitor, Store, Warehouse, Megaphone, Truck,
-  Building2, ShoppingCart, Lock, Landmark, Receipt, CreditCard, TrendingUp,
+  ShoppingBag, Tag, Users, Megaphone, Percent,
+  Image, Globe, Landmark, BarChart3, Building2,
+  Monitor, Store, Smartphone, Facebook, Youtube, Music2,
+  Mail, Star, Zap,
   ChevronDown, ChevronRight,
 } from "lucide-react";
 import { NODE_CATEGORIES } from "@/lib/iso-map/node-palette";
-import type { NodeCategory } from "@/lib/iso-map/types";
+import type { NodeCategory, NodeCategoryDef } from "@/lib/iso-map/types";
 
 interface NodePaletteProps {
   activeCategory: NodeCategory | null;
@@ -15,27 +17,129 @@ interface NodePaletteProps {
   isDark: boolean;
 }
 
-// Map infrastructure category to Lucide icon component
+// Map category to Lucide icon component
 function getCategoryIcon(cat: NodeCategory, size: number) {
   switch (cat) {
     case "back-office": return <Building2 size={size} />;
-    case "online-store": return <Monitor size={size} />;
-    case "retail": return <Store size={size} />;
-    case "checkout": return <ShoppingCart size={size} />;
-    case "payments": return <Lock size={size} />;
-    case "balance": return <Landmark size={size} />;
-    case "inventory": return <Warehouse size={size} />;
+    case "orders": return <ShoppingBag size={size} />;
+    case "products": return <Tag size={size} />;
+    case "customers": return <Users size={size} />;
     case "marketing": return <Megaphone size={size} />;
-    case "shipping": return <Truck size={size} />;
-    case "tax": return <Receipt size={size} />;
-    case "billing": return <CreditCard size={size} />;
-    case "capital": return <TrendingUp size={size} />;
-    default: return <Monitor size={size} />;
+    case "discounts": return <Percent size={size} />;
+    case "content": return <Image size={size} />;
+    case "markets": return <Globe size={size} />;
+    case "finance": return <Landmark size={size} />;
+    case "analytics": return <BarChart3 size={size} />;
+    // Channels
+    case "online-store": return <Monitor size={size} />;
+    case "pos": return <Store size={size} />;
+    case "shop-channel": return <Smartphone size={size} />;
+    case "facebook-instagram": return <Facebook size={size} />;
+    case "google-youtube": return <Youtube size={size} />;
+    case "tiktok": return <Music2 size={size} />;
+    // Apps
+    case "app-klaviyo": return <Mail size={size} />;
+    case "app-judgeme": return <Star size={size} />;
+    case "app-flow": return <Zap size={size} />;
+    default: return <Building2 size={size} />;
   }
+}
+
+function PaletteSection({
+  label,
+  items,
+  activeCategory,
+  onSelectCategory,
+  isDark,
+}: {
+  label: string;
+  items: NodeCategoryDef[];
+  activeCategory: NodeCategory | null;
+  onSelectCategory: (cat: NodeCategory) => void;
+  isDark: boolean;
+}) {
+  if (items.length === 0) return null;
+  return (
+    <div>
+      <div style={{
+        fontSize: 9,
+        fontWeight: 600,
+        textTransform: "uppercase" as const,
+        letterSpacing: "0.06em",
+        color: isDark ? "#555" : "#999",
+        padding: "6px 8px 2px",
+        fontFamily: "var(--font-geist-sans), system-ui, sans-serif",
+      }}>
+        {label}
+      </div>
+      {items.map(function(def) {
+        var isActive = activeCategory === def.category;
+        return (
+          <button
+            key={def.category}
+            onClick={function() { onSelectCategory(def.category); }}
+            style={{
+              display: "flex",
+              alignItems: "center",
+              gap: 8,
+              width: "100%",
+              padding: "5px 8px",
+              borderRadius: 6,
+              border: "none",
+              background: isActive
+                ? (isDark ? "rgba(13,148,136,0.2)" : "rgba(13,148,136,0.1)")
+                : "transparent",
+              color: isActive ? "#0d9488" : (isDark ? "#ccc" : "#444"),
+              cursor: "pointer",
+              fontSize: 11,
+              fontFamily: "var(--font-geist-sans), system-ui, sans-serif",
+              fontWeight: isActive ? 600 : 400,
+              transition: "all 150ms",
+              textAlign: "left" as const,
+            }}
+          >
+            <span style={{
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              width: 22,
+              height: 22,
+              borderRadius: 4,
+              background: isActive
+                ? def.color
+                : (isDark ? "#252525" : "#f0f0f0"),
+              color: isActive ? "#fff" : (isDark ? "#888" : "#666"),
+              flexShrink: 0,
+            }}>
+              {getCategoryIcon(def.category, 12)}
+            </span>
+            {def.label}
+          </button>
+        );
+      })}
+    </div>
+  );
 }
 
 export function NodePalette({ activeCategory, onSelectCategory, isDark }: NodePaletteProps) {
   var [collapsed, setCollapsed] = useState(false);
+
+  // Split categories into sections, excluding "back-office" (hub)
+  var coreItems: NodeCategoryDef[] = [];
+  var channelItems: NodeCategoryDef[] = [];
+  var appItems: NodeCategoryDef[] = [];
+
+  for (var i = 0; i < NODE_CATEGORIES.length; i++) {
+    var def = NODE_CATEGORIES[i];
+    if (def.category === "back-office") continue;
+    if (def.nodeType === "channel") {
+      channelItems.push(def);
+    } else if (def.nodeType === "app") {
+      appItems.push(def);
+    } else {
+      coreItems.push(def);
+    }
+  }
 
   return (
     <div
@@ -54,7 +158,7 @@ export function NodePalette({ activeCategory, onSelectCategory, isDark }: NodePa
         transition: "width 200ms ease",
         zIndex: 10,
         display: "flex",
-        flexDirection: "column",
+        flexDirection: "column" as const,
       }}
     >
       {/* Header */}
@@ -65,7 +169,7 @@ export function NodePalette({ activeCategory, onSelectCategory, isDark }: NodePa
           alignItems: "center",
           gap: 6,
           width: "100%",
-          padding: collapsed ? "8px 12px" : "8px 12px",
+          padding: "8px 12px",
           border: "none",
           background: "transparent",
           cursor: "pointer",
@@ -73,63 +177,39 @@ export function NodePalette({ activeCategory, onSelectCategory, isDark }: NodePa
           fontSize: 11,
           fontWeight: 600,
           fontFamily: "var(--font-geist-sans), system-ui, sans-serif",
-          textTransform: "uppercase",
+          textTransform: "uppercase" as const,
           letterSpacing: "0.05em",
           flexShrink: 0,
         }}
       >
         {collapsed ? <ChevronRight size={12} /> : <ChevronDown size={12} />}
-        {!collapsed && "Infrastructure"}
+        {!collapsed && "Nodes"}
       </button>
 
-      {/* Category list */}
+      {/* Category sections */}
       {!collapsed && (
-        <div style={{ padding: "0 6px 6px", overflowY: "auto", flex: 1 }}>
-          {NODE_CATEGORIES.map(function(def) {
-            var isActive = activeCategory === def.category;
-            return (
-              <button
-                key={def.category}
-                onClick={function() { onSelectCategory(def.category); }}
-                style={{
-                  display: "flex",
-                  alignItems: "center",
-                  gap: 8,
-                  width: "100%",
-                  padding: "5px 8px",
-                  borderRadius: 6,
-                  border: "none",
-                  background: isActive
-                    ? (isDark ? "rgba(13,148,136,0.2)" : "rgba(13,148,136,0.1)")
-                    : "transparent",
-                  color: isActive ? "#0d9488" : (isDark ? "#ccc" : "#444"),
-                  cursor: "pointer",
-                  fontSize: 11,
-                  fontFamily: "var(--font-geist-sans), system-ui, sans-serif",
-                  fontWeight: isActive ? 600 : 400,
-                  transition: "all 150ms",
-                  textAlign: "left",
-                }}
-              >
-                <span style={{
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                  width: 22,
-                  height: 22,
-                  borderRadius: 4,
-                  background: isActive
-                    ? def.color
-                    : (isDark ? "#252525" : "#f0f0f0"),
-                  color: isActive ? "#fff" : (isDark ? "#888" : "#666"),
-                  flexShrink: 0,
-                }}>
-                  {getCategoryIcon(def.category, 12)}
-                </span>
-                {def.label}
-              </button>
-            );
-          })}
+        <div style={{ padding: "0 6px 6px", overflowY: "auto" as const, flex: 1 }}>
+          <PaletteSection
+            label="Core"
+            items={coreItems}
+            activeCategory={activeCategory}
+            onSelectCategory={onSelectCategory}
+            isDark={isDark}
+          />
+          <PaletteSection
+            label="Channels"
+            items={channelItems}
+            activeCategory={activeCategory}
+            onSelectCategory={onSelectCategory}
+            isDark={isDark}
+          />
+          <PaletteSection
+            label="Apps"
+            items={appItems}
+            activeCategory={activeCategory}
+            onSelectCategory={onSelectCategory}
+            isDark={isDark}
+          />
         </div>
       )}
     </div>

@@ -4,29 +4,30 @@ import { useRef, useCallback, useEffect } from "react";
 import type { Theme } from "@/lib/theme";
 import { useIsoMap } from "@/hooks/useIsoMap";
 import { useMapInteraction } from "@/hooks/useMapInteraction";
+import { TILE_SIZE } from "@/lib/iso-map/projection";
 import { IsoCanvas } from "./IsoCanvas";
 import { MapToolbar } from "./MapToolbar";
 import { NodePalette } from "./NodePalette";
 import { NodeInspector } from "./NodeInspector";
-import type { MapNode, Region } from "@/lib/iso-map/types";
-import { TILE_SIZE, gridToScreen } from "@/lib/iso-map/projection";
+import type { MapNode } from "@/lib/iso-map/types";
 
-interface MapViewProps {
+interface SystemViewProps {
   isDark: boolean;
   currentTheme: Theme;
   sidebarWidth: number;
   onDrillDown?: (view: string) => void;
 }
 
-export function MapView({ isDark, currentTheme, sidebarWidth, onDrillDown }: MapViewProps) {
+export function SystemView({ isDark, currentTheme, sidebarWidth, onDrillDown }: SystemViewProps) {
   var [state, actions] = useIsoMap("hub");
   var handlers = useMapInteraction(state, actions);
   var canvasContainerRef = useRef<HTMLDivElement | null>(null);
 
-  // Center on hub node when the view mounts
+  // Center on hub node when the view mounts (runs after IsoCanvas auto-center)
   var hasCentered = useRef(false);
   useEffect(function() {
     if (hasCentered.current) return;
+    // Defer two frames: 1st for IsoCanvas useEffect, 2nd to override its centering
     var raf = requestAnimationFrame(function() {
       var raf2 = requestAnimationFrame(function() {
         var container = canvasContainerRef.current;
@@ -72,7 +73,6 @@ export function MapView({ isDark, currentTheme, sidebarWidth, onDrillDown }: Map
 
   var handleDrillDown = useCallback(function(category: string) {
     if (!onDrillDown) return;
-    // Map infrastructure category to admin view
     onDrillDown("commerce");
   }, [onDrillDown]);
 
@@ -140,71 +140,6 @@ export function MapView({ isDark, currentTheme, sidebarWidth, onDrillDown }: Map
           />
         )}
 
-        {/* Inline region label editor */}
-        {state.uiState.editingRegionId && (function() {
-          var editRegion: Region | null = null;
-          var regions = state.model.regions;
-          for (var eri = 0; eri < regions.length; eri++) {
-            if (regions[eri].id === state.uiState.editingRegionId) {
-              editRegion = regions[eri];
-              break;
-            }
-          }
-          if (!editRegion) return null;
-          var screenPt = gridToScreen(
-            editRegion.fromTile[0],
-            editRegion.fromTile[1],
-            state.uiState.panX,
-            state.uiState.panY,
-            state.uiState.zoom
-          );
-          var pad = TILE_SIZE * state.uiState.zoom * 0.5;
-          return (
-            <input
-              key={editRegion.id}
-              autoFocus
-              defaultValue={editRegion.label}
-              style={{
-                position: "absolute",
-                left: screenPt[0] - pad + 8 * state.uiState.zoom,
-                top: screenPt[1] - pad + 4 * state.uiState.zoom,
-                zIndex: 20,
-                padding: "2px 6px",
-                borderRadius: 4,
-                border: isDark ? "1px solid #333" : "1px solid #ccc",
-                background: isDark ? "#1a1a1a" : "#fff",
-                color: isDark ? "#e5e5e5" : "#1a1a1a",
-                fontSize: Math.max(10, 11 * state.uiState.zoom),
-                fontFamily: "var(--font-geist-sans), system-ui, sans-serif",
-                fontWeight: 600,
-                outline: "none",
-                minWidth: 60,
-              }}
-              onKeyDown={function(e) {
-                if (e.key === "Enter") {
-                  var val = (e.target as HTMLInputElement).value.trim();
-                  if (val && state.uiState.editingRegionId) {
-                    actions.updateRegion(state.uiState.editingRegionId, { label: val });
-                  }
-                  actions.setEditingRegionId(null);
-                  e.stopPropagation();
-                }
-                if (e.key === "Escape") {
-                  actions.setEditingRegionId(null);
-                  e.stopPropagation();
-                }
-              }}
-              onBlur={function(e) {
-                var val = e.target.value.trim();
-                if (val && state.uiState.editingRegionId) {
-                  actions.updateRegion(state.uiState.editingRegionId, { label: val });
-                }
-                actions.setEditingRegionId(null);
-              }}
-            />
-          );
-        })()}
-
         {/* Mode hint at bottom */}
         <div style={{
           position: "absolute",
@@ -231,7 +166,6 @@ export function MapView({ isDark, currentTheme, sidebarWidth, onDrillDown }: Map
             ? "Click target node to connect \u00b7 Esc to cancel"
             : "Click source node \u00b7 Esc to cancel"
           )}
-          {state.uiState.mode === "CREATE_SECTION" && "Click and drag to draw a section \u00b7 Esc to cancel"}
         </div>
       </div>
     </div>

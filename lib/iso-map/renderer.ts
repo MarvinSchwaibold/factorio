@@ -1,13 +1,24 @@
-import type { MapNode, MapUIState, Connector, Region, ConnectorStyle } from "./types";
+import type { MapNode, MapUIState, Connector, Region, ConnectorStyle, NodeType } from "./types";
 import { gridToScreen, TILE_SIZE } from "./projection";
 import { getCategoryDef } from "./node-palette";
 
-// ── Node card dimensions ──────────────────────────────
+// ── Node card dimensions by type ──────────────────────
+// Core: 180×76, Channel: 160×68, App: 150×64
 var CARD_W = 180;
 var CARD_H = 76;
+var CARD_W_CHANNEL = 160;
+var CARD_H_CHANNEL = 68;
+var CARD_W_APP = 150;
+var CARD_H_APP = 64;
 var CARD_R = 8;      // corner radius
 var ACCENT_W = 4;    // left accent bar width
 var ICON_R = 12;     // icon circle radius
+
+function getCardDimensions(nodeType?: NodeType): { w: number; h: number } {
+  if (nodeType === "channel") return { w: CARD_W_CHANNEL, h: CARD_H_CHANNEL };
+  if (nodeType === "app") return { w: CARD_W_APP, h: CARD_H_APP };
+  return { w: CARD_W, h: CARD_H };
+}
 
 // ── Rounded rect helper ──────────────────────────────
 function roundedRect(
@@ -92,7 +103,8 @@ export function drawRegion(
   panX: number,
   panY: number,
   zoom: number,
-  isDark: boolean
+  isDark: boolean,
+  isSelected?: boolean
 ): void {
   var fromPt = gridToScreen(region.fromTile[0], region.fromTile[1], panX, panY, zoom);
   var toPt = gridToScreen(region.toTile[0], region.toTile[1], panX, panY, zoom);
@@ -107,17 +119,25 @@ export function drawRegion(
 
   // Subtle fill
   roundedRect(ctx, rx, ry, rw, rh, rr);
-  ctx.globalAlpha = isDark ? 0.06 : 0.04;
+  ctx.globalAlpha = isSelected ? (isDark ? 0.12 : 0.08) : (isDark ? 0.06 : 0.04);
   ctx.fillStyle = region.color;
   ctx.fill();
   ctx.globalAlpha = 1;
 
-  // Thin border
-  ctx.strokeStyle = region.strokeColor;
-  ctx.lineWidth = 1.5;
-  ctx.globalAlpha = isDark ? 0.2 : 0.15;
-  ctx.stroke();
-  ctx.globalAlpha = 1;
+  // Border — thicker and brighter when selected
+  if (isSelected) {
+    ctx.strokeStyle = region.strokeColor;
+    ctx.lineWidth = 2;
+    ctx.globalAlpha = isDark ? 0.6 : 0.5;
+    ctx.stroke();
+    ctx.globalAlpha = 1;
+  } else {
+    ctx.strokeStyle = region.strokeColor;
+    ctx.lineWidth = 1.5;
+    ctx.globalAlpha = isDark ? 0.2 : 0.15;
+    ctx.stroke();
+    ctx.globalAlpha = 1;
+  }
 
   // Label badge at top-left corner
   if (zoom > 0.4) {
@@ -140,14 +160,14 @@ export function drawRegion(
     roundedRect(ctx, bx, by, bw, bh, br);
     ctx.fill();
     ctx.strokeStyle = region.strokeColor;
-    ctx.globalAlpha = 0.3;
+    ctx.globalAlpha = isSelected ? 0.6 : 0.3;
     ctx.lineWidth = 1;
     ctx.stroke();
     ctx.globalAlpha = 1;
 
     // Badge text
     ctx.fillStyle = region.strokeColor;
-    ctx.globalAlpha = isDark ? 0.7 : 0.6;
+    ctx.globalAlpha = isSelected ? 0.9 : (isDark ? 0.7 : 0.6);
     ctx.textAlign = "left";
     ctx.textBaseline = "top";
     ctx.fillText(region.label, bx + padX, by + padY);
@@ -175,88 +195,116 @@ function drawCategoryIcon(
   ctx.fillStyle = "none";
 
   switch (category) {
-    case "back-office": // Building2
+    case "back-office": { // Shopify bag logo (from official SVG)
+      // Scale from 109.5x124.5 viewBox into 24x24 icon space
+      var svgS = 24 / 124.5;
+      var oX = (24 - 109.5 * svgS) / 2; // center horizontally
+      ctx.save();
+      ctx.translate(oX, 0);
+      ctx.scale(svgS, svgS);
+      ctx.strokeStyle = "none";
+      ctx.lineWidth = 0;
+      // Green bag body
+      var bagPath = new Path2D("M95.9 23.9c-.1-.6-.6-1-1.1-1-.5 0-9.3-.2-9.3-.2s-7.4-7.2-8.1-7.9c-.7-.7-2.2-.5-2.7-.3 0 0-1.4.4-3.7 1.1-.4-1.3-1-2.8-1.8-4.4-2.6-5-6.5-7.7-11.1-7.7-.3 0-.6 0-1 .1-.1-.2-.3-.3-.4-.5C54.7.9 52.1-.1 49 0c-6 .2-12 4.5-16.8 12.2-3.4 5.4-6 12.2-6.8 17.5-6.9 2.1-11.7 3.6-11.8 3.7-3.5 1.1-3.6 1.2-4 4.5-.3 2.5-9.5 73-9.5 73l76.4 13.2 33.1-8.2c-.1-.1-13.6-91.4-13.7-92zm-28.7-7.1c-1.8.5-3.8 1.2-5.9 1.8 0-3-.4-7.3-1.8-10.9 4.5.9 6.7 6 7.7 9.1zm-10 3.1c-4 1.2-8.4 2.6-12.8 3.9 1.2-4.7 3.6-9.4 6.4-12.5 1.1-1.1 2.6-2.4 4.3-3.2 1.8 3.5 2.2 8.4 2.1 11.8zM49.1 4c1.4 0 2.6.3 3.6.9-1.6.9-3.2 2.1-4.7 3.7-3.8 4.1-6.7 10.5-7.9 16.6-3.6 1.1-7.2 2.2-10.5 3.2C31.7 18.8 39.8 4.3 49.1 4z");
+      ctx.fillStyle = "#95bf47";
+      ctx.fill(bagPath);
+      // Dark green side
+      var sidePath = new Path2D("M94.8 22.9c-.5 0-9.3-.2-9.3-.2s-7.4-7.2-8.1-7.9c-.3-.3-.6-.4-1-.5V124l33.1-8.2S96 24.5 95.9 23.8c-.1-.5-.6-.9-1.1-.9z");
+      ctx.fillStyle = "#5e8e3e";
+      ctx.fill(sidePath);
+      // White S
+      var sPath = new Path2D("m58 39.9-3.8 14.4s-4.3-2-9.4-1.6c-7.5.5-7.5 5.2-7.5 6.4.4 6.4 17.3 7.8 18.3 22.9.7 11.9-6.3 20-16.4 20.6-12.2.8-18.9-6.4-18.9-6.4l2.6-11s6.7 5.1 12.1 4.7c3.5-.2 4.8-3.1 4.7-5.1-.5-8.4-14.3-7.9-15.2-21.7-.7-11.6 6.9-23.4 23.7-24.4 6.5-.5 9.8 1.2 9.8 1.2z");
+      ctx.fillStyle = "#ffffff";
+      ctx.fill(sPath);
+      ctx.restore();
+      break;
+    }
+    case "orders": // ShoppingBag
       ctx.beginPath();
-      ctx.moveTo(6, 22); ctx.lineTo(6, 4); ctx.lineTo(14, 2); ctx.lineTo(14, 22);
+      ctx.rect(3, 7, 18, 15);
       ctx.stroke();
       ctx.beginPath();
-      ctx.moveTo(14, 13); ctx.lineTo(18, 9); ctx.lineTo(18, 22);
-      ctx.stroke();
-      ctx.beginPath();
-      ctx.moveTo(2, 22); ctx.lineTo(22, 22);
-      ctx.stroke();
-      ctx.beginPath();
-      ctx.moveTo(9, 6); ctx.lineTo(9, 6.01);
-      ctx.stroke();
-      ctx.beginPath();
-      ctx.moveTo(9, 10); ctx.lineTo(9, 10.01);
-      ctx.stroke();
-      ctx.beginPath();
-      ctx.moveTo(9, 14); ctx.lineTo(9, 14.01);
-      ctx.stroke();
-      ctx.beginPath();
-      ctx.moveTo(9, 18); ctx.lineTo(9, 18.01);
+      ctx.moveTo(8, 7); ctx.lineTo(8, 5);
+      ctx.arc(12, 5, 4, Math.PI, 0);
+      ctx.lineTo(16, 7);
       ctx.stroke();
       break;
-    case "online-store": // Monitor
+    case "products": // Tag
       ctx.beginPath();
-      ctx.rect(2, 3, 20, 14);
+      ctx.moveTo(12, 2); ctx.lineTo(22, 2); ctx.lineTo(22, 12); ctx.lineTo(12, 22); ctx.lineTo(2, 12); ctx.closePath();
       ctx.stroke();
       ctx.beginPath();
-      ctx.moveTo(8, 21); ctx.lineTo(16, 21);
-      ctx.stroke();
-      ctx.beginPath();
-      ctx.moveTo(12, 17); ctx.lineTo(12, 21);
+      ctx.arc(17, 7, 1.5, 0, Math.PI * 2);
       ctx.stroke();
       break;
-    case "retail": // Store
+    case "customers": // Users
+      // First person
       ctx.beginPath();
-      ctx.moveTo(4, 2); ctx.lineTo(20, 2); ctx.lineTo(22, 8); ctx.lineTo(2, 8); ctx.closePath();
+      ctx.arc(9, 7, 4, 0, Math.PI * 2);
       ctx.stroke();
       ctx.beginPath();
-      ctx.moveTo(4, 8); ctx.lineTo(4, 22); ctx.lineTo(20, 22); ctx.lineTo(20, 8);
+      ctx.moveTo(1, 21); ctx.quadraticCurveTo(1, 14, 9, 14);
+      ctx.quadraticCurveTo(17, 14, 17, 21);
+      ctx.stroke();
+      // Second person (smaller, behind)
+      ctx.beginPath();
+      ctx.arc(17, 8, 3, 0, Math.PI * 2);
       ctx.stroke();
       ctx.beginPath();
-      ctx.moveTo(2, 8); ctx.quadraticCurveTo(6, 12, 6, 8);
-      ctx.stroke();
-      ctx.beginPath();
-      ctx.moveTo(6, 8); ctx.quadraticCurveTo(10, 12, 12, 8);
-      ctx.stroke();
-      ctx.beginPath();
-      ctx.moveTo(12, 8); ctx.quadraticCurveTo(14, 12, 18, 8);
-      ctx.stroke();
-      ctx.beginPath();
-      ctx.moveTo(18, 8); ctx.quadraticCurveTo(20, 12, 22, 8);
-      ctx.stroke();
-      ctx.beginPath();
-      ctx.rect(9, 16, 6, 6);
+      ctx.moveTo(22, 21); ctx.quadraticCurveTo(22, 15, 17, 15);
       ctx.stroke();
       break;
-    case "checkout": // ShoppingCart
+    case "marketing": // Megaphone
       ctx.beginPath();
-      ctx.arc(9, 21, 1, 0, Math.PI * 2);
+      ctx.moveTo(3, 11); ctx.lineTo(3, 15); ctx.lineTo(8, 15); ctx.lineTo(8, 11); ctx.closePath();
       ctx.stroke();
       ctx.beginPath();
-      ctx.arc(20, 21, 1, 0, Math.PI * 2);
+      ctx.moveTo(8, 11); ctx.lineTo(19, 5); ctx.lineTo(19, 21); ctx.lineTo(8, 15);
       ctx.stroke();
       ctx.beginPath();
-      ctx.moveTo(1, 1); ctx.lineTo(5, 1); ctx.lineTo(7, 13); ctx.lineTo(21, 13);
+      ctx.moveTo(5, 15); ctx.lineTo(5, 19);
       ctx.stroke();
       ctx.beginPath();
-      ctx.moveTo(6, 5); ctx.lineTo(21, 5); ctx.lineTo(20, 13);
-      ctx.stroke();
-      break;
-    case "payments": // Lock
-      ctx.beginPath();
-      ctx.rect(3, 11, 18, 11);
+      ctx.moveTo(19, 11); ctx.lineTo(22, 10);
       ctx.stroke();
       ctx.beginPath();
-      ctx.moveTo(7, 11); ctx.lineTo(7, 7);
-      ctx.arc(12, 7, 5, Math.PI, 0);
-      ctx.lineTo(17, 11);
+      ctx.moveTo(19, 15); ctx.lineTo(22, 16);
       ctx.stroke();
       break;
-    case "balance": // Landmark
+    case "discounts": // Percent
+      ctx.beginPath();
+      ctx.arc(9, 9, 2.5, 0, Math.PI * 2);
+      ctx.stroke();
+      ctx.beginPath();
+      ctx.arc(15, 15, 2.5, 0, Math.PI * 2);
+      ctx.stroke();
+      ctx.beginPath();
+      ctx.moveTo(19, 5); ctx.lineTo(5, 19);
+      ctx.stroke();
+      break;
+    case "content": // Image
+      ctx.beginPath();
+      ctx.rect(3, 3, 18, 18);
+      ctx.stroke();
+      ctx.beginPath();
+      ctx.arc(8.5, 8.5, 2, 0, Math.PI * 2);
+      ctx.stroke();
+      ctx.beginPath();
+      ctx.moveTo(21, 15); ctx.lineTo(16, 10); ctx.lineTo(5, 21);
+      ctx.stroke();
+      break;
+    case "markets": // Globe
+      ctx.beginPath();
+      ctx.arc(12, 12, 10, 0, Math.PI * 2);
+      ctx.stroke();
+      ctx.beginPath();
+      ctx.moveTo(2, 12); ctx.lineTo(22, 12);
+      ctx.stroke();
+      ctx.beginPath();
+      ctx.ellipse(12, 12, 4, 10, 0, 0, Math.PI * 2);
+      ctx.stroke();
+      break;
+    case "finance": // Landmark
       ctx.beginPath();
       ctx.moveTo(3, 22); ctx.lineTo(21, 22);
       ctx.stroke();
@@ -279,79 +327,122 @@ function drawCategoryIcon(
       ctx.moveTo(2, 18); ctx.lineTo(22, 18);
       ctx.stroke();
       break;
-    case "inventory": // Warehouse
+    case "analytics": // BarChart3
       ctx.beginPath();
-      ctx.moveTo(4, 22); ctx.lineTo(4, 10); ctx.lineTo(12, 3); ctx.lineTo(20, 10); ctx.lineTo(20, 22);
+      ctx.moveTo(3, 3); ctx.lineTo(3, 21); ctx.lineTo(21, 21);
       ctx.stroke();
       ctx.beginPath();
-      ctx.moveTo(8, 22); ctx.lineTo(8, 16); ctx.lineTo(16, 16); ctx.lineTo(16, 22);
+      ctx.moveTo(7, 17); ctx.lineTo(7, 13);
       ctx.stroke();
       ctx.beginPath();
-      ctx.moveTo(8, 13); ctx.lineTo(16, 13);
-      ctx.stroke();
-      break;
-    case "marketing": // Megaphone
-      ctx.beginPath();
-      ctx.moveTo(3, 11); ctx.lineTo(3, 15); ctx.lineTo(8, 15); ctx.lineTo(8, 11); ctx.closePath();
+      ctx.moveTo(11, 17); ctx.lineTo(11, 9);
       ctx.stroke();
       ctx.beginPath();
-      ctx.moveTo(8, 11); ctx.lineTo(19, 5); ctx.lineTo(19, 21); ctx.lineTo(8, 15);
+      ctx.moveTo(15, 17); ctx.lineTo(15, 5);
       ctx.stroke();
       ctx.beginPath();
-      ctx.moveTo(5, 15); ctx.lineTo(5, 19);
-      ctx.stroke();
-      ctx.beginPath();
-      ctx.moveTo(19, 11); ctx.lineTo(22, 10);
-      ctx.stroke();
-      ctx.beginPath();
-      ctx.moveTo(19, 15); ctx.lineTo(22, 16);
+      ctx.moveTo(19, 17); ctx.lineTo(19, 11);
       ctx.stroke();
       break;
-    case "shipping": // Truck
+    // ── Sales Channel Icons ──
+    case "online-store": // Monitor
       ctx.beginPath();
-      ctx.moveTo(1, 3); ctx.lineTo(15, 3); ctx.lineTo(15, 15); ctx.lineTo(1, 15); ctx.closePath();
+      ctx.rect(2, 3, 20, 14);
       ctx.stroke();
       ctx.beginPath();
-      ctx.moveTo(15, 8); ctx.lineTo(20, 8); ctx.lineTo(23, 11); ctx.lineTo(23, 15); ctx.lineTo(15, 15);
+      ctx.moveTo(8, 21); ctx.lineTo(16, 21);
       ctx.stroke();
       ctx.beginPath();
-      ctx.arc(7, 18, 2, 0, Math.PI * 2);
-      ctx.stroke();
-      ctx.beginPath();
-      ctx.arc(19, 18, 2, 0, Math.PI * 2);
+      ctx.moveTo(12, 17); ctx.lineTo(12, 21);
       ctx.stroke();
       break;
-    case "tax": // Receipt
+    case "pos": // Store
       ctx.beginPath();
-      ctx.moveTo(4, 2); ctx.lineTo(20, 2); ctx.lineTo(20, 22);
-      ctx.lineTo(18, 20); ctx.lineTo(16, 22); ctx.lineTo(14, 20); ctx.lineTo(12, 22);
-      ctx.lineTo(10, 20); ctx.lineTo(8, 22); ctx.lineTo(6, 20); ctx.lineTo(4, 22);
+      ctx.moveTo(2, 7); ctx.lineTo(22, 7);
+      ctx.stroke();
+      ctx.beginPath();
+      ctx.moveTo(2, 7); ctx.lineTo(2, 21); ctx.lineTo(22, 21); ctx.lineTo(22, 7);
+      ctx.stroke();
+      ctx.beginPath();
+      ctx.moveTo(2, 3); ctx.lineTo(12, 1); ctx.lineTo(22, 3);
+      ctx.stroke();
+      ctx.beginPath();
+      ctx.moveTo(10, 21); ctx.lineTo(10, 15); ctx.lineTo(14, 15); ctx.lineTo(14, 21);
+      ctx.stroke();
+      break;
+    case "shop-channel": // Smartphone
+      ctx.beginPath();
+      ctx.rect(5, 2, 14, 20);
+      ctx.stroke();
+      ctx.beginPath();
+      ctx.moveTo(10, 18); ctx.lineTo(14, 18);
+      ctx.stroke();
+      break;
+    case "facebook-instagram": // Custom FB/IG
+      // Facebook 'f' shape
+      ctx.beginPath();
+      ctx.arc(12, 12, 10, 0, Math.PI * 2);
+      ctx.stroke();
+      ctx.beginPath();
+      ctx.moveTo(10, 22); ctx.lineTo(10, 12); ctx.lineTo(15, 12);
+      ctx.stroke();
+      ctx.beginPath();
+      ctx.moveTo(8, 15); ctx.lineTo(14, 15);
+      ctx.stroke();
+      ctx.beginPath();
+      ctx.moveTo(10, 12); ctx.quadraticCurveTo(10, 6, 15, 6);
+      ctx.stroke();
+      break;
+    case "google-youtube": // Play button in circle (Google/YouTube)
+      ctx.beginPath();
+      ctx.arc(12, 12, 10, 0, Math.PI * 2);
+      ctx.stroke();
+      ctx.beginPath();
+      ctx.moveTo(9, 7); ctx.lineTo(18, 12); ctx.lineTo(9, 17); ctx.closePath();
+      ctx.stroke();
+      break;
+    case "tiktok": // Music note (TikTok)
+      ctx.beginPath();
+      ctx.moveTo(12, 4); ctx.lineTo(12, 17);
+      ctx.stroke();
+      ctx.beginPath();
+      ctx.arc(9, 17, 3, 0, Math.PI * 2);
+      ctx.stroke();
+      ctx.beginPath();
+      ctx.moveTo(12, 4); ctx.quadraticCurveTo(16, 4, 18, 8);
+      ctx.stroke();
+      break;
+    // ── App Icons ──
+    case "app-klaviyo": // Mail
+      ctx.beginPath();
+      ctx.rect(2, 5, 20, 14);
+      ctx.stroke();
+      ctx.beginPath();
+      ctx.moveTo(2, 5); ctx.lineTo(12, 13); ctx.lineTo(22, 5);
+      ctx.stroke();
+      break;
+    case "app-judgeme": // Star
+      var cx2 = 12;
+      var cy2 = 12;
+      var outerR = 9;
+      var innerR = 4;
+      ctx.beginPath();
+      for (var si2 = 0; si2 < 5; si2++) {
+        var outerAngle = -Math.PI / 2 + si2 * (2 * Math.PI / 5);
+        var innerAngle = outerAngle + Math.PI / 5;
+        if (si2 === 0) {
+          ctx.moveTo(cx2 + outerR * Math.cos(outerAngle), cy2 + outerR * Math.sin(outerAngle));
+        } else {
+          ctx.lineTo(cx2 + outerR * Math.cos(outerAngle), cy2 + outerR * Math.sin(outerAngle));
+        }
+        ctx.lineTo(cx2 + innerR * Math.cos(innerAngle), cy2 + innerR * Math.sin(innerAngle));
+      }
       ctx.closePath();
       ctx.stroke();
-      ctx.beginPath();
-      ctx.moveTo(8, 7); ctx.lineTo(16, 7);
-      ctx.stroke();
-      ctx.beginPath();
-      ctx.moveTo(8, 11); ctx.lineTo(16, 11);
-      ctx.stroke();
-      ctx.beginPath();
-      ctx.moveTo(8, 15); ctx.lineTo(12, 15);
-      ctx.stroke();
       break;
-    case "billing": // CreditCard
+    case "app-flow": // Zap / workflow
       ctx.beginPath();
-      ctx.rect(2, 4, 20, 16);
-      ctx.stroke();
-      ctx.beginPath();
-      ctx.moveTo(2, 10); ctx.lineTo(22, 10);
-      ctx.stroke();
-      break;
-    case "capital": // TrendingUp
-      ctx.beginPath();
-      ctx.moveTo(22, 7); ctx.lineTo(14, 15); ctx.lineTo(10, 11); ctx.lineTo(2, 19);
-      ctx.stroke();
-      ctx.beginPath();
-      ctx.moveTo(16, 7); ctx.lineTo(22, 7); ctx.lineTo(22, 13);
+      ctx.moveTo(13, 2); ctx.lineTo(3, 14); ctx.lineTo(12, 14); ctx.lineTo(11, 22); ctx.lineTo(21, 10); ctx.lineTo(12, 10); ctx.closePath();
       ctx.stroke();
       break;
     default: // fallback circle
@@ -373,9 +464,10 @@ export function drawNodeCard(
   isDark: boolean
 ): void {
   var def = getCategoryDef(node.category);
+  var dims = getCardDimensions(node.nodeType);
   var _pos = gridToScreen(node.tileX, node.tileY, panX, panY, zoom);
-  var w = CARD_W * zoom;
-  var h = CARD_H * zoom;
+  var w = dims.w * zoom;
+  var h = dims.h * zoom;
   var x = _pos[0] - w / 2;
   var y = _pos[1] - h / 2;
   var r = CARD_R * zoom;
@@ -385,15 +477,23 @@ export function drawNodeCard(
   ctx.fillStyle = isDark ? "#1e1e1e" : "#ffffff";
   ctx.fill();
 
-  // Card border
+  // Card border — varies by nodeType
   if (isSelected) {
     ctx.strokeStyle = "#0d9488";
     ctx.lineWidth = 2;
+    ctx.setLineDash([]);
+  } else if (node.nodeType === "app") {
+    // Apps: dashed border
+    ctx.strokeStyle = isDark ? "rgba(255,255,255,0.12)" : "rgba(0,0,0,0.12)";
+    ctx.lineWidth = 1;
+    ctx.setLineDash([4 * zoom, 3 * zoom]);
   } else {
     ctx.strokeStyle = isDark ? "rgba(255,255,255,0.1)" : "rgba(0,0,0,0.1)";
     ctx.lineWidth = 1;
+    ctx.setLineDash([]);
   }
   ctx.stroke();
+  ctx.setLineDash([]);
 
   // Left accent bar
   var accentW = ACCENT_W * zoom;
@@ -616,14 +716,15 @@ export function renderScene(
   var panY = uiState.panY;
   var zoom = uiState.zoom;
 
-  // Draw regions (below everything)
-  var _regions = regions || [];
-  for (var ri = 0; ri < _regions.length; ri++) {
-    drawRegion(ctx, _regions[ri], panX, panY, zoom, isDark);
-  }
-
   // Draw grid
   drawGrid(ctx, gridWidth, gridHeight, panX, panY, zoom, isDark);
+
+  // Draw regions (behind connectors and nodes)
+  var _regions = regions || [];
+  for (var ri = 0; ri < _regions.length; ri++) {
+    var isRegionSelected = uiState.selectedRegionId === _regions[ri].id;
+    drawRegion(ctx, _regions[ri], panX, panY, zoom, isDark, isRegionSelected);
+  }
 
   // Draw connectors (below nodes)
   for (var ci = 0; ci < connectorPaths.length; ci++) {
@@ -671,6 +772,38 @@ export function renderScene(
   }
 }
 
+// ── Section preview (dashed rectangle while drawing) ────────
+function drawSectionPreview(
+  ctx: CanvasRenderingContext2D,
+  fromTile: [number, number],
+  toTile: [number, number],
+  panX: number,
+  panY: number,
+  zoom: number
+): void {
+  var fromPt = gridToScreen(fromTile[0], fromTile[1], panX, panY, zoom);
+  var toPt = gridToScreen(toTile[0], toTile[1], panX, panY, zoom);
+
+  var pad = TILE_SIZE * zoom * 0.5;
+  var x1 = Math.min(fromPt[0], toPt[0]) - pad;
+  var y1 = Math.min(fromPt[1], toPt[1]) - pad;
+  var x2 = Math.max(fromPt[0], toPt[0]) + pad;
+  var y2 = Math.max(fromPt[1], toPt[1]) + pad;
+  var rr = 12 * zoom;
+
+  // Fill
+  roundedRect(ctx, x1, y1, x2 - x1, y2 - y1, rr);
+  ctx.fillStyle = "rgba(13,148,136,0.06)";
+  ctx.fill();
+
+  // Dashed border
+  ctx.setLineDash([6 * zoom, 4 * zoom]);
+  ctx.strokeStyle = "rgba(13,148,136,0.5)";
+  ctx.lineWidth = 1.5;
+  ctx.stroke();
+  ctx.setLineDash([]);
+}
+
 // ── Hover canvas overlay ────────────────────────────────
 export function renderHoverOverlay(
   ctx: CanvasRenderingContext2D,
@@ -681,8 +814,26 @@ export function renderHoverOverlay(
 ): void {
   ctx.clearRect(0, 0, width, height);
 
-  if (uiState.hoveredTile && uiState.mode === "PLACE_NODE") {
+  // Section draw preview
+  if (uiState.sectionDrawStart && uiState.sectionDrawEnd) {
+    drawSectionPreview(
+      ctx,
+      uiState.sectionDrawStart,
+      uiState.sectionDrawEnd,
+      uiState.panX,
+      uiState.panY,
+      uiState.zoom
+    );
+  }
+
+  if (uiState.hoveredTile && (uiState.mode === "PLACE_NODE" || uiState.mode === "CONNECTOR" || uiState.mode === "CREATE_SECTION")) {
     var tile = uiState.hoveredTile;
+    var fillAlpha = uiState.mode === "PLACE_NODE"
+      ? (isDark ? "rgba(13,148,136,0.15)" : "rgba(13,148,136,0.1)")
+      : (isDark ? "rgba(13,148,136,0.1)" : "rgba(13,148,136,0.08)");
+    var strokeAlpha = uiState.mode === "PLACE_NODE"
+      ? (isDark ? "rgba(13,148,136,0.5)" : "rgba(13,148,136,0.3)")
+      : (isDark ? "rgba(13,148,136,0.4)" : "rgba(13,148,136,0.25)");
     drawTileHighlight(
       ctx,
       tile[0],
@@ -690,32 +841,8 @@ export function renderHoverOverlay(
       uiState.panX,
       uiState.panY,
       uiState.zoom,
-      isDark ? "rgba(13,148,136,0.15)" : "rgba(13,148,136,0.1)",
-      isDark ? "rgba(13,148,136,0.5)" : "rgba(13,148,136,0.3)"
-    );
-  } else if (uiState.hoveredTile && uiState.mode === "CURSOR") {
-    var tile2 = uiState.hoveredTile;
-    drawTileHighlight(
-      ctx,
-      tile2[0],
-      tile2[1],
-      uiState.panX,
-      uiState.panY,
-      uiState.zoom,
-      isDark ? "rgba(255,255,255,0.03)" : "rgba(0,0,0,0.03)",
-      isDark ? "rgba(255,255,255,0.1)" : "rgba(0,0,0,0.08)"
-    );
-  } else if (uiState.hoveredTile && uiState.mode === "CONNECTOR") {
-    var tile3 = uiState.hoveredTile;
-    drawTileHighlight(
-      ctx,
-      tile3[0],
-      tile3[1],
-      uiState.panX,
-      uiState.panY,
-      uiState.zoom,
-      isDark ? "rgba(13,148,136,0.1)" : "rgba(13,148,136,0.08)",
-      isDark ? "rgba(13,148,136,0.4)" : "rgba(13,148,136,0.25)"
+      fillAlpha,
+      strokeAlpha
     );
   }
 }
@@ -816,9 +943,10 @@ export function renderAnimationFrame(
     var activity = bNode.activityLevel || 0;
     if (activity < 0.5) continue;
 
+    var bDims = getCardDimensions(bNode.nodeType);
     var bPos = gridToScreen(bNode.tileX, bNode.tileY, panX, panY, zoom);
-    var w = CARD_W * zoom;
-    var h = CARD_H * zoom;
+    var w = bDims.w * zoom;
+    var h = bDims.h * zoom;
     var bx = bPos[0] - w / 2;
     var by = bPos[1] - h / 2;
     var br = CARD_R * zoom;

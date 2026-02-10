@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { agents } from "@/lib/skills";
 import { AgentDetailView } from "./AgentDetailView";
+import { SidekickIcon } from "./SidekickIcon";
 import type { Agent } from "@/lib/skills";
 
 interface AgentsViewProps {
@@ -97,7 +98,10 @@ export function AgentsView({ sidebarWidth }: AgentsViewProps) {
                 }}
               >
                 <td style={{ padding: "12px", color: "#e5e5e5", fontWeight: 500 }}>
-                  {agent.name}
+                  <span style={{ display: "inline-flex", alignItems: "center", gap: 8 }}>
+                    {agent.id === "sidekick" && <SidekickIcon size={20} />}
+                    {agent.name}
+                  </span>
                 </td>
                 <td style={{ padding: "12px", color: "#999" }}>
                   {agent.description}

@@ -1,17 +1,29 @@
-// Node categories for merchant infrastructure topology
+// Node type classification
+export type NodeType = "core" | "channel" | "app";
+
+// Node categories matching admin nav tabs 1:1 + channels + apps
 export type NodeCategory =
   | "back-office"
-  | "online-store"
-  | "retail"
-  | "checkout"
-  | "payments"
-  | "balance"
-  | "inventory"
-  | "shipping"
+  | "orders"
+  | "products"
+  | "customers"
   | "marketing"
-  | "tax"
-  | "billing"
-  | "capital";
+  | "discounts"
+  | "content"
+  | "markets"
+  | "finance"
+  | "analytics"
+  // Sales channels
+  | "online-store"
+  | "pos"
+  | "shop-channel"
+  | "facebook-instagram"
+  | "google-youtube"
+  | "tiktok"
+  // Apps
+  | "app-klaviyo"
+  | "app-judgeme"
+  | "app-flow";
 
 // Merchant business stage (progressive complexity)
 export type MerchantStage = 0 | 1 | 2 | 3 | 4;
@@ -19,6 +31,7 @@ export type MerchantStage = 0 | 1 | 2 | 3 | 4;
 // Stage layout position template
 export interface StageNodePosition {
   category: NodeCategory;
+  nodeType?: NodeType;
   tileX: number;
   tileY: number;
 }
@@ -51,6 +64,7 @@ export interface CommerceStat {
 export interface MapNode {
   id: string;
   category: NodeCategory;
+  nodeType?: NodeType;
   label: string;
   description: string;
   tileX: number;
@@ -83,6 +97,7 @@ export interface Region {
   toTile: [number, number];   // bottom-right corner in tile coords
   color: string;               // fill color (will be drawn at low opacity)
   strokeColor: string;         // border color
+  isUserCreated?: boolean;     // true for user-drawn sections (preserved across stage changes)
 }
 
 // Interaction modes (state machine from isoflow pattern)
@@ -91,7 +106,8 @@ export type InteractionMode =
   | "PAN"
   | "PLACE_NODE"
   | "CONNECTOR"
-  | "DRAG_ITEMS";
+  | "DRAG_ITEMS"
+  | "CREATE_SECTION";
 
 // The data model (nodes + connectors + regions)
 export interface MapModel {
@@ -113,6 +129,10 @@ export interface MapUIState {
   placingCategory: NodeCategory | null;
   connectorSourceId: string | null;
   dragStart: { tileX: number; tileY: number; screenX: number; screenY: number } | null;
+  sectionDrawStart: [number, number] | null;
+  sectionDrawEnd: [number, number] | null;
+  editingRegionId: string | null;
+  selectedRegionId: string | null;
 }
 
 // Computed scene data (connector paths, etc.)
@@ -123,6 +143,7 @@ export interface MapScene {
 // Visual definition for a node category (flat 2D: 2-color scheme)
 export interface NodeCategoryDef {
   category: NodeCategory;
+  nodeType?: NodeType;
   label: string;
   icon: string; // single letter for icon circle
   color: string;      // primary accent (border, icon bg)

@@ -24,6 +24,7 @@ import { SettingsView } from "@/components/SettingsView";
 import { HomeView } from "@/components/HomeView";
 import { InlineChat } from "@/components/InlineChat";
 import { MapView } from "@/components/map/MapView";
+
 import { AgentsView } from "@/components/AgentsView";
 import { Agentation } from "agentation";
 

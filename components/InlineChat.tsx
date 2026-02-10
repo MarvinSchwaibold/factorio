@@ -4,6 +4,7 @@ import { useState, useRef, useEffect, useContext, useMemo } from "react";
 import { ArrowUp, Loader2, Wrench, RotateCcw } from "lucide-react";
 import { ThemeContext } from "@/lib/theme";
 import { Button } from "@/components/Button";
+import { SidekickIcon } from "@/components/SidekickIcon";
 import { QuickAgent } from "@/lib/quick-agent";
 import { sidekickConfig } from "@/lib/quick-agent/config";
 import { useChat, type ChatMessage } from "@/hooks/useChat";
@@ -343,6 +344,9 @@ export function InlineChat({ sidebarWidth = 0, embedded = false }: { sidebarWidt
               gap: 10,
             }}
           >
+            <div style={{ paddingBottom: 6, flexShrink: 0 }}>
+              <SidekickIcon size={18} />
+            </div>
             <textarea
               ref={inputRef}
               value={input}

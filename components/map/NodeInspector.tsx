@@ -309,7 +309,8 @@ export function NodeInspector({
           </button>
         )}
 
-        {/* Delete button */}
+        {/* Delete button — hidden for admin hub */}
+        {node.category !== "back-office" && (
         <button
           onClick={function() { onRemoveNode(node.id); }}
           style={{
@@ -331,6 +332,7 @@ export function NodeInspector({
         >
           Delete Node
         </button>
+        )}
       </div>
     </div>
   );

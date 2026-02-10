@@ -167,6 +167,7 @@ export function IsoCanvas({ state, actions, handlers, isDark, containerRefOut }:
   if (state.uiState.mode === "PAN") cursorStyle = "grab";
   if (state.uiState.mode === "PLACE_NODE") cursorStyle = "crosshair";
   if (state.uiState.mode === "CONNECTOR") cursorStyle = "crosshair";
+  if (state.uiState.mode === "CREATE_SECTION") cursorStyle = "crosshair";
 
   var canvasStyle = {
     position: "absolute" as const,
@@ -190,14 +191,14 @@ export function IsoCanvas({ state, actions, handlers, isDark, containerRefOut }:
       onKeyDown={handlers.handleKeyDown}
       onKeyUp={handlers.handleKeyUp}
     >
+      {/* Animation canvas: flow particles + effects (rAF loop) — below cards */}
+      <canvas
+        ref={animCanvasRef}
+        style={canvasStyle}
+      />
       {/* Base canvas: grid + buildings (redraws on state change) */}
       <canvas
         ref={baseCanvasRef}
-        style={canvasStyle}
-      />
-      {/* Animation canvas: flow particles + effects (rAF loop) */}
-      <canvas
-        ref={animCanvasRef}
         style={canvasStyle}
       />
       {/* Hover canvas: tile highlights + mouse interaction */}

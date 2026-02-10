@@ -20,6 +20,9 @@ export function useMapInteraction(
   var panStartRef = useRef({ x: 0, y: 0, panX: 0, panY: 0 });
   var isDraggingNodeRef = useRef(false);
   var dragNodeIdRef = useRef<string | null>(null);
+  var isDraggingRegionRef = useRef(false);
+  var dragRegionIdRef = useRef<string | null>(null);
+  var dragRegionLastTileRef = useRef<[number, number] | null>(null);
   var spaceHeldRef = useRef(false);
 
   // Ref for latest state to avoid stale closures in mouse handlers
@@ -57,14 +60,37 @@ export function useMapInteraction(
     var nodeAtTile = actions.getNodeAtTile(tileX, tileY);
 
     if (mode === "CURSOR") {
-      if (nodeAtTile) {
-        actions.selectNode(nodeAtTile.id);
-        // Start drag
+      // Check exact tile match for node first
+      var exactNode = actions.isTileOccupied(tileX, tileY) ? nodeAtTile : null;
+
+      if (exactNode) {
+        // Clicked directly on a node's tile — select and drag the node
+        actions.selectNode(exactNode.id);
+        actions.setSelectedRegionId(null);
         isDraggingNodeRef.current = true;
-        dragNodeIdRef.current = nodeAtTile.id;
+        dragNodeIdRef.current = exactNode.id;
         actions.setDragStart({ tileX: tileX, tileY: tileY, screenX: e.clientX, screenY: e.clientY });
       } else {
-        actions.selectNode(null);
+        // Not on exact node tile — check region first, then generous node match
+        var regionAtTile = actions.getRegionAtTile(tileX, tileY);
+        if (regionAtTile) {
+          actions.selectNode(null);
+          actions.setSelectedRegionId(regionAtTile.id);
+          // Start region drag (any region can be dragged)
+          isDraggingRegionRef.current = true;
+          dragRegionIdRef.current = regionAtTile.id;
+          dragRegionLastTileRef.current = [tileX, tileY];
+        } else if (nodeAtTile) {
+          // Generous node match (clicked on card edge, outside any region)
+          actions.selectNode(nodeAtTile.id);
+          actions.setSelectedRegionId(null);
+          isDraggingNodeRef.current = true;
+          dragNodeIdRef.current = nodeAtTile.id;
+          actions.setDragStart({ tileX: tileX, tileY: tileY, screenX: e.clientX, screenY: e.clientY });
+        } else {
+          actions.selectNode(null);
+          actions.setSelectedRegionId(null);
+        }
       }
     } else if (mode === "PLACE_NODE") {
       if (!nodeAtTile && s.uiState.placingCategory) {
@@ -81,6 +107,9 @@ export function useMapInteraction(
       } else {
         actions.setConnectorSource(null);
       }
+    } else if (mode === "CREATE_SECTION") {
+      actions.setSectionDrawStart([tileX, tileY]);
+      actions.setSectionDrawEnd([tileX, tileY]);
     }
   }, [actions, getGridCoords]);
 
@@ -108,6 +137,33 @@ export function useMapInteraction(
       return;
     }
 
+    // Dragging a region
+    if (isDraggingRegionRef.current && dragRegionIdRef.current && dragRegionLastTileRef.current) {
+      var _gridR = getGridCoords(e);
+      var rTileX = _gridR[0];
+      var rTileY = _gridR[1];
+      if (rTileX >= 0 && rTileY >= 0 && rTileX < s.model.gridWidth && rTileY < s.model.gridHeight) {
+        var dxR = rTileX - dragRegionLastTileRef.current[0];
+        var dyR = rTileY - dragRegionLastTileRef.current[1];
+        if (dxR !== 0 || dyR !== 0) {
+          actions.moveRegion(dragRegionIdRef.current, dxR, dyR);
+          dragRegionLastTileRef.current = [rTileX, rTileY];
+        }
+      }
+      return;
+    }
+
+    // Section drawing drag
+    if (s.uiState.mode === "CREATE_SECTION" && s.uiState.sectionDrawStart) {
+      var _gridSec = getGridCoords(e);
+      var secX = _gridSec[0];
+      var secY = _gridSec[1];
+      if (secX >= 0 && secY >= 0 && secX < s.model.gridWidth && secY < s.model.gridHeight) {
+        actions.setSectionDrawEnd([secX, secY]);
+      }
+      return;
+    }
+
     // Hover tile tracking
     var _grid2 = getGridCoords(e);
     var hx = _grid2[0];
@@ -120,9 +176,44 @@ export function useMapInteraction(
   }, [actions, getGridCoords]);
 
   var handleMouseUp = useCallback(function(_e: React.MouseEvent<HTMLCanvasElement>) {
+    var s = stateRef.current;
+
+    // Finalize section creation
+    if (s.uiState.mode === "CREATE_SECTION" && s.uiState.sectionDrawStart && s.uiState.sectionDrawEnd) {
+      var sx = s.uiState.sectionDrawStart;
+      var ex = s.uiState.sectionDrawEnd;
+      // Normalize rect
+      var fromX = Math.min(sx[0], ex[0]);
+      var fromY = Math.min(sx[1], ex[1]);
+      var toX = Math.max(sx[0], ex[0]);
+      var toY = Math.max(sx[1], ex[1]);
+
+      // Only create if dragged at least 1 tile
+      if (toX - fromX >= 1 || toY - fromY >= 1) {
+        var regionId = Date.now().toString(36) + Math.random().toString(36).slice(2, 8);
+        actions.addRegion({
+          id: regionId,
+          label: "Section",
+          fromTile: [fromX, fromY],
+          toTile: [toX, toY],
+          color: "#0d9488",
+          strokeColor: "#0d9488",
+          isUserCreated: true,
+        });
+        actions.setEditingRegionId(regionId);
+      }
+
+      actions.setSectionDrawStart(null);
+      actions.setSectionDrawEnd(null);
+      actions.setMode("CURSOR");
+    }
+
     isPanningRef.current = false;
     isDraggingNodeRef.current = false;
     dragNodeIdRef.current = null;
+    isDraggingRegionRef.current = false;
+    dragRegionIdRef.current = null;
+    dragRegionLastTileRef.current = null;
     actions.setDragStart(null);
   }, [actions]);
 
@@ -132,14 +223,32 @@ export function useMapInteraction(
       spaceHeldRef.current = true;
     }
     if (e.code === "Escape") {
+      var s2 = stateRef.current;
+      if (s2.uiState.mode === "CREATE_SECTION") {
+        actions.setSectionDrawStart(null);
+        actions.setSectionDrawEnd(null);
+      }
+      if (s2.uiState.editingRegionId) {
+        actions.setEditingRegionId(null);
+      }
       actions.setMode("CURSOR");
       actions.selectNode(null);
+      actions.setSelectedRegionId(null);
       actions.setPlacingCategory(null);
       actions.setConnectorSource(null);
     }
     if (e.code === "Delete" || e.code === "Backspace") {
       var s = stateRef.current;
-      if (s.uiState.selectedNodeId) {
+      if (s.uiState.selectedRegionId) {
+        // Only delete user-created regions
+        var regions = s.model.regions;
+        for (var rdi = 0; rdi < regions.length; rdi++) {
+          if (regions[rdi].id === s.uiState.selectedRegionId && regions[rdi].isUserCreated) {
+            actions.removeRegion(s.uiState.selectedRegionId);
+            break;
+          }
+        }
+      } else if (s.uiState.selectedNodeId) {
         actions.removeNode(s.uiState.selectedNodeId);
       }
     }
