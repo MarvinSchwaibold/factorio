@@ -29,6 +29,10 @@ var Y_DISCOUNTS  = 15;
 var X_KLAVIYO    = 10;
 var Y_KLAVIYO    = 10;
 
+// ── Agents (near Admin center) ──
+var X_SIDEKICK = 17;
+var Y_SIDEKICK = 21;
+
 // ── Channels cluster (W/SW) ──
 var X_ONLINE_STORE = 12;
 var Y_ONLINE_STORE = 20;
@@ -112,6 +116,8 @@ var STAGE_2: StageLayout = {
     { category: "finance",      nodeType: "core", tileX: X_FINANCE, tileY: Y_FINANCE },
     { category: "analytics",    nodeType: "core", tileX: X_ANALYTICS, tileY: Y_ANALYTICS },
     { category: "app-klaviyo",  nodeType: "app",  tileX: X_KLAVIYO, tileY: Y_KLAVIYO },
+    // Agent
+    { category: "agent-sidekick", nodeType: "agent", tileX: X_SIDEKICK, tileY: Y_SIDEKICK },
   ],
   connections: [
     { from: "back-office", to: "online-store", label: "storefront", style: "solid",  flowRate: 0.6 },
@@ -122,6 +128,7 @@ var STAGE_2: StageLayout = {
     { from: "back-office", to: "finance",      label: "revenue",    style: "solid",  flowRate: 0.6 },
     { from: "back-office", to: "analytics",    label: "insights",   style: "dashed", flowRate: 0.3 },
     { from: "marketing",   to: "app-klaviyo",  label: "email/SMS",  style: "dashed", flowRate: 0.4 },
+    { from: "back-office", to: "agent-sidekick", label: "AI",       style: "dotted", flowRate: 0.5 },
   ],
 };
 
@@ -143,6 +150,8 @@ var STAGE_3: StageLayout = {
     { category: "content",      nodeType: "core", tileX: X_CONTENT, tileY: Y_CONTENT },
     { category: "app-klaviyo",  nodeType: "app",  tileX: X_KLAVIYO, tileY: Y_KLAVIYO },
     { category: "app-judgeme",  nodeType: "app",  tileX: X_JUDGEME, tileY: Y_JUDGEME },
+    // Agent
+    { category: "agent-sidekick", nodeType: "agent", tileX: X_SIDEKICK, tileY: Y_SIDEKICK },
   ],
   connections: [
     { from: "back-office", to: "online-store",  label: "storefront",  style: "solid",  flowRate: 0.7 },
@@ -158,6 +167,7 @@ var STAGE_3: StageLayout = {
     { from: "back-office", to: "content",       label: "pages",       style: "dashed", flowRate: 0.3 },
     { from: "marketing",   to: "app-klaviyo",   label: "email/SMS",   style: "dashed", flowRate: 0.4 },
     { from: "products",    to: "app-judgeme",   label: "reviews",     style: "dashed", flowRate: 0.3 },
+    { from: "back-office", to: "agent-sidekick", label: "AI",         style: "dotted", flowRate: 0.5 },
   ],
 };
 
@@ -187,6 +197,8 @@ var STAGE_4: StageLayout = {
     { category: "app-klaviyo",  nodeType: "app",  tileX: X_KLAVIYO, tileY: Y_KLAVIYO },
     { category: "app-judgeme",  nodeType: "app",  tileX: X_JUDGEME, tileY: Y_JUDGEME },
     { category: "app-flow",    nodeType: "app",  tileX: X_FLOW, tileY: Y_FLOW },
+    // Agent
+    { category: "agent-sidekick", nodeType: "agent", tileX: X_SIDEKICK, tileY: Y_SIDEKICK },
   ],
   connections: [
     // Admin → Channels
@@ -210,6 +222,8 @@ var STAGE_4: StageLayout = {
     { from: "marketing",   to: "app-klaviyo",   label: "email/SMS",     style: "dashed", flowRate: 0.4 },
     { from: "products",    to: "app-judgeme",   label: "reviews",       style: "dashed", flowRate: 0.3 },
     { from: "orders",      to: "app-flow",     label: "automation",    style: "dashed", flowRate: 0.4 },
+    // Admin → Agent
+    { from: "back-office", to: "agent-sidekick", label: "AI",           style: "dotted", flowRate: 0.5 },
   ],
 };
 

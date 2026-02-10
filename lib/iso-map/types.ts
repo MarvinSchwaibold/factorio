@@ -1,5 +1,5 @@
 // Node type classification
-export type NodeType = "core" | "channel" | "app";
+export type NodeType = "core" | "channel" | "app" | "agent";
 
 // Node categories matching admin nav tabs 1:1 + channels + apps
 export type NodeCategory =
@@ -23,7 +23,9 @@ export type NodeCategory =
   // Apps
   | "app-klaviyo"
   | "app-judgeme"
-  | "app-flow";
+  | "app-flow"
+  // Agents
+  | "agent-sidekick";
 
 // Merchant business stage (progressive complexity)
 export type MerchantStage = 0 | 1 | 2 | 3 | 4;

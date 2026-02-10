@@ -240,14 +240,7 @@ export function useMapInteraction(
     if (e.code === "Delete" || e.code === "Backspace") {
       var s = stateRef.current;
       if (s.uiState.selectedRegionId) {
-        // Only delete user-created regions
-        var regions = s.model.regions;
-        for (var rdi = 0; rdi < regions.length; rdi++) {
-          if (regions[rdi].id === s.uiState.selectedRegionId && regions[rdi].isUserCreated) {
-            actions.removeRegion(s.uiState.selectedRegionId);
-            break;
-          }
-        }
+        actions.removeRegion(s.uiState.selectedRegionId);
       } else if (s.uiState.selectedNodeId) {
         actions.removeNode(s.uiState.selectedNodeId);
       }

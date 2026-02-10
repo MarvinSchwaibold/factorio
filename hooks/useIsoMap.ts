@@ -423,6 +423,7 @@ export function useIsoMap(layoutMode?: LayoutMode): [IsoMapState, IsoMapActions]
       var halfH = 0.5; // generous in Y
       if (n.nodeType === "channel") { halfW = 0.8; }
       else if (n.nodeType === "app") { halfW = 0.75; }
+      else if (n.nodeType === "agent") { halfW = 0.8; }
       var dx = Math.abs(tileX - n.tileX);
       var dy = Math.abs(tileY - n.tileY);
       if (dx <= halfW && dy <= halfH) {

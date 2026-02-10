@@ -329,6 +329,16 @@ function buildNodeStats(category: string, data: CommerceData): { stats: import("
         alertCount: 0,
         activityLevel: 0.5,
       };
+    // ── Agents ──
+    case "agent-sidekick":
+      return {
+        stats: [
+          { label: "Tools", value: "14 available", trend: "flat" as const },
+          { label: "Status", value: "Online", trend: "flat" as const },
+        ],
+        alertCount: 0,
+        activityLevel: 0.7,
+      };
     default:
       return { stats: [], alertCount: 0, activityLevel: 0.3 };
   }
@@ -357,6 +367,8 @@ var CATEGORY_LABELS: { [key: string]: string } = {
   "app-klaviyo": "Klaviyo",
   "app-judgeme": "Judge.me",
   "app-flow": "Shopify Flow",
+  // Agents
+  "agent-sidekick": "Sidekick",
 };
 
 var CATEGORY_DESCRIPTIONS: { [key: string]: string } = {
@@ -381,6 +393,8 @@ var CATEGORY_DESCRIPTIONS: { [key: string]: string } = {
   "app-klaviyo": "Email and SMS marketing",
   "app-judgeme": "Product reviews and ratings",
   "app-flow": "Workflow automation",
+  // Agents
+  "agent-sidekick": "AI store assistant",
 };
 
 // ── Stage-based map generator ─────────────────────────

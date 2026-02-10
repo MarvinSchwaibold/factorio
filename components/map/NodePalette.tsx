@@ -5,7 +5,7 @@ import {
   ShoppingBag, Tag, Users, Megaphone, Percent,
   Image, Globe, Landmark, BarChart3, Building2,
   Monitor, Store, Smartphone, Facebook, Youtube, Music2,
-  Mail, Star, Zap,
+  Mail, Star, Zap, Sparkles,
   ChevronDown, ChevronRight,
 } from "lucide-react";
 import { NODE_CATEGORIES } from "@/lib/iso-map/node-palette";
@@ -41,6 +41,8 @@ function getCategoryIcon(cat: NodeCategory, size: number) {
     case "app-klaviyo": return <Mail size={size} />;
     case "app-judgeme": return <Star size={size} />;
     case "app-flow": return <Zap size={size} />;
+    // Agents
+    case "agent-sidekick": return <Sparkles size={size} />;
     default: return <Building2 size={size} />;
   }
 }
@@ -128,6 +130,7 @@ export function NodePalette({ activeCategory, onSelectCategory, isDark }: NodePa
   var coreItems: NodeCategoryDef[] = [];
   var channelItems: NodeCategoryDef[] = [];
   var appItems: NodeCategoryDef[] = [];
+  var agentItems: NodeCategoryDef[] = [];
 
   for (var i = 0; i < NODE_CATEGORIES.length; i++) {
     var def = NODE_CATEGORIES[i];
@@ -136,6 +139,8 @@ export function NodePalette({ activeCategory, onSelectCategory, isDark }: NodePa
       channelItems.push(def);
     } else if (def.nodeType === "app") {
       appItems.push(def);
+    } else if (def.nodeType === "agent") {
+      agentItems.push(def);
     } else {
       coreItems.push(def);
     }
@@ -206,6 +211,13 @@ export function NodePalette({ activeCategory, onSelectCategory, isDark }: NodePa
           <PaletteSection
             label="Apps"
             items={appItems}
+            activeCategory={activeCategory}
+            onSelectCategory={onSelectCategory}
+            isDark={isDark}
+          />
+          <PaletteSection
+            label="Agents"
+            items={agentItems}
             activeCategory={activeCategory}
             onSelectCategory={onSelectCategory}
             isDark={isDark}

@@ -10,6 +10,7 @@ interface AgentDetailViewProps {
   agent: Agent;
   sidebarWidth: number;
   onBack: () => void;
+  onUpdateAgent?: (agent: Agent) => void;
 }
 
 var font = "var(--font-geist-sans), system-ui, sans-serif";
@@ -53,6 +54,46 @@ function ViewToggle({
   );
 }
 
+function MarkdownStyles() {
+  return (
+    <style dangerouslySetInnerHTML={{ __html: `
+      .skill-card:hover {
+        transform: translateY(-2px);
+        border-color: #3a3a3a !important;
+        box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+      }
+      .skill-markdown {
+        color: #d4d4d4; font-size: 14px; line-height: 1.7;
+      }
+      .skill-markdown h1 {
+        font-size: 18px; font-weight: 700; color: #f0f0f0;
+        margin: 0 0 14px 0; padding-bottom: 10px; border-bottom: 1px solid #2a2a2a;
+      }
+      .skill-markdown h2 {
+        font-size: 15px; font-weight: 600; color: #e5e5e5; margin: 20px 0 10px 0;
+      }
+      .skill-markdown h3 {
+        font-size: 14px; font-weight: 600; color: #ddd; margin: 16px 0 8px 0;
+      }
+      .skill-markdown p { margin: 0 0 12px 0; }
+      .skill-markdown ul { margin: 0 0 12px 0; padding-left: 20px; }
+      .skill-markdown li { margin-bottom: 5px; color: #d4d4d4; }
+      .skill-markdown strong { color: #f0f0f0; font-weight: 600; }
+      .skill-markdown code {
+        font-size: 13px; background: #222; padding: 2px 6px; border-radius: 4px;
+        color: #e5e5e5; font-family: var(--font-geist-mono), monospace;
+      }
+      .skill-markdown table { width: 100%; border-collapse: collapse; margin: 10px 0; font-size: 13px; }
+      .skill-markdown th {
+        text-align: left; padding: 8px 10px; border-bottom: 1px solid #333;
+        color: #aaa; font-weight: 500; font-size: 12px;
+      }
+      .skill-markdown td { padding: 8px 10px; border-bottom: 1px solid #1e1e1e; color: #d4d4d4; }
+      .skill-markdown hr { border: none; border-top: 1px solid #2a2a2a; margin: 16px 0; }
+    `}} />
+  );
+}
+
 function MarkdownContent({ markdown, viewMode }: { markdown: string; viewMode: "rendered" | "source" }) {
   if (viewMode === "source") {
     return (
@@ -74,10 +115,10 @@ function MarkdownContent({ markdown, viewMode }: { markdown: string; viewMode: "
   );
 }
 
-export function AgentDetailView({ agent, sidebarWidth, onBack }: AgentDetailViewProps) {
+export function AgentDetailView({ agent, sidebarWidth, onBack, onUpdateAgent }: AgentDetailViewProps) {
   var [activeTab, setActiveTab] = useState<"general" | "skills">("general");
   var [overviewMode, setOverviewMode] = useState<"rendered" | "source">("rendered");
-  var [expandedSkillId, setExpandedSkillId] = useState<string | null>(null);
+  var [selectedSkillId, setSelectedSkillId] = useState<string | null>(null);
   var [skillViewMode, setSkillViewMode] = useState<"rendered" | "source">("rendered");
   var [localSkills, setLocalSkills] = useState<Skill[]>(agent.skills);
   var [isCreating, setIsCreating] = useState(false);
@@ -85,20 +126,116 @@ export function AgentDetailView({ agent, sidebarWidth, onBack }: AgentDetailView
   var [newDesc, setNewDesc] = useState("");
   var [newMarkdown, setNewMarkdown] = useState("");
 
-  function toggleSkill(skillId: string) {
-    if (expandedSkillId === skillId) {
-      setExpandedSkillId(null);
-    } else {
-      setExpandedSkillId(skillId);
-      setSkillViewMode("rendered");
-    }
-  }
-
   var tabs = [
     { id: "general" as const, label: "General" },
     { id: "skills" as const, label: "Skills" },
   ];
 
+  // ── Skill detail page ──
+  if (selectedSkillId) {
+    var selectedSkill: Skill | null = null;
+    for (var i = 0; i < localSkills.length; i++) {
+      if (localSkills[i].id === selectedSkillId) { selectedSkill = localSkills[i]; break; }
+    }
+    if (!selectedSkill) { setSelectedSkillId(null); return null; }
+    var skill = selectedSkill;
+
+    return (
+      <div
+        style={{
+          marginLeft: sidebarWidth,
+          transition: "margin-left 300ms cubic-bezier(0.4, 0, 0.2, 1)",
+          height: "100vh",
+          overflow: "auto",
+          background: "#141414",
+          fontFamily: font,
+        }}
+      >
+        <div style={{ maxWidth: 1120, marginLeft: "auto", marginRight: "auto", padding: "0 40px" }}>
+          {/* Back button */}
+          <div style={{ paddingTop: 20, paddingBottom: 24 }}>
+            <button
+              onClick={function () { setSelectedSkillId(null); }}
+              style={{
+                display: "flex", alignItems: "center", gap: 4,
+                padding: "5px 10px 5px 6px", borderRadius: 6,
+                border: "1px solid rgba(255,255,255,0.1)", background: "transparent",
+                color: "#999", cursor: "pointer", fontSize: 12, fontWeight: 500, fontFamily: font,
+              }}
+              onMouseEnter={function (e) {
+                (e.currentTarget as HTMLElement).style.background = "rgba(255,255,255,0.06)";
+                (e.currentTarget as HTMLElement).style.color = "#e5e5e5";
+              }}
+              onMouseLeave={function (e) {
+                (e.currentTarget as HTMLElement).style.background = "transparent";
+                (e.currentTarget as HTMLElement).style.color = "#999";
+              }}
+            >
+              <ChevronLeft size={14} />
+              {agent.name}
+            </button>
+          </div>
+
+          {/* Skill header */}
+          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 24 }}>
+            <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+              <div style={{
+                width: 10, height: 10, borderRadius: "50%",
+                background: "#7126ff",
+                boxShadow: "0 0 8px rgba(113, 38, 255, 0.4)",
+              }} />
+              <h1 style={{ fontSize: 20, fontWeight: 700, color: "#f0f0f0", margin: 0 }}>
+                {skill.name}
+              </h1>
+            </div>
+            <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+              <ViewToggle viewMode={skillViewMode} onChangeMode={setSkillViewMode} />
+              <button
+                onClick={function () {
+                  var id = selectedSkillId;
+                  setSelectedSkillId(null);
+                  setLocalSkills(localSkills.filter(function (s) { return s.id !== id; }));
+                }}
+                style={{
+                  display: "flex", alignItems: "center", justifyContent: "center",
+                  width: 28, height: 28, borderRadius: 6,
+                  border: "1px solid #2a2a2a", background: "transparent",
+                  color: "#555", cursor: "pointer", padding: 0,
+                }}
+                onMouseEnter={function (e) {
+                  (e.currentTarget as HTMLElement).style.color = "#ef4444";
+                  (e.currentTarget as HTMLElement).style.borderColor = "rgba(239,68,68,0.3)";
+                }}
+                onMouseLeave={function (e) {
+                  (e.currentTarget as HTMLElement).style.color = "#555";
+                  (e.currentTarget as HTMLElement).style.borderColor = "#2a2a2a";
+                }}
+                title="Delete skill"
+              >
+                <Trash2 size={14} />
+              </button>
+            </div>
+          </div>
+
+          {/* Skill description */}
+          {skill.description && (
+            <p style={{ fontSize: 14, color: "#888", margin: "0 0 20px 0", lineHeight: 1.4 }}>
+              {skill.description}
+            </p>
+          )}
+
+          {/* Skill markdown content */}
+          <div style={{ paddingBottom: 100 }}>
+            <MarkdownContent markdown={skill.markdown} viewMode={skillViewMode} />
+          </div>
+        </div>
+
+        <MarkdownStyles />
+      </div>
+    );
+  }
+
+  // ── Agent detail page ──
   return (
     <div
       style={{
@@ -119,8 +256,8 @@ export function AgentDetailView({ agent, sidebarWidth, onBack }: AgentDetailView
         }}
       >
         <div style={{ maxWidth: 1120, marginLeft: "auto", marginRight: "auto", padding: "0 40px" }}>
-          {/* Back button */}
-          <div style={{ paddingTop: 20, paddingBottom: 24 }}>
+          {/* Back button + Connect */}
+          <div style={{ paddingTop: 20, paddingBottom: 24, display: "flex", alignItems: "center", justifyContent: "space-between" }}>
             <button
               onClick={onBack}
               style={{
@@ -141,6 +278,48 @@ export function AgentDetailView({ agent, sidebarWidth, onBack }: AgentDetailView
               <ChevronLeft size={14} />
               Agents
             </button>
+            {onUpdateAgent && (
+              <button
+                onClick={function () {
+                  onUpdateAgent({
+                    id: agent.id,
+                    name: agent.name,
+                    description: agent.description,
+                    markdown: agent.markdown,
+                    status: agent.connected ? "Inactive" : "Active",
+                    skills: agent.skills,
+                    connected: !agent.connected,
+                  });
+                }}
+                style={{
+                  padding: "6px 16px", borderRadius: 6,
+                  border: agent.connected ? "1px solid #2a2a2a" : "1px solid rgba(113, 38, 255, 0.3)",
+                  background: agent.connected ? "transparent" : "rgba(113, 38, 255, 0.15)",
+                  color: agent.connected ? "#999" : "#a78bfa",
+                  fontSize: 12, fontWeight: 600, fontFamily: font,
+                  cursor: "pointer",
+                  transition: "all 150ms ease",
+                }}
+                onMouseEnter={function (e) {
+                  if (agent.connected) {
+                    (e.currentTarget as HTMLElement).style.borderColor = "rgba(239,68,68,0.3)";
+                    (e.currentTarget as HTMLElement).style.color = "#ef4444";
+                  } else {
+                    (e.currentTarget as HTMLElement).style.background = "rgba(113, 38, 255, 0.25)";
+                  }
+                }}
+                onMouseLeave={function (e) {
+                  if (agent.connected) {
+                    (e.currentTarget as HTMLElement).style.borderColor = "#2a2a2a";
+                    (e.currentTarget as HTMLElement).style.color = "#999";
+                  } else {
+                    (e.currentTarget as HTMLElement).style.background = "rgba(113, 38, 255, 0.15)";
+                  }
+                }}
+              >
+                {agent.connected ? "Disconnect" : "Connect"}
+              </button>
+            )}
           </div>
 
           {/* Agent identity */}
@@ -324,7 +503,7 @@ export function AgentDetailView({ agent, sidebarWidth, onBack }: AgentDetailView
                     var skill: Skill = { id: id, name: newName.trim(), description: newDesc.trim(), markdown: newMarkdown };
                     setLocalSkills(localSkills.concat([skill]));
                     setIsCreating(false); setNewName(""); setNewDesc(""); setNewMarkdown("");
-                    setExpandedSkillId(id); setSkillViewMode("rendered");
+                    setSelectedSkillId(id); setSkillViewMode("rendered");
                   }}
                   disabled={!newName.trim()}
                   style={{
@@ -369,18 +548,17 @@ export function AgentDetailView({ agent, sidebarWidth, onBack }: AgentDetailView
               )}
 
               {localSkills.map(function (skill) {
-                var isExpanded = expandedSkillId === skill.id;
                 return (
                   <button
                     key={skill.id}
-                    onClick={function () { toggleSkill(skill.id); }}
+                    onClick={function () { setSelectedSkillId(skill.id); setSkillViewMode("rendered"); }}
                     className="skill-card"
                     style={{
                       display: "flex", flexDirection: "column",
                       textAlign: "left", padding: "16px",
                       borderRadius: 10,
-                      border: isExpanded ? "1px solid rgba(113, 38, 255, 0.3)" : "1px solid #2a2a2a",
-                      background: isExpanded ? "rgba(113, 38, 255, 0.06)" : "rgba(255,255,255,0.02)",
+                      border: "1px solid #2a2a2a",
+                      background: "rgba(255,255,255,0.02)",
                       cursor: "pointer", fontFamily: font,
                       transition: "transform 150ms ease, border-color 150ms ease, box-shadow 150ms ease",
                     }}
@@ -402,111 +580,11 @@ export function AgentDetailView({ agent, sidebarWidth, onBack }: AgentDetailView
               })}
 
             </div>
-
-            {/* Expanded skill detail below grid */}
-            {expandedSkillId && (function () {
-              var skill: Skill | null = null;
-              for (var i = 0; i < localSkills.length; i++) {
-                if (localSkills[i].id === expandedSkillId) { skill = localSkills[i]; break; }
-              }
-              if (!skill) return null;
-              return (
-                <div style={{
-                  marginTop: 16, border: "1px solid #2a2a2a", borderRadius: 10,
-                  background: "rgba(255,255,255,0.02)", padding: "20px",
-                }}>
-                  <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 16 }}>
-                    <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                      <div style={{
-                        width: 8, height: 8, borderRadius: "50%",
-                        background: "#7126ff",
-                        boxShadow: "0 0 8px rgba(113, 38, 255, 0.4)",
-                      }} />
-                      <span style={{ fontSize: 15, fontWeight: 600, color: "#e5e5e5" }}>{skill.name}</span>
-                    </div>
-                    <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
-                      <ViewToggle viewMode={skillViewMode} onChangeMode={setSkillViewMode} />
-                      <button
-                        onClick={function () {
-                          var id = expandedSkillId;
-                          setExpandedSkillId(null);
-                          setLocalSkills(localSkills.filter(function (s) { return s.id !== id; }));
-                        }}
-                        style={{
-                          display: "flex", alignItems: "center", justifyContent: "center",
-                          width: 22, height: 22, borderRadius: 5,
-                          border: "1px solid #2a2a2a", background: "transparent",
-                          color: "#555", cursor: "pointer", padding: 0,
-                        }}
-                        onMouseEnter={function (e) {
-                          (e.currentTarget as HTMLElement).style.color = "#ef4444";
-                          (e.currentTarget as HTMLElement).style.borderColor = "rgba(239,68,68,0.3)";
-                        }}
-                        onMouseLeave={function (e) {
-                          (e.currentTarget as HTMLElement).style.color = "#555";
-                          (e.currentTarget as HTMLElement).style.borderColor = "#2a2a2a";
-                        }}
-                        title="Delete skill"
-                      >
-                        <Trash2 size={12} />
-                      </button>
-                      <button
-                        onClick={function () { setExpandedSkillId(null); }}
-                        style={{
-                          display: "flex", alignItems: "center", justifyContent: "center",
-                          width: 22, height: 22, borderRadius: 5,
-                          border: "1px solid #2a2a2a", background: "transparent",
-                          color: "#666", cursor: "pointer", padding: 0,
-                        }}
-                      >
-                        <X size={13} />
-                      </button>
-                    </div>
-                  </div>
-                  <MarkdownContent markdown={skill.markdown} viewMode={skillViewMode} />
-                </div>
-              );
-            })()}
           </div>
         )}
       </div>
 
-      {/* Styles */}
-      <style dangerouslySetInnerHTML={{ __html: `
-        .skill-card:hover {
-          transform: translateY(-2px);
-          border-color: #3a3a3a !important;
-          box-shadow: 0 4px 12px rgba(0,0,0,0.3);
-        }
-        .skill-markdown {
-          color: #ccc; font-size: 14px; line-height: 1.7;
-        }
-        .skill-markdown h1 {
-          font-size: 18px; font-weight: 700; color: #e5e5e5;
-          margin: 0 0 14px 0; padding-bottom: 10px; border-bottom: 1px solid #2a2a2a;
-        }
-        .skill-markdown h2 {
-          font-size: 15px; font-weight: 600; color: #ddd; margin: 20px 0 10px 0;
-        }
-        .skill-markdown h3 {
-          font-size: 14px; font-weight: 600; color: #ccc; margin: 16px 0 8px 0;
-        }
-        .skill-markdown p { margin: 0 0 12px 0; }
-        .skill-markdown ul { margin: 0 0 12px 0; padding-left: 20px; }
-        .skill-markdown li { margin-bottom: 5px; color: #bbb; }
-        .skill-markdown strong { color: #e5e5e5; font-weight: 600; }
-        .skill-markdown code {
-          font-size: 13px; background: #222; padding: 2px 6px; border-radius: 4px;
-          color: #ddd; font-family: var(--font-geist-mono), monospace;
-        }
-        .skill-markdown table { width: 100%; border-collapse: collapse; margin: 10px 0; font-size: 13px; }
-        .skill-markdown th {
-          text-align: left; padding: 8px 10px; border-bottom: 1px solid #333;
-          color: #999; font-weight: 500; font-size: 12px;
-        }
-        .skill-markdown td { padding: 8px 10px; border-bottom: 1px solid #1e1e1e; color: #bbb; }
-        .skill-markdown hr { border: none; border-top: 1px solid #2a2a2a; margin: 16px 0; }
-      `}} />
+      <MarkdownStyles />
     </div>
   );
 }

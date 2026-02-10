@@ -10,6 +10,8 @@ var CARD_W_CHANNEL = 160;
 var CARD_H_CHANNEL = 68;
 var CARD_W_APP = 150;
 var CARD_H_APP = 64;
+var CARD_W_AGENT = 160;
+var CARD_H_AGENT = 72;
 var CARD_R = 8;      // corner radius
 var ACCENT_W = 4;    // left accent bar width
 var ICON_R = 12;     // icon circle radius
@@ -17,6 +19,7 @@ var ICON_R = 12;     // icon circle radius
 function getCardDimensions(nodeType?: NodeType): { w: number; h: number } {
   if (nodeType === "channel") return { w: CARD_W_CHANNEL, h: CARD_H_CHANNEL };
   if (nodeType === "app") return { w: CARD_W_APP, h: CARD_H_APP };
+  if (nodeType === "agent") return { w: CARD_W_AGENT, h: CARD_H_AGENT };
   return { w: CARD_W, h: CARD_H };
 }
 
@@ -445,6 +448,21 @@ function drawCategoryIcon(
       ctx.moveTo(13, 2); ctx.lineTo(3, 14); ctx.lineTo(12, 14); ctx.lineTo(11, 22); ctx.lineTo(21, 10); ctx.lineTo(12, 10); ctx.closePath();
       ctx.stroke();
       break;
+    // ── Agent Icons ──
+    case "agent-sidekick": // Sparkles / AI
+      // Large sparkle (top-right)
+      ctx.beginPath();
+      ctx.moveTo(14, 2); ctx.lineTo(15.5, 7); ctx.lineTo(20, 8); ctx.lineTo(15.5, 9.5);
+      ctx.lineTo(14, 14); ctx.lineTo(12.5, 9.5); ctx.lineTo(8, 8); ctx.lineTo(12.5, 7);
+      ctx.closePath();
+      ctx.stroke();
+      // Small sparkle (bottom-left)
+      ctx.beginPath();
+      ctx.moveTo(7, 14); ctx.lineTo(8, 16.5); ctx.lineTo(11, 17); ctx.lineTo(8, 18);
+      ctx.lineTo(7, 21); ctx.lineTo(6, 18); ctx.lineTo(3, 17); ctx.lineTo(6, 16.5);
+      ctx.closePath();
+      ctx.stroke();
+      break;
     default: // fallback circle
       ctx.beginPath();
       ctx.arc(12, 12, 8, 0, Math.PI * 2);
@@ -482,6 +500,12 @@ export function drawNodeCard(
     ctx.strokeStyle = "#0d9488";
     ctx.lineWidth = 2;
     ctx.setLineDash([]);
+  } else if (node.nodeType === "agent") {
+    // Agents: solid border with accent color
+    ctx.strokeStyle = def.color;
+    ctx.globalAlpha = 0.4;
+    ctx.lineWidth = 1.5;
+    ctx.setLineDash([]);
   } else if (node.nodeType === "app") {
     // Apps: dashed border
     ctx.strokeStyle = isDark ? "rgba(255,255,255,0.12)" : "rgba(0,0,0,0.12)";
@@ -494,6 +518,7 @@ export function drawNodeCard(
   }
   ctx.stroke();
   ctx.setLineDash([]);
+  ctx.globalAlpha = 1;
 
   // Left accent bar
   var accentW = ACCENT_W * zoom;
@@ -933,6 +958,31 @@ export function renderAnimationFrame(
       ctx.fillStyle = connColor;
       ctx.globalAlpha = 0.7;
       ctx.fill();
+      ctx.globalAlpha = 1;
+    }
+  }
+
+  // ── Agent radiating rings ──
+  for (var ai = 0; ai < nodes.length; ai++) {
+    var aNode = nodes[ai];
+    if (aNode.nodeType !== "agent") continue;
+    var aDims = getCardDimensions(aNode.nodeType);
+    var aPos = gridToScreen(aNode.tileX, aNode.tileY, panX, panY, zoom);
+    var aDef = getCategoryDef(aNode.category);
+    // Two rings cycling at different speeds
+    for (var ring = 0; ring < 2; ring++) {
+      var ringProgress = ((time * 0.0008 + ring * 0.5) % 1);
+      var ringScale = 1 + ringProgress * 0.4;
+      var ringAlpha = 0.15 * (1 - ringProgress);
+      var rw = aDims.w * zoom * ringScale;
+      var rh = aDims.h * zoom * ringScale;
+      var rx2 = aPos[0] - rw / 2;
+      var ry2 = aPos[1] - rh / 2;
+      roundedRect(ctx, rx2, ry2, rw, rh, CARD_R * zoom * ringScale);
+      ctx.strokeStyle = aDef.color;
+      ctx.lineWidth = 1;
+      ctx.globalAlpha = ringAlpha;
+      ctx.stroke();
       ctx.globalAlpha = 1;
     }
   }

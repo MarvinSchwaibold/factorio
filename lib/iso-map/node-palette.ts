@@ -160,6 +160,15 @@ export var NODE_CATEGORIES: NodeCategoryDef[] = [
     color: "#6366f1",       // indigo-500
     colorMuted: "#c7d2fe",  // indigo-200
   },
+  // ── Agents ──
+  {
+    category: "agent-sidekick",
+    nodeType: "agent",
+    label: "Sidekick",
+    icon: "S",
+    color: "#8b5cf6",       // violet-500
+    colorMuted: "#ede9fe",  // violet-100
+  },
 ];
 
 export function getCategoryDef(category: NodeCategory): NodeCategoryDef {
