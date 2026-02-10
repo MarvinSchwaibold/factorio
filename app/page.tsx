@@ -23,6 +23,7 @@ import { InsightsView } from "@/components/InsightsView";
 import { SettingsView } from "@/components/SettingsView";
 import { HomeView } from "@/components/HomeView";
 import { InlineChat } from "@/components/InlineChat";
+import { MapView } from "@/components/map/MapView";
 import { Agentation } from "agentation";
 
 export default function Home() {
@@ -962,14 +963,7 @@ export default function Home() {
 
       {/* Map View */}
       {activeCanvas === "mapview" && (
-        <div style={{ marginLeft: sidebarWidth, transition: "margin-left 300ms cubic-bezier(0.4, 0, 0.2, 1)", height: "100vh", overflow: "hidden", padding: "8px 8px 8px 4px", display: "flex" }}>
-        <div style={{ flex: 1, background: isDark ? "#141414" : "#ffffff", borderRadius: 12, border: isDark ? "1px solid #2a2a2a" : "1px solid #e5e5e5", overflow: "auto", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 12 }}>
-          <div style={{ width: 48, height: 48, borderRadius: 12, background: isDark ? "#1a1a1a" : "#f5f5f5", display: "flex", alignItems: "center", justifyContent: "center" }}>
-            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke={currentTheme.textDim} strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><polygon points="1 6 1 22 8 18 16 22 23 18 23 2 16 6 8 2 1 6" /><line x1="8" y1="2" x2="8" y2="18" /><line x1="16" y1="6" x2="16" y2="22" /></svg>
-          </div>
-          <span style={{ fontSize: 13, color: currentTheme.textDim, fontFamily: theme.fontFamily, fontWeight: 500 }}>Map view coming soon</span>
-        </div>
-        </div>
+        <MapView isDark={isDark} currentTheme={currentTheme} sidebarWidth={sidebarWidth} />
       )}
 
       {/* Task Controls Sidebar - Only on main canvas */}
