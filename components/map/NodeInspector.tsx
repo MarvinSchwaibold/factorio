@@ -1,8 +1,7 @@
 "use client";
 
-import { useState, useEffect } from "react";
-import { X, Trash2, Link2 } from "lucide-react";
-import type { MapNode, Connector } from "@/lib/iso-map/types";
+import { X, Link2, ArrowUpRight, TrendingUp, TrendingDown, Minus, AlertCircle } from "lucide-react";
+import type { MapNode, Connector, CommerceStat } from "@/lib/iso-map/types";
 import { getCategoryDef } from "@/lib/iso-map/node-palette";
 
 interface NodeInspectorProps {
@@ -13,7 +12,15 @@ interface NodeInspectorProps {
   onRemoveNode: (nodeId: string) => void;
   onRemoveConnector: (connectorId: string) => void;
   onClose: () => void;
+  onDrillDown?: (category: string) => void;
   isDark: boolean;
+}
+
+function TrendIcon({ trend, size }: { trend?: "up" | "down" | "flat"; size: number }) {
+  if (trend === "up") return <TrendingUp size={size} style={{ color: "#22c55e" }} />;
+  if (trend === "down") return <TrendingDown size={size} style={{ color: "#ef4444" }} />;
+  if (trend === "flat") return <Minus size={size} style={{ color: "#6b7280" }} />;
+  return null;
 }
 
 export function NodeInspector({
@@ -24,21 +31,15 @@ export function NodeInspector({
   onRemoveNode,
   onRemoveConnector,
   onClose,
+  onDrillDown,
   isDark,
 }: NodeInspectorProps) {
-  var [labelValue, setLabelValue] = useState("");
-  var [descValue, setDescValue] = useState("");
-
-  useEffect(function() {
-    if (node) {
-      setLabelValue(node.label);
-      setDescValue(node.description);
-    }
-  }, [node]);
-
   if (!node) return null;
 
   var def = getCategoryDef(node.category);
+  var stats = node.stats || [];
+  var primaryStat = stats.length > 0 ? stats[0] : null;
+  var secondaryStats = stats.slice(1);
 
   // Find connected connectors
   var nodeConnectors = connectors.filter(function(c) {
@@ -52,13 +53,15 @@ export function NodeInspector({
     return "Unknown";
   }
 
+  var font = "var(--font-geist-sans), system-ui, sans-serif";
+
   return (
     <div
       style={{
         position: "absolute",
         top: 12,
         right: 12,
-        width: 220,
+        width: 240,
         borderRadius: 10,
         background: isDark ? "rgba(26,26,26,0.95)" : "rgba(255,255,255,0.95)",
         border: isDark ? "1px solid #2a2a2a" : "1px solid #e5e5e5",
@@ -68,7 +71,11 @@ export function NodeInspector({
         overflow: "hidden",
       }}
     >
-      {/* Header */}
+      {/* Header with category color bar */}
+      <div style={{
+        height: 3,
+        background: def.colorTop,
+      }} />
       <div style={{
         display: "flex",
         alignItems: "center",
@@ -87,12 +94,25 @@ export function NodeInspector({
             fontSize: 11,
             fontWeight: 600,
             color: isDark ? "#ccc" : "#333",
-            fontFamily: "var(--font-geist-sans), system-ui, sans-serif",
+            fontFamily: font,
             textTransform: "uppercase",
             letterSpacing: "0.05em",
           }}>
             {def.label}
           </span>
+          {node.buildingLevel && (
+            <span style={{
+              fontSize: 9,
+              fontWeight: 500,
+              color: isDark ? "#555" : "#aaa",
+              fontFamily: font,
+              background: isDark ? "#222" : "#f0f0f0",
+              padding: "1px 5px",
+              borderRadius: 3,
+            }}>
+              Lv.{node.buildingLevel}
+            </span>
+          )}
         </div>
         <button
           onClick={onClose}
@@ -113,108 +133,119 @@ export function NodeInspector({
         </button>
       </div>
 
-      {/* Name input */}
-      <div style={{ padding: "10px 12px" }}>
-        <label style={{
-          display: "block",
-          fontSize: 10,
-          fontWeight: 600,
-          color: isDark ? "#666" : "#999",
-          fontFamily: "var(--font-geist-sans), system-ui, sans-serif",
-          textTransform: "uppercase",
-          letterSpacing: "0.05em",
-          marginBottom: 4,
-        }}>
-          Name
-        </label>
-        <input
-          type="text"
-          value={labelValue}
-          onChange={function(e) {
-            setLabelValue(e.target.value);
-            onUpdateNode(node.id, { label: e.target.value });
-          }}
-          style={{
-            width: "100%",
-            padding: "6px 8px",
-            borderRadius: 6,
-            border: isDark ? "1px solid #333" : "1px solid #ddd",
-            background: isDark ? "#1a1a1a" : "#f9f9f9",
-            color: isDark ? "#ddd" : "#333",
-            fontSize: 13,
-            fontFamily: "var(--font-geist-sans), system-ui, sans-serif",
-            outline: "none",
-            boxSizing: "border-box",
-          }}
-        />
-
-        <label style={{
-          display: "block",
-          fontSize: 10,
-          fontWeight: 600,
-          color: isDark ? "#666" : "#999",
-          fontFamily: "var(--font-geist-sans), system-ui, sans-serif",
-          textTransform: "uppercase",
-          letterSpacing: "0.05em",
-          marginTop: 10,
-          marginBottom: 4,
-        }}>
-          Description
-        </label>
-        <textarea
-          value={descValue}
-          onChange={function(e) {
-            setDescValue(e.target.value);
-            onUpdateNode(node.id, { description: e.target.value });
-          }}
-          rows={2}
-          style={{
-            width: "100%",
-            padding: "6px 8px",
-            borderRadius: 6,
-            border: isDark ? "1px solid #333" : "1px solid #ddd",
-            background: isDark ? "#1a1a1a" : "#f9f9f9",
-            color: isDark ? "#ddd" : "#333",
-            fontSize: 12,
-            fontFamily: "var(--font-geist-sans), system-ui, sans-serif",
-            outline: "none",
-            resize: "none",
-            boxSizing: "border-box",
-          }}
-        />
-
-        <div style={{
-          fontSize: 10,
-          color: isDark ? "#555" : "#bbb",
-          fontFamily: "var(--font-geist-sans), system-ui, sans-serif",
-          marginTop: 6,
-        }}>
-          Tile: ({node.tileX}, {node.tileY})
+      {/* Primary stat */}
+      {primaryStat && (
+        <div style={{ padding: "12px 12px 4px" }}>
+          <div style={{
+            fontSize: 10,
+            fontWeight: 600,
+            color: isDark ? "#666" : "#999",
+            fontFamily: font,
+            textTransform: "uppercase",
+            letterSpacing: "0.05em",
+            marginBottom: 4,
+          }}>
+            {primaryStat.label}
+          </div>
+          <div style={{
+            display: "flex",
+            alignItems: "center",
+            gap: 6,
+          }}>
+            <span style={{
+              fontSize: 20,
+              fontWeight: 700,
+              color: isDark ? "#eee" : "#111",
+              fontFamily: font,
+              letterSpacing: "-0.02em",
+            }}>
+              {primaryStat.value}
+            </span>
+            <TrendIcon trend={primaryStat.trend} size={16} />
+          </div>
         </div>
-      </div>
+      )}
+
+      {/* Secondary stats */}
+      {secondaryStats.length > 0 && (
+        <div style={{ padding: "8px 12px", display: "flex", flexDirection: "column", gap: 4 }}>
+          {secondaryStats.map(function(stat: CommerceStat, idx: number) {
+            return (
+              <div key={idx} style={{
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "space-between",
+                padding: "3px 0",
+              }}>
+                <span style={{
+                  fontSize: 11,
+                  color: isDark ? "#888" : "#666",
+                  fontFamily: font,
+                }}>
+                  {stat.label}
+                </span>
+                <span style={{
+                  display: "flex",
+                  alignItems: "center",
+                  gap: 4,
+                  fontSize: 11,
+                  fontWeight: 600,
+                  color: isDark ? "#ccc" : "#333",
+                  fontFamily: font,
+                }}>
+                  {stat.value}
+                  <TrendIcon trend={stat.trend} size={12} />
+                </span>
+              </div>
+            );
+          })}
+        </div>
+      )}
+
+      {/* Alerts */}
+      {node.alertCount != null && node.alertCount > 0 && (
+        <div style={{
+          margin: "0 12px",
+          padding: "6px 8px",
+          borderRadius: 6,
+          background: isDark ? "rgba(239,68,68,0.1)" : "rgba(239,68,68,0.06)",
+          display: "flex",
+          alignItems: "center",
+          gap: 6,
+        }}>
+          <AlertCircle size={12} style={{ color: "#ef4444", flexShrink: 0 }} />
+          <span style={{
+            fontSize: 11,
+            color: "#ef4444",
+            fontFamily: font,
+          }}>
+            {node.alertCount} {node.alertCount === 1 ? "alert" : "alerts"} need attention
+          </span>
+        </div>
+      )}
 
       {/* Connections */}
       {nodeConnectors.length > 0 && (
         <div style={{
-          padding: "0 12px 10px",
+          padding: "8px 12px 6px",
           borderTop: isDark ? "1px solid #222" : "1px solid #f0f0f0",
-          paddingTop: 10,
+          marginTop: 6,
         }}>
           <label style={{
             display: "block",
             fontSize: 10,
             fontWeight: 600,
             color: isDark ? "#666" : "#999",
-            fontFamily: "var(--font-geist-sans), system-ui, sans-serif",
+            fontFamily: font,
             textTransform: "uppercase",
             letterSpacing: "0.05em",
-            marginBottom: 6,
+            marginBottom: 4,
           }}>
-            Connections
+            Data Flows
           </label>
           {nodeConnectors.map(function(c) {
             var otherId = c.sourceId === node.id ? c.targetId : c.sourceId;
-            var direction = c.sourceId === node.id ? "→" : "←";
+            var direction = c.sourceId === node.id ? "\u2192" : "\u2190";
             return (
               <div key={c.id} style={{
                 display: "flex",
@@ -225,7 +256,7 @@ export function NodeInspector({
                 <span style={{
                   fontSize: 11,
                   color: isDark ? "#aaa" : "#666",
-                  fontFamily: "var(--font-geist-sans), system-ui, sans-serif",
+                  fontFamily: font,
                   display: "flex",
                   alignItems: "center",
                   gap: 4,
@@ -257,11 +288,41 @@ export function NodeInspector({
         </div>
       )}
 
-      {/* Delete button */}
+      {/* Actions */}
       <div style={{
         padding: "8px 12px 10px",
         borderTop: isDark ? "1px solid #222" : "1px solid #f0f0f0",
+        display: "flex",
+        flexDirection: "column",
+        gap: 6,
       }}>
+        {/* Drill down button */}
+        {onDrillDown && (
+          <button
+            onClick={function() { onDrillDown(node.category); }}
+            style={{
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              gap: 6,
+              width: "100%",
+              padding: "6px",
+              borderRadius: 6,
+              border: isDark ? "1px solid #333" : "1px solid #ddd",
+              background: isDark ? "rgba(255,255,255,0.04)" : "rgba(0,0,0,0.02)",
+              color: isDark ? "#ccc" : "#333",
+              cursor: "pointer",
+              fontSize: 11,
+              fontWeight: 500,
+              fontFamily: font,
+            }}
+          >
+            <ArrowUpRight size={12} />
+            Drill Down
+          </button>
+        )}
+
+        {/* Delete button */}
         <button
           onClick={function() { onRemoveNode(node.id); }}
           style={{
@@ -278,10 +339,9 @@ export function NodeInspector({
             cursor: "pointer",
             fontSize: 11,
             fontWeight: 500,
-            fontFamily: "var(--font-geist-sans), system-ui, sans-serif",
+            fontFamily: font,
           }}
         >
-          <Trash2 size={12} />
           Delete Node
         </button>
       </div>

@@ -44,8 +44,8 @@ export default function Home() {
   const deepCleanTaskCounterRef = useRef({ left: 0, right: 0 });
   const [autoPilot, setAutoPilot] = useState(false);
   const autoPilotTimerRef = useRef<{ left: NodeJS.Timeout | null; right: NodeJS.Timeout | null }>({ left: null, right: null });
-  const [activeCanvas, setActiveCanvas] = useState<"home" | "canvas" | "blueprint" | "commerce" | "insights" | "settings" | "mapview">("home");
-  const [appMode, setAppMode] = useState<AppMode>("admin");
+  const [activeCanvas, setActiveCanvas] = useState<"home" | "canvas" | "blueprint" | "commerce" | "insights" | "settings" | "mapview">("mapview");
+  const [appMode, setAppMode] = useState<AppMode>("map");
   const [sidebarExpanded, setSidebarExpanded] = useState(true);
   const sidebarWidth = sidebarExpanded ? SIDEBAR_WIDTH_EXPANDED : SIDEBAR_WIDTH_COLLAPSED;
 
@@ -56,7 +56,7 @@ export default function Home() {
   const handleModeChange = (mode: AppMode) => {
     setAppMode(mode);
     if (mode === "map") {
-      setActiveCanvas("canvas");
+      setActiveCanvas("mapview");
     } else {
       setActiveCanvas("home");
     }
@@ -963,7 +963,7 @@ export default function Home() {
 
       {/* Map View */}
       {activeCanvas === "mapview" && (
-        <MapView isDark={isDark} currentTheme={currentTheme} sidebarWidth={sidebarWidth} />
+        <MapView isDark={isDark} currentTheme={currentTheme} sidebarWidth={sidebarWidth} onDrillDown={function(view) { setAppMode("admin"); setActiveCanvas(view as any); }} />
       )}
 
       {/* Task Controls Sidebar - Only on main canvas */}

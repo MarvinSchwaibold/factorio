@@ -3,6 +3,7 @@
 import { useState, useRef, useCallback } from "react";
 import type { MapModel, MapUIState, MapNode, Connector, InteractionMode, NodeCategory, MapAction } from "@/lib/iso-map/types";
 import { findPath } from "@/lib/iso-map/pathfinder";
+import { generateCommerceMap } from "@/lib/iso-map/commerce-map-data";
 
 // Default grid size
 var DEFAULT_GRID_W = 30;
@@ -38,6 +39,7 @@ export interface IsoMapActions {
   setDragStart: (ds: MapUIState["dragStart"]) => void;
   getNodeAtTile: (tileX: number, tileY: number) => MapNode | null;
   isTileOccupied: (tileX: number, tileY: number) => boolean;
+  refreshCommerceData: () => void;
 }
 
 function recomputeConnectorPaths(
@@ -68,13 +70,17 @@ function recomputeConnectorPaths(
   return results;
 }
 
+// Generate initial commerce map and pre-compute connector paths
+function getInitialState(): { model: MapModel; paths: Array<{ id: string; path: Array<[number, number]> }> } {
+  var model = generateCommerceMap();
+  var paths = recomputeConnectorPaths(model.connectors, model.nodes, model.gridWidth, model.gridHeight);
+  return { model: model, paths: paths };
+}
+
+var _initial = getInitialState();
+
 export function useIsoMap(): [IsoMapState, IsoMapActions] {
-  var [model, setModel] = useState<MapModel>({
-    nodes: [],
-    connectors: [],
-    gridWidth: DEFAULT_GRID_W,
-    gridHeight: DEFAULT_GRID_H,
-  });
+  var [model, setModel] = useState<MapModel>(_initial.model);
 
   var [uiState, setUiState] = useState<MapUIState>({
     mode: "CURSOR",
@@ -88,7 +94,7 @@ export function useIsoMap(): [IsoMapState, IsoMapActions] {
     dragStart: null,
   });
 
-  var [connectorPaths, setConnectorPaths] = useState<Array<{ id: string; path: Array<[number, number]> }>>([]);
+  var [connectorPaths, setConnectorPaths] = useState<Array<{ id: string; path: Array<[number, number]> }>>(_initial.paths);
 
   // Refs for animation-frame access without re-renders
   var modelRef = useRef(model);
@@ -187,6 +193,12 @@ export function useIsoMap(): [IsoMapState, IsoMapActions] {
       });
       return next;
     });
+  }, []);
+
+  var refreshCommerceData = useCallback(function() {
+    var fresh = getInitialState();
+    setModel(fresh.model);
+    setConnectorPaths(fresh.paths);
   }, []);
 
   var setMode = useCallback(function(mode: InteractionMode) {
@@ -291,6 +303,7 @@ export function useIsoMap(): [IsoMapState, IsoMapActions] {
     setDragStart: setDragStart,
     getNodeAtTile: getNodeAtTile,
     isTileOccupied: isTileOccupied,
+    refreshCommerceData: refreshCommerceData,
   };
 
   return [state, actions];

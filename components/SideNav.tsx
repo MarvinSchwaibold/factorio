@@ -418,8 +418,8 @@ export function SideNav({ activeView, onViewChange, isExpanded, onToggleExpand, 
   const tabActiveText = isMap ? "#e5e5e5" : "#111827";
 
   const mapItems: NavItem[] = [
-    { icon: <Workflow size={18} />, label: "Flow", viewKey: "canvas" },
     { icon: <Map size={18} />, label: "Map", viewKey: "mapview" },
+    { icon: <Workflow size={18} />, label: "Flow", viewKey: "canvas" },
   ];
 
   const adminItems: NavItem[] = [

@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import {
-  Store, Warehouse, Package, Megaphone, CreditCard, Truck, BarChart3, Box,
+  Monitor, Store, Warehouse, Megaphone, Truck,
   ChevronDown, ChevronRight,
 } from "lucide-react";
 import { NODE_CATEGORIES } from "@/lib/iso-map/node-palette";
@@ -14,18 +14,15 @@ interface NodePaletteProps {
   isDark: boolean;
 }
 
-// Map category to Lucide icon component
+// Map infrastructure category to Lucide icon component
 function getCategoryIcon(cat: NodeCategory, size: number) {
   switch (cat) {
-    case "store": return <Store size={size} />;
+    case "online-store": return <Monitor size={size} />;
+    case "retail": return <Store size={size} />;
     case "warehouse": return <Warehouse size={size} />;
-    case "fulfillment": return <Package size={size} />;
     case "marketing": return <Megaphone size={size} />;
-    case "payment": return <CreditCard size={size} />;
     case "shipping": return <Truck size={size} />;
-    case "analytics": return <BarChart3 size={size} />;
-    case "custom": return <Box size={size} />;
-    default: return <Box size={size} />;
+    default: return <Monitor size={size} />;
   }
 }
 
@@ -70,7 +67,7 @@ export function NodePalette({ activeCategory, onSelectCategory, isDark }: NodePa
         }}
       >
         {collapsed ? <ChevronRight size={12} /> : <ChevronDown size={12} />}
-        {!collapsed && "Nodes"}
+        {!collapsed && "Infrastructure"}
       </button>
 
       {/* Category list */}

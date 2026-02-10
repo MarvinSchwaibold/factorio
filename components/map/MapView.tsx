@@ -14,9 +14,10 @@ interface MapViewProps {
   isDark: boolean;
   currentTheme: Theme;
   sidebarWidth: number;
+  onDrillDown?: (view: string) => void;
 }
 
-export function MapView({ isDark, currentTheme, sidebarWidth }: MapViewProps) {
+export function MapView({ isDark, currentTheme, sidebarWidth, onDrillDown }: MapViewProps) {
   var [state, actions] = useIsoMap();
   var handlers = useMapInteraction(state, actions);
   var canvasContainerRef = useRef<HTMLDivElement | null>(null);
@@ -41,6 +42,12 @@ export function MapView({ isDark, currentTheme, sidebarWidth }: MapViewProps) {
       actions.setZoom(zoom);
     }
   }, [actions]);
+
+  var handleDrillDown = useCallback(function(category: string) {
+    if (!onDrillDown) return;
+    // Map infrastructure category to admin view
+    onDrillDown("commerce");
+  }, [onDrillDown]);
 
   return (
     <div style={{
@@ -98,6 +105,7 @@ export function MapView({ isDark, currentTheme, sidebarWidth }: MapViewProps) {
             onRemoveNode={actions.removeNode}
             onRemoveConnector={actions.removeConnector}
             onClose={function() { actions.selectNode(null); }}
+            onDrillDown={onDrillDown ? handleDrillDown : undefined}
             isDark={isDark}
           />
         )}
