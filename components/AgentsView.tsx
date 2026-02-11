@@ -28,15 +28,17 @@ function AgentIcon({ agentId, size }: { agentId: string; size: number }) {
 
 interface AgentsViewProps {
   sidebarWidth: number;
+  initialAgentId?: string | null;
 }
 
-export function AgentsView({ sidebarWidth }: AgentsViewProps) {
+export function AgentsView({ sidebarWidth, initialAgentId }: AgentsViewProps) {
   var [localAgents, setLocalAgents] = useState<Agent[]>(defaultAgents);
-  var [selectedAgentId, setSelectedAgentId] = useState<string | null>(null);
+  var [selectedAgentId, setSelectedAgentId] = useState<string | null>(initialAgentId || null);
   var [isCreating, setIsCreating] = useState(false);
   var [newName, setNewName] = useState("");
   var [newDesc, setNewDesc] = useState("");
   var [newMarkdown, setNewMarkdown] = useState("");
+  var [recentlyChangedId, setRecentlyChangedId] = useState<string | null>(null);
 
   var connectedAgents: Agent[] = [];
   var availableAgents: Agent[] = [];
@@ -60,6 +62,8 @@ export function AgentsView({ sidebarWidth }: AgentsViewProps) {
     setLocalAgents(localAgents.map(function (a) {
       return a.id === updated.id ? updated : a;
     }));
+    setRecentlyChangedId(updated.id);
+    setTimeout(function () { setRecentlyChangedId(null); }, 400);
   }
 
   if (selectedAgent) {
@@ -216,6 +220,8 @@ export function AgentsView({ sidebarWidth }: AgentsViewProps) {
           )}
 
           {availableAgents.map(function (agent) {
+            var skillCount = agent.skills ? agent.skills.length : 0;
+            var skillLabel = skillCount === 0 ? "No skills" : skillCount === 1 ? "1 skill" : skillCount + " skills";
             return (
               <button
                 key={agent.id}
@@ -229,8 +235,27 @@ export function AgentsView({ sidebarWidth }: AgentsViewProps) {
                   background: "rgba(255,255,255,0.02)",
                   cursor: "pointer", fontFamily: font,
                   transition: "transform 150ms ease, border-color 150ms ease, box-shadow 150ms ease",
+                  position: "relative",
+                  animation: recentlyChangedId === agent.id ? "agentCardEnter 300ms ease" : undefined,
                 }}
               >
+                <span
+                  className="agent-connect-btn"
+                  onClick={function (e) {
+                    e.stopPropagation();
+                    handleUpdateAgent(Object.assign({}, agent, { connected: true, status: "Active" as const }));
+                  }}
+                  style={{
+                    position: "absolute", top: 10, right: 10,
+                    padding: "3px 10px", borderRadius: 12,
+                    background: "#7126ff", color: "#fff",
+                    fontSize: 11, fontWeight: 600, cursor: "pointer",
+                    opacity: 0, transition: "opacity 150ms ease",
+                    border: "none", lineHeight: "18px",
+                  }}
+                >
+                  Connect
+                </span>
                 <div style={{ marginBottom: 12 }}>
                   <AgentIcon agentId={agent.id} size={20} />
                 </div>
@@ -239,6 +264,9 @@ export function AgentsView({ sidebarWidth }: AgentsViewProps) {
                 </div>
                 <div style={{ fontSize: 12, color: "#777", lineHeight: 1.4, flex: 1 }}>
                   {agent.description}
+                </div>
+                <div style={{ fontSize: 11, color: "#555", marginTop: 8 }}>
+                  {skillLabel}
                 </div>
               </button>
             );
@@ -296,7 +324,10 @@ export function AgentsView({ sidebarWidth }: AgentsViewProps) {
                   <tr
                     key={agent.id}
                     onClick={function () { setSelectedAgentId(agent.id); }}
-                    style={{ borderBottom: "1px solid #1e1e1e", cursor: "pointer" }}
+                    style={{
+                      borderBottom: "1px solid #1e1e1e", cursor: "pointer",
+                      animation: recentlyChangedId === agent.id ? "agentRowEnter 300ms ease" : undefined,
+                    }}
                     onMouseEnter={function (e) {
                       (e.currentTarget as HTMLElement).style.background = "rgba(255,255,255,0.03)";
                     }}
@@ -341,6 +372,18 @@ export function AgentsView({ sidebarWidth }: AgentsViewProps) {
           transform: translateY(-2px);
           border-color: #3a3a3a !important;
           box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+        }
+        .agent-card:hover .agent-connect-btn {
+          opacity: 1 !important;
+        }
+        @keyframes agentCardEnter {
+          from { opacity: 0; transform: translateY(8px); }
+          to { opacity: 1; transform: translateY(0); }
+        }
+        @keyframes agentRowEnter {
+          0% { opacity: 0; background: rgba(113,38,255,0.08); }
+          60% { opacity: 1; background: rgba(113,38,255,0.08); }
+          100% { opacity: 1; background: transparent; }
         }
       `}} />
     </div>

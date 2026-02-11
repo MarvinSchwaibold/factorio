@@ -1,7 +1,7 @@
 "use client";
 
 import { useContext, useRef, useCallback, useEffect, useLayoutEffect, useState } from "react";
-import { Home, Package, Settings, PanelLeftClose, Map, LayoutDashboard, Workflow, ShoppingBag, Tag, Users, Megaphone, Percent, Image, Globe, Landmark, BarChart3, ChevronRight, Bot } from "lucide-react";
+import { Home, Package, Settings, PanelLeftClose, Map, LayoutDashboard, Workflow, ShoppingBag, Tag, Users, Megaphone, Percent, Image, Globe, Landmark, BarChart3, ChevronRight, Bot, FolderKanban, Activity } from "lucide-react";
 import { Tabs } from "@base-ui/react/tabs";
 import { ThemeContext } from "@/lib/theme";
 
@@ -420,7 +420,9 @@ export function SideNav({ activeView, onViewChange, isExpanded, onToggleExpand, 
 
   const mapItems: NavItem[] = [
     { icon: <Map size={18} />, label: "Map", viewKey: "mapview" },
+    { icon: <Activity size={18} />, label: "Activity", viewKey: "activity" },
     { icon: <Bot size={18} />, label: "Agents", viewKey: "agents" },
+    { icon: <FolderKanban size={18} />, label: "Workspaces", viewKey: "workspaces" },
     { icon: <Workflow size={18} />, label: "Flow", viewKey: "canvas" },
   ];
 

@@ -1,43 +1,42 @@
 import type { MerchantStage, StageLayout, StageNodePosition, Region, NodeCategory } from "./types";
 
-// ── Clustered layout positions ──────────────────────────────────
-// Center: Shopify Admin — the merchant's command center
-// 4 quadrants: Commerce (NE), Growth (NW), Channels (W/SW), Platform (SE)
+// ── Commerce Flywheel: Build → Sell → Fulfill → Grow (Hub mode) ──
+// Mirrors stage-layouts.ts. 4 cardinal sections around center command hub.
 
-// Hub center coordinates
+// ── Center: Command (Admin + Sidekick) ──
 var HUB_X = 20;
 var HUB_Y = 18;
+var POS_SIDEKICK = { x: 23, y: 18 };
 
-// ── Commerce cluster (NE) ──
-var POS_ORDERS     = { x: 24, y: 10 };
-var POS_PRODUCTS   = { x: 28, y: 12 };
-var POS_CUSTOMERS  = { x: 24, y: 14 };
-var POS_JUDGEME    = { x: 31, y: 11 };
-var POS_FLOW      = { x: 27, y: 9 };
+// ── Finance (its own section, just below center) ──
+var POS_FINANCE  = { x: 20, y: 21 };
 
-// ── Growth cluster (NW) ──
-var POS_MARKETING  = { x: 13, y: 11 };
-var POS_DISCOUNTS  = { x: 13, y: 15 };
-var POS_KLAVIYO    = { x: 10, y: 10 };
+// ── W: Build ──
+var POS_PRODUCTS = { x: 11, y: 16 };
+var POS_CONTENT  = { x: 11, y: 20 };
+var POS_JUDGEME  = { x: 8,  y: 18 };
 
-// ── Channels cluster (W/SW) ──
-var POS_ONLINE_STORE = { x: 12, y: 20 };
-var POS_POS          = { x: 9,  y: 22 };
-var POS_SHOP         = { x: 12, y: 24 };
-var POS_FACEBOOK     = { x: 9,  y: 26 };
-var POS_GOOGLE       = { x: 15, y: 26 };
-var POS_TIKTOK       = { x: 9,  y: 28 };
+// ── N: Sell ──
+var POS_ONLINE_STORE = { x: 20, y: 9 };
+var POS_POS          = { x: 17, y: 11 };
+var POS_SHOP         = { x: 23, y: 11 };
+var POS_FACEBOOK     = { x: 17, y: 13 };
+var POS_GOOGLE       = { x: 23, y: 13 };
+var POS_TIKTOK       = { x: 20, y: 7 };
 
-// ── Agents (near Admin center) ──
-var POS_SIDEKICK   = { x: 17, y: 21 };
+// ── E: Fulfill ──
+var POS_ORDERS = { x: 29, y: 16 };
+var POS_FLOW   = { x: 32, y: 18 };
 
-// ── Platform cluster (SE) ──
-var POS_FINANCE    = { x: 27, y: 22 };
-var POS_ANALYTICS  = { x: 24, y: 25 };
-var POS_CONTENT    = { x: 21, y: 22 };
-var POS_MARKETS    = { x: 27, y: 26 };
+// ── S: Grow ──
+var POS_CUSTOMERS = { x: 20, y: 25 };
+var POS_MARKETING = { x: 17, y: 27 };
+var POS_ANALYTICS = { x: 23, y: 27 };
+var POS_DISCOUNTS = { x: 17, y: 30 };
+var POS_KLAVIYO   = { x: 14, y: 27 };
+var POS_MARKETS   = { x: 26, y: 25 };
 
-// ── Region templates ─────────────────────────────────────────
+// ── Region templates (4 sections) ────────────────────────────
 interface RegionTemplate {
   label: string;
   color: string;
@@ -45,186 +44,191 @@ interface RegionTemplate {
 }
 
 var REGION_TEMPLATES: RegionTemplate[] = [
-  {
-    label: "Commerce",
-    color: "#ea580c",
-    categories: ["orders", "products", "customers", "app-judgeme", "app-flow"],
-  },
-  {
-    label: "Growth",
-    color: "#db2777",
-    categories: ["marketing", "discounts", "app-klaviyo"],
-  },
-  {
-    label: "Channels",
-    color: "#0284c7",
-    categories: ["online-store", "pos", "shop-channel", "facebook-instagram", "google-youtube", "tiktok"],
-  },
-  {
-    label: "Platform",
-    color: "#059669",
-    categories: ["finance", "analytics", "content", "markets"],
-  },
+  { label: "Command",  color: "#5E8E3E", categories: ["back-office", "agent-sidekick"] },
+  { label: "Finance",  color: "#059669", categories: ["finance"] },
+  { label: "Build",    color: "#7c3aed", categories: ["products", "content", "app-judgeme"] },
+  { label: "Sell",     color: "#0284c7", categories: ["online-store", "pos", "shop-channel", "facebook-instagram", "google-youtube", "tiktok"] },
+  { label: "Fulfill",  color: "#ea580c", categories: ["orders", "app-flow"] },
+  { label: "Grow",     color: "#db2777", categories: ["customers", "marketing", "analytics", "discounts", "app-klaviyo", "markets"] },
 ];
 
 // ── Hub Stage Definitions ──────────────────────────────────────
 
-// Stage 0: "I just signed up for Shopify" — Admin + Online Store
 var HUB_STAGE_0: StageLayout = {
   stage: 0,
-  label: "Just Started",
+  label: "Out of the Box",
   nodes: [
-    { category: "back-office",   tileX: HUB_X,              tileY: HUB_Y },
-    { category: "online-store",  nodeType: "channel", tileX: POS_ONLINE_STORE.x, tileY: POS_ONLINE_STORE.y },
+    { category: "back-office",     tileX: HUB_X,               tileY: HUB_Y },
+    { category: "agent-sidekick",  nodeType: "agent",   tileX: POS_SIDEKICK.x,     tileY: POS_SIDEKICK.y },
+    { category: "online-store",    nodeType: "channel", tileX: POS_ONLINE_STORE.x, tileY: POS_ONLINE_STORE.y },
   ],
   connections: [
-    { from: "back-office", to: "online-store", label: "storefront", style: "solid", flowRate: 0.5 },
+    { from: "back-office", to: "agent-sidekick", label: "AI co-pilot", style: "dotted", flowRate: 0.5 },
+    { from: "back-office", to: "online-store",   label: "storefront",  style: "solid",  flowRate: 0.5 },
   ],
 };
 
-// Stage 1: First sale — core commerce nodes appear
 var HUB_STAGE_1: StageLayout = {
   stage: 1,
   label: "First Sale",
   nodes: [
-    { category: "back-office",   tileX: HUB_X,              tileY: HUB_Y },
-    { category: "online-store",  nodeType: "channel", tileX: POS_ONLINE_STORE.x, tileY: POS_ONLINE_STORE.y },
-    { category: "orders",        nodeType: "core", tileX: POS_ORDERS.x,     tileY: POS_ORDERS.y },
-    { category: "products",      nodeType: "core", tileX: POS_PRODUCTS.x,   tileY: POS_PRODUCTS.y },
-    { category: "customers",     nodeType: "core", tileX: POS_CUSTOMERS.x,  tileY: POS_CUSTOMERS.y },
+    { category: "back-office",     tileX: HUB_X,               tileY: HUB_Y },
+    { category: "agent-sidekick",  nodeType: "agent",   tileX: POS_SIDEKICK.x,     tileY: POS_SIDEKICK.y },
+    { category: "products",        nodeType: "core",    tileX: POS_PRODUCTS.x,     tileY: POS_PRODUCTS.y },
+    { category: "online-store",    nodeType: "channel", tileX: POS_ONLINE_STORE.x, tileY: POS_ONLINE_STORE.y },
+    { category: "orders",          nodeType: "core",    tileX: POS_ORDERS.x,       tileY: POS_ORDERS.y },
+    { category: "customers",       nodeType: "core",    tileX: POS_CUSTOMERS.x,    tileY: POS_CUSTOMERS.y },
   ],
   connections: [
-    { from: "back-office", to: "online-store", label: "storefront", style: "solid", flowRate: 0.6 },
-    { from: "back-office", to: "orders",       label: "orders",     style: "solid", flowRate: 0.7 },
-    { from: "back-office", to: "products",     label: "catalog",    style: "solid", flowRate: 0.5 },
-    { from: "back-office", to: "customers",    label: "CRM",        style: "solid", flowRate: 0.5 },
+    { from: "products",     to: "online-store", label: "catalog sync",      style: "solid", flowRate: 0.7 },
+    { from: "online-store", to: "orders",       label: "storefront sales",  style: "solid", flowRate: 0.7 },
+    { from: "orders",       to: "customers",    label: "customer creation", style: "solid", flowRate: 0.7 },
+    { from: "back-office", to: "agent-sidekick", label: "AI co-pilot", style: "dotted", flowRate: 0.5 },
   ],
 };
 
-// Stage 2: Growing — marketing, finance, analytics + first app
 var HUB_STAGE_2: StageLayout = {
   stage: 2,
   label: "Growing",
   nodes: [
-    { category: "back-office",   tileX: HUB_X,              tileY: HUB_Y },
-    { category: "online-store",  nodeType: "channel", tileX: POS_ONLINE_STORE.x, tileY: POS_ONLINE_STORE.y },
-    { category: "orders",        nodeType: "core", tileX: POS_ORDERS.x,     tileY: POS_ORDERS.y },
-    { category: "products",      nodeType: "core", tileX: POS_PRODUCTS.x,   tileY: POS_PRODUCTS.y },
-    { category: "customers",     nodeType: "core", tileX: POS_CUSTOMERS.x,  tileY: POS_CUSTOMERS.y },
-    { category: "marketing",     nodeType: "core", tileX: POS_MARKETING.x,  tileY: POS_MARKETING.y },
-    { category: "finance",       nodeType: "core", tileX: POS_FINANCE.x,    tileY: POS_FINANCE.y },
-    { category: "analytics",     nodeType: "core", tileX: POS_ANALYTICS.x,  tileY: POS_ANALYTICS.y },
-    { category: "app-klaviyo",   nodeType: "app",  tileX: POS_KLAVIYO.x,    tileY: POS_KLAVIYO.y },
-    // Agent
-    { category: "agent-sidekick", nodeType: "agent", tileX: POS_SIDEKICK.x, tileY: POS_SIDEKICK.y },
+    // Command
+    { category: "back-office",     tileX: HUB_X,               tileY: HUB_Y },
+    { category: "agent-sidekick",  nodeType: "agent",   tileX: POS_SIDEKICK.x,     tileY: POS_SIDEKICK.y },
+    // Finance
+    { category: "finance",         nodeType: "core",    tileX: POS_FINANCE.x,      tileY: POS_FINANCE.y },
+    // Build
+    { category: "products",        nodeType: "core",    tileX: POS_PRODUCTS.x,     tileY: POS_PRODUCTS.y },
+    // Sell
+    { category: "online-store",    nodeType: "channel", tileX: POS_ONLINE_STORE.x, tileY: POS_ONLINE_STORE.y },
+    // Fulfill
+    { category: "orders",          nodeType: "core",    tileX: POS_ORDERS.x,       tileY: POS_ORDERS.y },
+    // Grow
+    { category: "customers",       nodeType: "core",    tileX: POS_CUSTOMERS.x,    tileY: POS_CUSTOMERS.y },
+    { category: "marketing",       nodeType: "core",    tileX: POS_MARKETING.x,    tileY: POS_MARKETING.y },
+    { category: "analytics",       nodeType: "core",    tileX: POS_ANALYTICS.x,    tileY: POS_ANALYTICS.y },
+    { category: "discounts",       nodeType: "core",    tileX: POS_DISCOUNTS.x,    tileY: POS_DISCOUNTS.y },
   ],
   connections: [
-    { from: "back-office", to: "online-store", label: "storefront", style: "solid",  flowRate: 0.6 },
-    { from: "back-office", to: "orders",       label: "orders",     style: "solid",  flowRate: 0.7 },
-    { from: "back-office", to: "products",     label: "catalog",    style: "solid",  flowRate: 0.5 },
-    { from: "back-office", to: "customers",    label: "CRM",        style: "solid",  flowRate: 0.5 },
-    { from: "back-office", to: "marketing",    label: "campaigns",  style: "solid",  flowRate: 0.6 },
-    { from: "back-office", to: "finance",      label: "revenue",    style: "solid",  flowRate: 0.6 },
-    { from: "back-office", to: "analytics",    label: "insights",   style: "dashed", flowRate: 0.3 },
-    { from: "marketing",   to: "app-klaviyo",  label: "email/SMS",  style: "dashed", flowRate: 0.4 },
-    { from: "back-office", to: "agent-sidekick", label: "AI",       style: "dotted", flowRate: 0.5 },
+    { from: "products",     to: "online-store", label: "catalog sync",       style: "solid",  flowRate: 0.7 },
+    { from: "online-store", to: "orders",       label: "storefront sales",   style: "solid",  flowRate: 0.7 },
+    { from: "orders",       to: "customers",    label: "customer creation",  style: "solid",  flowRate: 0.7 },
+    { from: "customers",    to: "marketing",    label: "customer targeting", style: "solid",  flowRate: 0.7 },
+    { from: "marketing",    to: "online-store", label: "campaign traffic",   style: "dashed", flowRate: 0.5 },
+    { from: "orders",    to: "finance",   label: "revenue tracking", style: "solid",  flowRate: 0.6 },
+    { from: "marketing", to: "discounts", label: "promo codes",      style: "solid",  flowRate: 0.5 },
+    { from: "orders",    to: "analytics", label: "order data",       style: "dashed", flowRate: 0.4 },
+    { from: "customers", to: "analytics", label: "customer data",    style: "dashed", flowRate: 0.4 },
+    { from: "back-office", to: "agent-sidekick", label: "AI co-pilot", style: "dotted", flowRate: 0.5 },
   ],
 };
 
-// Stage 3: Scaling — more channels, more core nodes, more apps
 var HUB_STAGE_3: StageLayout = {
   stage: 3,
   label: "Scaling",
   nodes: [
-    { category: "back-office",   tileX: HUB_X,              tileY: HUB_Y },
-    { category: "online-store",  nodeType: "channel", tileX: POS_ONLINE_STORE.x, tileY: POS_ONLINE_STORE.y },
-    { category: "pos",           nodeType: "channel", tileX: POS_POS.x,          tileY: POS_POS.y },
-    { category: "shop-channel",  nodeType: "channel", tileX: POS_SHOP.x,         tileY: POS_SHOP.y },
-    { category: "orders",        nodeType: "core", tileX: POS_ORDERS.x,     tileY: POS_ORDERS.y },
-    { category: "products",      nodeType: "core", tileX: POS_PRODUCTS.x,   tileY: POS_PRODUCTS.y },
-    { category: "customers",     nodeType: "core", tileX: POS_CUSTOMERS.x,  tileY: POS_CUSTOMERS.y },
-    { category: "marketing",     nodeType: "core", tileX: POS_MARKETING.x,  tileY: POS_MARKETING.y },
-    { category: "finance",       nodeType: "core", tileX: POS_FINANCE.x,    tileY: POS_FINANCE.y },
-    { category: "analytics",     nodeType: "core", tileX: POS_ANALYTICS.x,  tileY: POS_ANALYTICS.y },
-    { category: "discounts",     nodeType: "core", tileX: POS_DISCOUNTS.x,  tileY: POS_DISCOUNTS.y },
-    { category: "content",       nodeType: "core", tileX: POS_CONTENT.x,    tileY: POS_CONTENT.y },
-    { category: "app-klaviyo",   nodeType: "app",  tileX: POS_KLAVIYO.x,    tileY: POS_KLAVIYO.y },
-    { category: "app-judgeme",   nodeType: "app",  tileX: POS_JUDGEME.x,    tileY: POS_JUDGEME.y },
-    // Agent
-    { category: "agent-sidekick", nodeType: "agent", tileX: POS_SIDEKICK.x, tileY: POS_SIDEKICK.y },
+    // Command
+    { category: "back-office",     tileX: HUB_X,               tileY: HUB_Y },
+    { category: "agent-sidekick",  nodeType: "agent",   tileX: POS_SIDEKICK.x,     tileY: POS_SIDEKICK.y },
+    // Finance
+    { category: "finance",         nodeType: "core",    tileX: POS_FINANCE.x,      tileY: POS_FINANCE.y },
+    // Build
+    { category: "products",        nodeType: "core",    tileX: POS_PRODUCTS.x,     tileY: POS_PRODUCTS.y },
+    { category: "content",         nodeType: "core",    tileX: POS_CONTENT.x,      tileY: POS_CONTENT.y },
+    { category: "app-judgeme",     nodeType: "app",     tileX: POS_JUDGEME.x,      tileY: POS_JUDGEME.y },
+    // Sell
+    { category: "online-store",    nodeType: "channel", tileX: POS_ONLINE_STORE.x, tileY: POS_ONLINE_STORE.y },
+    { category: "pos",             nodeType: "channel", tileX: POS_POS.x,          tileY: POS_POS.y },
+    { category: "shop-channel",    nodeType: "channel", tileX: POS_SHOP.x,         tileY: POS_SHOP.y },
+    // Fulfill
+    { category: "orders",          nodeType: "core",    tileX: POS_ORDERS.x,       tileY: POS_ORDERS.y },
+    // Grow
+    { category: "customers",       nodeType: "core",    tileX: POS_CUSTOMERS.x,    tileY: POS_CUSTOMERS.y },
+    { category: "marketing",       nodeType: "core",    tileX: POS_MARKETING.x,    tileY: POS_MARKETING.y },
+    { category: "analytics",       nodeType: "core",    tileX: POS_ANALYTICS.x,    tileY: POS_ANALYTICS.y },
+    { category: "discounts",       nodeType: "core",    tileX: POS_DISCOUNTS.x,    tileY: POS_DISCOUNTS.y },
+    { category: "app-klaviyo",     nodeType: "app",     tileX: POS_KLAVIYO.x,      tileY: POS_KLAVIYO.y },
   ],
   connections: [
-    { from: "back-office", to: "online-store",  label: "storefront",  style: "solid",  flowRate: 0.7 },
-    { from: "back-office", to: "pos",           label: "retail",      style: "solid",  flowRate: 0.5 },
-    { from: "back-office", to: "shop-channel",  label: "shop app",    style: "solid",  flowRate: 0.4 },
-    { from: "back-office", to: "orders",        label: "orders",      style: "solid",  flowRate: 0.7 },
-    { from: "back-office", to: "products",      label: "catalog",     style: "solid",  flowRate: 0.5 },
-    { from: "back-office", to: "customers",     label: "CRM",         style: "solid",  flowRate: 0.5 },
-    { from: "back-office", to: "marketing",     label: "campaigns",   style: "solid",  flowRate: 0.6 },
-    { from: "back-office", to: "finance",       label: "revenue",     style: "solid",  flowRate: 0.6 },
-    { from: "back-office", to: "analytics",     label: "insights",    style: "dashed", flowRate: 0.3 },
-    { from: "back-office", to: "discounts",     label: "promotions",  style: "dashed", flowRate: 0.3 },
-    { from: "back-office", to: "content",       label: "pages",       style: "dashed", flowRate: 0.3 },
-    { from: "marketing",   to: "app-klaviyo",   label: "email/SMS",   style: "dashed", flowRate: 0.4 },
-    { from: "products",    to: "app-judgeme",   label: "reviews",     style: "dashed", flowRate: 0.3 },
-    { from: "back-office", to: "agent-sidekick", label: "AI",         style: "dotted", flowRate: 0.5 },
+    { from: "products",     to: "online-store", label: "catalog sync",       style: "solid",  flowRate: 0.7 },
+    { from: "products",     to: "pos",          label: "catalog sync",       style: "solid",  flowRate: 0.6 },
+    { from: "products",     to: "shop-channel", label: "catalog sync",       style: "solid",  flowRate: 0.5 },
+    { from: "online-store", to: "orders",       label: "storefront sales",   style: "solid",  flowRate: 0.7 },
+    { from: "pos",          to: "orders",       label: "in-store sales",     style: "solid",  flowRate: 0.6 },
+    { from: "shop-channel", to: "orders",       label: "Shop sales",         style: "solid",  flowRate: 0.5 },
+    { from: "orders",       to: "customers",    label: "customer creation",  style: "solid",  flowRate: 0.7 },
+    { from: "customers",    to: "marketing",    label: "customer targeting", style: "solid",  flowRate: 0.7 },
+    { from: "marketing",    to: "online-store", label: "campaign traffic",   style: "dashed", flowRate: 0.5 },
+    { from: "content",   to: "online-store", label: "SEO/blog",         style: "solid",  flowRate: 0.5 },
+    { from: "products",  to: "app-judgeme",  label: "reviews",          style: "dashed", flowRate: 0.3 },
+    { from: "orders",    to: "finance",      label: "revenue tracking", style: "solid",  flowRate: 0.6 },
+    { from: "marketing", to: "discounts",    label: "promo codes",      style: "solid",  flowRate: 0.5 },
+    { from: "marketing", to: "app-klaviyo",  label: "email/SMS",        style: "dashed", flowRate: 0.4 },
+    { from: "orders",    to: "analytics",    label: "order data",       style: "dashed", flowRate: 0.4 },
+    { from: "customers", to: "analytics",    label: "customer data",    style: "dashed", flowRate: 0.4 },
+    { from: "back-office", to: "agent-sidekick", label: "AI co-pilot", style: "dotted", flowRate: 0.5 },
   ],
 };
 
-// Stage 4: Mature — full system with all channels and apps
 var HUB_STAGE_4: StageLayout = {
   stage: 4,
-  label: "Mature",
+  label: "Thriving",
   nodes: [
-    { category: "back-office",       tileX: HUB_X,              tileY: HUB_Y },
-    // Channels
-    { category: "online-store",      nodeType: "channel", tileX: POS_ONLINE_STORE.x, tileY: POS_ONLINE_STORE.y },
-    { category: "pos",               nodeType: "channel", tileX: POS_POS.x,          tileY: POS_POS.y },
-    { category: "shop-channel",      nodeType: "channel", tileX: POS_SHOP.x,         tileY: POS_SHOP.y },
-    { category: "facebook-instagram", nodeType: "channel", tileX: POS_FACEBOOK.x,    tileY: POS_FACEBOOK.y },
-    { category: "google-youtube",    nodeType: "channel", tileX: POS_GOOGLE.x,       tileY: POS_GOOGLE.y },
-    { category: "tiktok",            nodeType: "channel", tileX: POS_TIKTOK.x,       tileY: POS_TIKTOK.y },
-    // Core
-    { category: "orders",        nodeType: "core", tileX: POS_ORDERS.x,     tileY: POS_ORDERS.y },
-    { category: "products",      nodeType: "core", tileX: POS_PRODUCTS.x,   tileY: POS_PRODUCTS.y },
-    { category: "customers",     nodeType: "core", tileX: POS_CUSTOMERS.x,  tileY: POS_CUSTOMERS.y },
-    { category: "marketing",     nodeType: "core", tileX: POS_MARKETING.x,  tileY: POS_MARKETING.y },
-    { category: "finance",       nodeType: "core", tileX: POS_FINANCE.x,    tileY: POS_FINANCE.y },
-    { category: "analytics",     nodeType: "core", tileX: POS_ANALYTICS.x,  tileY: POS_ANALYTICS.y },
-    { category: "discounts",     nodeType: "core", tileX: POS_DISCOUNTS.x,  tileY: POS_DISCOUNTS.y },
-    { category: "content",       nodeType: "core", tileX: POS_CONTENT.x,    tileY: POS_CONTENT.y },
-    { category: "markets",       nodeType: "core", tileX: POS_MARKETS.x,    tileY: POS_MARKETS.y },
-    // Apps
-    { category: "app-klaviyo",   nodeType: "app",  tileX: POS_KLAVIYO.x,    tileY: POS_KLAVIYO.y },
-    { category: "app-judgeme",   nodeType: "app",  tileX: POS_JUDGEME.x,    tileY: POS_JUDGEME.y },
-    { category: "app-flow",     nodeType: "app",  tileX: POS_FLOW.x,       tileY: POS_FLOW.y },
-    // Agent
-    { category: "agent-sidekick", nodeType: "agent", tileX: POS_SIDEKICK.x, tileY: POS_SIDEKICK.y },
+    // Command
+    { category: "back-office",        tileX: HUB_X,               tileY: HUB_Y },
+    { category: "agent-sidekick",     nodeType: "agent",   tileX: POS_SIDEKICK.x,     tileY: POS_SIDEKICK.y },
+    // Finance
+    { category: "finance",            nodeType: "core",    tileX: POS_FINANCE.x,      tileY: POS_FINANCE.y },
+    // Build
+    { category: "products",           nodeType: "core",    tileX: POS_PRODUCTS.x,     tileY: POS_PRODUCTS.y },
+    { category: "content",            nodeType: "core",    tileX: POS_CONTENT.x,      tileY: POS_CONTENT.y },
+    { category: "app-judgeme",        nodeType: "app",     tileX: POS_JUDGEME.x,      tileY: POS_JUDGEME.y },
+    // Sell
+    { category: "online-store",       nodeType: "channel", tileX: POS_ONLINE_STORE.x, tileY: POS_ONLINE_STORE.y },
+    { category: "pos",                nodeType: "channel", tileX: POS_POS.x,          tileY: POS_POS.y },
+    { category: "shop-channel",       nodeType: "channel", tileX: POS_SHOP.x,         tileY: POS_SHOP.y },
+    { category: "facebook-instagram", nodeType: "channel", tileX: POS_FACEBOOK.x,     tileY: POS_FACEBOOK.y },
+    { category: "google-youtube",     nodeType: "channel", tileX: POS_GOOGLE.x,       tileY: POS_GOOGLE.y },
+    { category: "tiktok",             nodeType: "channel", tileX: POS_TIKTOK.x,       tileY: POS_TIKTOK.y },
+    // Fulfill
+    { category: "orders",       nodeType: "core", tileX: POS_ORDERS.x,    tileY: POS_ORDERS.y },
+    { category: "app-flow",     nodeType: "app",  tileX: POS_FLOW.x,      tileY: POS_FLOW.y },
+    // Grow
+    { category: "customers",    nodeType: "core", tileX: POS_CUSTOMERS.x, tileY: POS_CUSTOMERS.y },
+    { category: "marketing",    nodeType: "core", tileX: POS_MARKETING.x, tileY: POS_MARKETING.y },
+    { category: "analytics",    nodeType: "core", tileX: POS_ANALYTICS.x, tileY: POS_ANALYTICS.y },
+    { category: "discounts",    nodeType: "core", tileX: POS_DISCOUNTS.x, tileY: POS_DISCOUNTS.y },
+    { category: "app-klaviyo",  nodeType: "app",  tileX: POS_KLAVIYO.x,   tileY: POS_KLAVIYO.y },
+    { category: "markets",      nodeType: "core", tileX: POS_MARKETS.x,   tileY: POS_MARKETS.y },
   ],
   connections: [
-    // Admin → Channels
-    { from: "back-office", to: "online-store",      label: "storefront",     style: "solid",  flowRate: 0.7 },
-    { from: "back-office", to: "pos",               label: "retail",         style: "solid",  flowRate: 0.5 },
-    { from: "back-office", to: "shop-channel",      label: "shop app",       style: "solid",  flowRate: 0.4 },
-    { from: "back-office", to: "facebook-instagram", label: "social",        style: "solid",  flowRate: 0.4 },
-    { from: "back-office", to: "google-youtube",    label: "search",         style: "solid",  flowRate: 0.4 },
-    { from: "back-office", to: "tiktok",            label: "social",         style: "solid",  flowRate: 0.3 },
-    // Admin → Core
-    { from: "back-office", to: "orders",        label: "orders",         style: "solid",  flowRate: 0.7 },
-    { from: "back-office", to: "products",      label: "catalog",        style: "solid",  flowRate: 0.5 },
-    { from: "back-office", to: "customers",     label: "CRM",            style: "solid",  flowRate: 0.5 },
-    { from: "back-office", to: "marketing",     label: "campaigns",      style: "solid",  flowRate: 0.6 },
-    { from: "back-office", to: "finance",       label: "revenue",        style: "solid",  flowRate: 0.6 },
-    { from: "back-office", to: "analytics",     label: "insights",       style: "dashed", flowRate: 0.3 },
-    { from: "back-office", to: "discounts",     label: "promotions",     style: "dashed", flowRate: 0.3 },
-    { from: "back-office", to: "content",       label: "pages",          style: "dashed", flowRate: 0.3 },
-    { from: "back-office", to: "markets",       label: "international",  style: "dashed", flowRate: 0.4 },
-    // Apps → Core nodes they extend
-    { from: "marketing",   to: "app-klaviyo",   label: "email/SMS",      style: "dashed", flowRate: 0.4 },
-    { from: "products",    to: "app-judgeme",   label: "reviews",        style: "dashed", flowRate: 0.3 },
-    { from: "orders",      to: "app-flow",     label: "automation",     style: "dashed", flowRate: 0.4 },
-    // Admin → Agent
-    { from: "back-office", to: "agent-sidekick", label: "AI",            style: "dotted", flowRate: 0.5 },
+    { from: "products",     to: "online-store",       label: "catalog sync", style: "solid", flowRate: 0.7 },
+    { from: "products",     to: "pos",                label: "catalog sync", style: "solid", flowRate: 0.6 },
+    { from: "products",     to: "shop-channel",       label: "catalog sync", style: "solid", flowRate: 0.5 },
+    { from: "products",     to: "facebook-instagram", label: "catalog sync", style: "solid", flowRate: 0.5 },
+    { from: "products",     to: "google-youtube",     label: "catalog sync", style: "solid", flowRate: 0.5 },
+    { from: "products",     to: "tiktok",             label: "catalog sync", style: "solid", flowRate: 0.4 },
+    { from: "online-store",       to: "orders", label: "storefront sales", style: "solid", flowRate: 0.7 },
+    { from: "pos",                to: "orders", label: "in-store sales",   style: "solid", flowRate: 0.6 },
+    { from: "shop-channel",       to: "orders", label: "Shop sales",       style: "solid", flowRate: 0.5 },
+    { from: "facebook-instagram", to: "orders", label: "social sales",     style: "solid", flowRate: 0.4 },
+    { from: "google-youtube",     to: "orders", label: "search sales",     style: "solid", flowRate: 0.4 },
+    { from: "tiktok",             to: "orders", label: "social sales",     style: "solid", flowRate: 0.3 },
+    { from: "orders",    to: "customers", label: "customer creation",  style: "solid", flowRate: 0.7 },
+    { from: "customers", to: "marketing", label: "customer targeting", style: "solid", flowRate: 0.7 },
+    { from: "marketing", to: "online-store",       label: "campaign traffic", style: "dashed", flowRate: 0.5 },
+    { from: "marketing", to: "facebook-instagram", label: "paid social",      style: "dashed", flowRate: 0.4 },
+    { from: "marketing", to: "google-youtube",     label: "paid search",      style: "dashed", flowRate: 0.4 },
+    { from: "marketing", to: "tiktok",             label: "paid social",      style: "dashed", flowRate: 0.3 },
+    { from: "content",   to: "online-store", label: "SEO/blog",            style: "solid",  flowRate: 0.5 },
+    { from: "products",  to: "app-judgeme",  label: "reviews",             style: "dashed", flowRate: 0.3 },
+    { from: "orders",    to: "finance",      label: "revenue tracking",    style: "solid",  flowRate: 0.6 },
+    { from: "orders",    to: "app-flow",     label: "workflow automation",  style: "dashed", flowRate: 0.4 },
+    { from: "marketing", to: "discounts",    label: "promo codes",         style: "solid",  flowRate: 0.5 },
+    { from: "marketing", to: "app-klaviyo",  label: "email/SMS",           style: "dashed", flowRate: 0.4 },
+    { from: "orders",    to: "analytics",    label: "order data",          style: "dashed", flowRate: 0.4 },
+    { from: "customers", to: "analytics",    label: "customer data",       style: "dashed", flowRate: 0.4 },
+    { from: "markets",   to: "online-store", label: "international",       style: "dashed", flowRate: 0.4 },
+    { from: "back-office", to: "agent-sidekick", label: "AI co-pilot", style: "dotted", flowRate: 0.5 },
   ],
 };
 
@@ -234,14 +238,12 @@ export function getHubStageLayout(stage: MerchantStage): StageLayout {
   return HUB_ALL_STAGES[stage] || HUB_ALL_STAGES[0];
 }
 
-// ── Compute regions for hub layout (clustered quadrants) ──────────────
 export function computeHubRegions(positions: StageNodePosition[]): Region[] {
   var regions: Region[] = [];
   var rid = 0;
 
   for (var ti = 0; ti < REGION_TEMPLATES.length; ti++) {
     var tmpl = REGION_TEMPLATES[ti];
-    // Find positions matching this template's categories
     var matchX: number[] = [];
     var matchY: number[] = [];
     for (var pi = 0; pi < positions.length; pi++) {
@@ -255,10 +257,8 @@ export function computeHubRegions(positions: StageNodePosition[]): Region[] {
       }
     }
 
-    // Only create region if 2+ nodes from this template
-    if (matchX.length < 2) continue;
+    if (matchX.length < 1) continue;
 
-    // Compute bounding box with 1-tile padding
     var minX = matchX[0];
     var maxX = matchX[0];
     var minY = matchY[0];

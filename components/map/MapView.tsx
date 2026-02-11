@@ -124,6 +124,7 @@ export function MapView({ isDark, currentTheme, sidebarWidth, onDrillDown }: Map
             }
           }}
           isDark={isDark}
+          placedCategories={state.model.nodes.map(function(n) { return n.category; })}
         />
 
         {selectedNode && (

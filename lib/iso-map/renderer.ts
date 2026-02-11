@@ -490,24 +490,36 @@ export function drawNodeCard(
   var y = _pos[1] - h / 2;
   var r = CARD_R * zoom;
 
+  // ── Maturity state from activityLevel ──
+  var activity = node.activityLevel || 0;
+  var isSetup = activity < 0.2;
+  var isEarly = activity >= 0.2 && activity <= 0.4;
+  // Opacity multipliers per maturity state
+  var accentOpacity = isSetup ? 0.4 : (isEarly ? 0.7 : 1.0);
+  var iconOpacity = isSetup ? 0.4 : (isEarly ? 0.7 : 1.0);
+  var labelOpacity = isSetup ? 0.5 : (isEarly ? 0.75 : 1.0);
+
   // Card background
   roundedRect(ctx, x, y, w, h, r);
   ctx.fillStyle = isDark ? "#1e1e1e" : "#ffffff";
   ctx.fill();
 
-  // Card border — varies by nodeType
+  // Card border — varies by nodeType and maturity
   if (isSelected) {
     ctx.strokeStyle = "#0d9488";
     ctx.lineWidth = 2;
     ctx.setLineDash([]);
+  } else if (isSetup) {
+    // Setup state: dashed, muted border
+    ctx.strokeStyle = isDark ? "rgba(255,255,255,0.08)" : "rgba(0,0,0,0.08)";
+    ctx.lineWidth = 1;
+    ctx.setLineDash([4 * zoom, 3 * zoom]);
   } else if (node.nodeType === "agent") {
-    // Agents: solid border with accent color
     ctx.strokeStyle = def.color;
     ctx.globalAlpha = 0.4;
     ctx.lineWidth = 1.5;
     ctx.setLineDash([]);
   } else if (node.nodeType === "app") {
-    // Apps: dashed border
     ctx.strokeStyle = isDark ? "rgba(255,255,255,0.12)" : "rgba(0,0,0,0.12)";
     ctx.lineWidth = 1;
     ctx.setLineDash([4 * zoom, 3 * zoom]);
@@ -533,7 +545,9 @@ export function drawNodeCard(
   ctx.quadraticCurveTo(x, y, x + accentR, y);
   ctx.closePath();
   ctx.fillStyle = def.color;
+  ctx.globalAlpha = accentOpacity;
   ctx.fill();
+  ctx.globalAlpha = 1;
 
   // Icon circle (top-left inside card)
   var iconR = ICON_R * zoom;
@@ -542,17 +556,20 @@ export function drawNodeCard(
   ctx.beginPath();
   ctx.arc(iconCX, iconCY, iconR, 0, Math.PI * 2);
   ctx.fillStyle = def.color;
-  ctx.globalAlpha = 0.12;
+  ctx.globalAlpha = 0.12 * iconOpacity;
   ctx.fill();
   ctx.globalAlpha = 1;
 
   // Draw Lucide-style icon
   var iconSize = iconR * 1.3;
+  ctx.globalAlpha = iconOpacity;
   drawCategoryIcon(ctx, node.category, iconCX, iconCY, iconSize, def.color);
+  ctx.globalAlpha = 1;
 
   // Label text (bold, to the right of icon)
   var labelX = iconCX + iconR + 6 * zoom;
   var labelY = y + h * 0.35;
+  ctx.globalAlpha = labelOpacity;
   ctx.fillStyle = isDark ? "#e5e5e5" : "#1a1a1a";
   ctx.font = "600 " + Math.max(10, 12 * zoom) + "px var(--font-geist-sans), system-ui, sans-serif";
   ctx.textAlign = "left";
@@ -587,6 +604,7 @@ export function drawNodeCard(
     }
     ctx.fillText(statText, labelX, statY);
   }
+  ctx.globalAlpha = 1;
 
   // Alert badge (pill shape at top-right with proper padding)
   if (node.alertCount && node.alertCount > 0) {

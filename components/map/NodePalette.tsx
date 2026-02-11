@@ -15,6 +15,7 @@ interface NodePaletteProps {
   activeCategory: NodeCategory | null;
   onSelectCategory: (cat: NodeCategory) => void;
   isDark: boolean;
+  placedCategories?: NodeCategory[];
 }
 
 // Map category to Lucide icon component
@@ -123,10 +124,11 @@ function PaletteSection({
   );
 }
 
-export function NodePalette({ activeCategory, onSelectCategory, isDark }: NodePaletteProps) {
+export function NodePalette({ activeCategory, onSelectCategory, isDark, placedCategories }: NodePaletteProps) {
   var [collapsed, setCollapsed] = useState(false);
 
-  // Split categories into sections, excluding "back-office" (hub)
+  // Split categories into sections, excluding "back-office" (hub) and already-placed nodes
+  var placed = placedCategories || [];
   var coreItems: NodeCategoryDef[] = [];
   var channelItems: NodeCategoryDef[] = [];
   var appItems: NodeCategoryDef[] = [];
@@ -135,6 +137,12 @@ export function NodePalette({ activeCategory, onSelectCategory, isDark }: NodePa
   for (var i = 0; i < NODE_CATEGORIES.length; i++) {
     var def = NODE_CATEGORIES[i];
     if (def.category === "back-office") continue;
+    // Skip nodes already on the canvas
+    var isPlaced = false;
+    for (var j = 0; j < placed.length; j++) {
+      if (placed[j] === def.category) { isPlaced = true; break; }
+    }
+    if (isPlaced) continue;
     if (def.nodeType === "channel") {
       channelItems.push(def);
     } else if (def.nodeType === "app") {

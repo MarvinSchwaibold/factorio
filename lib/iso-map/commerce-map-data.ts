@@ -150,9 +150,34 @@ export function getCommerceData(): CommerceData {
   };
 }
 
+// ── Node intro stages (which stage each category first appears) ──────
+
+var NODE_INTRO_STAGE: { [key: string]: number } = {
+  "back-office": 0,
+  "agent-sidekick": 0,
+  "online-store": 0,
+  "products": 1,
+  "orders": 1,
+  "customers": 1,
+  "finance": 2,
+  "marketing": 2,
+  "analytics": 2,
+  "discounts": 2,
+  "content": 3,
+  "app-judgeme": 3,
+  "pos": 3,
+  "shop-channel": 3,
+  "app-klaviyo": 3,
+  "facebook-instagram": 4,
+  "google-youtube": 4,
+  "tiktok": 4,
+  "app-flow": 4,
+  "markets": 4,
+};
+
 // ── Node stats builder per category ──────────────────────
 
-function buildNodeStats(category: string, data: CommerceData): { stats: import("./types").CommerceStat[]; alertCount: number; activityLevel: number } {
+function buildFullNodeStats(category: string, data: CommerceData): { stats: import("./types").CommerceStat[]; alertCount: number; activityLevel: number } {
   switch (category) {
     case "back-office":
       return {
@@ -344,6 +369,37 @@ function buildNodeStats(category: string, data: CommerceData): { stats: import("
   }
 }
 
+function buildNodeStats(category: string, data: CommerceData, currentStage: number): { stats: import("./types").CommerceStat[]; alertCount: number; activityLevel: number } {
+  var full = buildFullNodeStats(category, data);
+  var introStage = NODE_INTRO_STAGE[category] != null ? NODE_INTRO_STAGE[category] : 0;
+  var stagesActive = currentStage - introStage;
+
+  if (stagesActive <= 0) {
+    // Just introduced this stage — setup state
+    return {
+      stats: [{ label: "Status", value: "Setting up\u2026", trend: "flat" as const }],
+      alertCount: 0,
+      activityLevel: full.activityLevel * 0.15,
+    };
+  } else if (stagesActive === 1) {
+    // Early — one stage of maturity
+    return {
+      stats: full.stats.length > 0 ? [full.stats[0]] : full.stats,
+      alertCount: 0,
+      activityLevel: full.activityLevel * 0.5,
+    };
+  } else if (stagesActive === 2) {
+    // Growing — almost full
+    return {
+      stats: full.stats,
+      alertCount: Math.round(full.alertCount * 0.5),
+      activityLevel: full.activityLevel * 0.8,
+    };
+  }
+  // 3+ stages — fully mature
+  return full;
+}
+
 // ── Category labels ──────────────────────────────────────
 var CATEGORY_LABELS: { [key: string]: string } = {
   "back-office": "Admin",
@@ -410,11 +466,15 @@ export function generateMerchantMap(stage?: MerchantStage): MapModel {
   // Build a map from category → nodeId for connector wiring
   var categoryToId: { [key: string]: string } = {};
 
+  // Stage-based flow multiplier
+  var stageFlowMult = [0.3, 0.5, 0.7, 0.9, 1.0];
+  var flowMult = stageFlowMult[effectiveStage] || 1.0;
+
   // Create nodes from layout positions
   for (var ni = 0; ni < layout.nodes.length; ni++) {
     var pos = layout.nodes[ni];
     var nodeId = cid();
-    var nodeData = buildNodeStats(pos.category, data);
+    var nodeData = buildNodeStats(pos.category, data, effectiveStage);
     var catDef = getCategoryDef(pos.category);
 
     categoryToId[pos.category] = nodeId;
@@ -439,12 +499,17 @@ export function generateMerchantMap(stage?: MerchantStage): MapModel {
     var srcId = categoryToId[conn.from];
     var tgtId = categoryToId[conn.to];
     if (srcId && tgtId) {
+      // Reduce flow if either endpoint was just introduced this stage
+      var srcIntro = NODE_INTRO_STAGE[conn.from] != null ? NODE_INTRO_STAGE[conn.from] : 0;
+      var tgtIntro = NODE_INTRO_STAGE[conn.to] != null ? NODE_INTRO_STAGE[conn.to] : 0;
+      var endpointSetup = (srcIntro === effectiveStage || tgtIntro === effectiveStage);
+      var connFlowRate = conn.flowRate * flowMult * (endpointSetup ? 0.2 : 1.0);
       connectors.push({
         id: cid(),
         sourceId: srcId,
         targetId: tgtId,
         path: [],
-        flowRate: conn.flowRate,
+        flowRate: connFlowRate,
         style: conn.style,
         label: conn.label,
       });
@@ -475,10 +540,13 @@ export function generateHubMap(stage?: MerchantStage): MapModel {
 
   var categoryToId: { [key: string]: string } = {};
 
+  var stageFlowMult2 = [0.3, 0.5, 0.7, 0.9, 1.0];
+  var flowMult2 = stageFlowMult2[effectiveStage] || 1.0;
+
   for (var ni = 0; ni < layout.nodes.length; ni++) {
     var pos = layout.nodes[ni];
     var nodeId = cid();
-    var nodeData = buildNodeStats(pos.category, data);
+    var nodeData = buildNodeStats(pos.category, data, effectiveStage);
     var catDef2 = getCategoryDef(pos.category);
 
     categoryToId[pos.category] = nodeId;
@@ -502,12 +570,16 @@ export function generateHubMap(stage?: MerchantStage): MapModel {
     var srcId = categoryToId[conn.from];
     var tgtId = categoryToId[conn.to];
     if (srcId && tgtId) {
+      var srcIntro2 = NODE_INTRO_STAGE[conn.from] != null ? NODE_INTRO_STAGE[conn.from] : 0;
+      var tgtIntro2 = NODE_INTRO_STAGE[conn.to] != null ? NODE_INTRO_STAGE[conn.to] : 0;
+      var endpointSetup2 = (srcIntro2 === effectiveStage || tgtIntro2 === effectiveStage);
+      var connFlowRate2 = conn.flowRate * flowMult2 * (endpointSetup2 ? 0.2 : 1.0);
       connectors.push({
         id: cid(),
         sourceId: srcId,
         targetId: tgtId,
         path: [],
-        flowRate: conn.flowRate,
+        flowRate: connFlowRate2,
         style: conn.style,
         label: conn.label,
       });

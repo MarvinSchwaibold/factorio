@@ -26,6 +26,8 @@ import { InlineChat } from "@/components/InlineChat";
 import { MapView } from "@/components/map/MapView";
 
 import { AgentsView } from "@/components/AgentsView";
+import { WorkspacesView } from "@/components/WorkspacesView";
+import { ActivityView } from "@/components/ActivityView";
 import { Agentation } from "agentation";
 
 export default function Home() {
@@ -46,8 +48,9 @@ export default function Home() {
   const deepCleanTaskCounterRef = useRef({ left: 0, right: 0 });
   const [autoPilot, setAutoPilot] = useState(false);
   const autoPilotTimerRef = useRef<{ left: NodeJS.Timeout | null; right: NodeJS.Timeout | null }>({ left: null, right: null });
-  const [activeCanvas, setActiveCanvas] = useState<"home" | "canvas" | "blueprint" | "commerce" | "insights" | "settings" | "mapview" | "agents" | "orders" | "products" | "customers" | "marketing" | "discounts" | "content" | "markets" | "finance" | "analytics">("mapview");
+  const [activeCanvas, setActiveCanvas] = useState<"home" | "canvas" | "blueprint" | "commerce" | "insights" | "settings" | "mapview" | "agents" | "workspaces" | "activity" | "orders" | "products" | "customers" | "marketing" | "discounts" | "content" | "markets" | "finance" | "analytics">("mapview");
   const [appMode, setAppMode] = useState<AppMode>("map");
+  const [pendingAgentId, setPendingAgentId] = useState<string | null>(null);
   const [sidebarExpanded, setSidebarExpanded] = useState(true);
   const sidebarWidth = sidebarExpanded ? SIDEBAR_WIDTH_EXPANDED : SIDEBAR_WIDTH_COLLAPSED;
 
@@ -430,7 +433,7 @@ export default function Home() {
       {/* Side Navigation */}
       <SideNav
         activeView={activeCanvas}
-        onViewChange={(view) => setActiveCanvas(view as typeof activeCanvas)}
+        onViewChange={(view) => { setPendingAgentId(null); setActiveCanvas(view as typeof activeCanvas); }}
         isExpanded={sidebarExpanded}
         onToggleExpand={() => setSidebarExpanded(!sidebarExpanded)}
         appMode={appMode}
@@ -952,7 +955,7 @@ export default function Home() {
       )}
 
       {/* Content Views */}
-      {(activeCanvas !== "canvas" && activeCanvas !== "blueprint" && activeCanvas !== "mapview" && activeCanvas !== "agents") && (
+      {(activeCanvas !== "canvas" && activeCanvas !== "blueprint" && activeCanvas !== "mapview" && activeCanvas !== "agents" && activeCanvas !== "workspaces" && activeCanvas !== "activity") && (
         <div style={{ marginLeft: sidebarWidth, transition: "margin-left 300ms cubic-bezier(0.4, 0, 0.2, 1)", height: "100vh", overflow: "hidden", padding: "8px 8px 8px 4px", display: "flex" }}>
         <div style={{ flex: 1, background: "#ffffff", borderRadius: 12, border: "1px solid #e5e5e5", overflow: "auto", display: "flex", flexDirection: "column" }}>
           {activeCanvas === "home" && <HomeView onNavigate={(view) => setActiveCanvas(view as typeof activeCanvas)} />}
@@ -973,7 +976,17 @@ export default function Home() {
 
       {/* Agents View */}
       {activeCanvas === "agents" && (
-        <AgentsView sidebarWidth={sidebarWidth} />
+        <AgentsView sidebarWidth={sidebarWidth} initialAgentId={pendingAgentId} />
+      )}
+
+      {/* Workspaces View */}
+      {activeCanvas === "workspaces" && (
+        <WorkspacesView sidebarWidth={sidebarWidth} onNavigateToAgent={function (agentId) { setPendingAgentId(agentId); setActiveCanvas("agents"); }} />
+      )}
+
+      {/* Activity View */}
+      {activeCanvas === "activity" && (
+        <ActivityView sidebarWidth={sidebarWidth} onNavigateToAgent={function (agentId) { setPendingAgentId(agentId); setActiveCanvas("agents"); }} onNavigateToWorkspace={function (workspaceId) { setActiveCanvas("workspaces"); }} />
       )}
 
       {/* Map View */}
