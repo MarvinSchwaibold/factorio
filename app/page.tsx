@@ -976,17 +976,29 @@ export default function Home() {
 
       {/* Agents View */}
       {activeCanvas === "agents" && (
-        <AgentsView sidebarWidth={sidebarWidth} initialAgentId={pendingAgentId} />
+        <div style={{ marginLeft: sidebarWidth, transition: "margin-left 300ms cubic-bezier(0.4, 0, 0.2, 1)", height: "100vh", overflow: "hidden", padding: "8px 8px 8px 4px", display: "flex" }}>
+          <div style={{ flex: 1, background: "#141414", borderRadius: 12, border: "1px solid #2a2a2a", overflow: "hidden" }}>
+            <AgentsView sidebarWidth={0} initialAgentId={pendingAgentId} />
+          </div>
+        </div>
       )}
 
       {/* Workspaces View */}
       {activeCanvas === "workspaces" && (
-        <WorkspacesView sidebarWidth={sidebarWidth} onNavigateToAgent={function (agentId) { setPendingAgentId(agentId); setActiveCanvas("agents"); }} />
+        <div style={{ marginLeft: sidebarWidth, transition: "margin-left 300ms cubic-bezier(0.4, 0, 0.2, 1)", height: "100vh", overflow: "hidden", padding: "8px 8px 8px 4px", display: "flex" }}>
+          <div style={{ flex: 1, background: "#141414", borderRadius: 12, border: "1px solid #2a2a2a", overflow: "hidden" }}>
+            <WorkspacesView sidebarWidth={0} onNavigateToAgent={function (agentId) { setPendingAgentId(agentId); setActiveCanvas("agents"); }} />
+          </div>
+        </div>
       )}
 
       {/* Activity View */}
       {activeCanvas === "activity" && (
-        <ActivityView sidebarWidth={sidebarWidth} onNavigateToAgent={function (agentId) { setPendingAgentId(agentId); setActiveCanvas("agents"); }} onNavigateToWorkspace={function (workspaceId) { setActiveCanvas("workspaces"); }} />
+        <div style={{ marginLeft: sidebarWidth, transition: "margin-left 300ms cubic-bezier(0.4, 0, 0.2, 1)", height: "100vh", overflow: "hidden", padding: "8px 8px 8px 4px", display: "flex" }}>
+          <div style={{ flex: 1, background: "#141414", borderRadius: 12, border: "1px solid #2a2a2a", overflow: "hidden" }}>
+            <ActivityView sidebarWidth={0} onNavigateToAgent={function (agentId) { setPendingAgentId(agentId); setActiveCanvas("agents"); }} onNavigateToWorkspace={function (workspaceId) { setActiveCanvas("workspaces"); }} />
+          </div>
+        </div>
       )}
 
       {/* Map View */}

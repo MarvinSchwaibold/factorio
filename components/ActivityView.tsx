@@ -118,9 +118,7 @@ export function ActivityView({ sidebarWidth, onNavigateToAgent, onNavigateToWork
   return (
     <div
       style={{
-        marginLeft: sidebarWidth,
-        transition: "margin-left 300ms cubic-bezier(0.4, 0, 0.2, 1)",
-        height: "100vh",
+        height: "100%",
         overflow: "auto",
         background: "#141414",
         fontFamily: font,
